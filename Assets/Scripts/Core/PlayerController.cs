@@ -26,6 +26,17 @@ namespace SownInStone.Core
         [Tooltip("Tốc độ di chuyển của nhân vật.")]
         [SerializeField] private float moveSpeed = 4f;
 
+        [Header("--- XOAY NHÂN VẬT 3D ---")]
+        [Tooltip("Kéo mô hình 3D con vào đây. Nếu trống, script tự tìm con đầu tiên.")]
+        [SerializeField] private Transform characterVisual;
+
+        [Tooltip("Tốc độ xoay hướng của nhân vật.")]
+        [SerializeField] private float rotationSpeed = 10f;
+
+        public enum RotationAxis { RotateAroundZ_2D, RotateAroundY_3D }
+        [Tooltip("Trục xoay hướng: Chọn RotateAroundZ nếu game nhìn thẳng 2D, chọn RotateAroundY nếu là 3D nhìn từ trên xuống.")]
+        [SerializeField] private RotationAxis rotationAxis = RotationAxis.RotateAroundY_3D;
+
         [Header("--- TƯƠNG TÁC PHÍM [E] ---")]
         [Tooltip("Bán kính hình tròn quét tìm vật thể có thể tương tác xung quanh nhân vật.")]
         [SerializeField] private float interactRadius = 1.2f;
@@ -37,6 +48,10 @@ namespace SownInStone.Core
         private Animator animator;
         private Vector2 moveInput;
         private Vector2 lastMoveDirection = Vector2.down; // Hướng quay mặt mặc định (nhìn xuống)
+
+        // Lưu trữ góc xoay cục bộ ban đầu của mô hình 3D để tránh bị lật ngã do sai lệch trục nhập khẩu
+        private float initialVisualLocalX = 0f;
+        private float initialVisualLocalZ = 0f;
 
         private void Awake()
         {
@@ -55,6 +70,19 @@ namespace SownInStone.Core
             // Cấu hình Rigidbody2D để phù hợp với game 2D Top-down
             rb.gravityScale = 0f;
             rb.freezeRotation = true;
+
+            // Tự động tìm mô hình 3D con nếu chưa gán trong Inspector
+            if (characterVisual == null && transform.childCount > 0)
+            {
+                characterVisual = transform.GetChild(0);
+            }
+
+            // Ghi nhớ góc xoay cục bộ ban đầu (ví dụ GLB từ Tripo mặc định xoay -90 độ trên trục X)
+            if (characterVisual != null)
+            {
+                initialVisualLocalX = characterVisual.localRotation.eulerAngles.x;
+                initialVisualLocalZ = characterVisual.localRotation.eulerAngles.z;
+            }
         }
 
         private void Update()
@@ -85,6 +113,9 @@ namespace SownInStone.Core
                 moveInput.Normalize();
                 lastMoveDirection = moveInput; // Lưu lại hướng di chuyển cuối cùng để quay mặt
             }
+
+            // 1.5. Thực hiện xoay hướng nhân vật 3D smoothly
+            HandleVisualRotation();
 
             // 2. Cập nhật các thông số Animator phục vụ việc vẽ Sprite vẽ tay động
             UpdateAnimatorParameters();
@@ -261,6 +292,32 @@ namespace SownInStone.Core
             }
 
             Debug.Log("[PLAYER] Ô đất đang ở trạng thái tốt, không cần thao tác thêm.");
+        }
+
+        /// <summary>
+        /// Xoay hướng mô hình 3D mượt mà theo hướng di chuyển WASD.
+        /// </summary>
+        private void HandleVisualRotation()
+        {
+            if (characterVisual == null || moveInput.sqrMagnitude < 0.01f) return;
+
+            if (rotationAxis == RotationAxis.RotateAroundZ_2D)
+            {
+                // Game 2D truyền thống: Xoay quanh trục Z cục bộ
+                float targetAngle = Mathf.Atan2(moveInput.y, moveInput.x) * Mathf.Rad2Deg;
+                // Trừ 90 độ nếu mô hình mặc định hướng lên trên, giữ lại góc xoay ban đầu ở X và Z
+                Quaternion targetRotation = Quaternion.Euler(initialVisualLocalX, initialVisualLocalZ, targetAngle - 90f);
+                characterVisual.localRotation = Quaternion.Slerp(characterVisual.localRotation, targetRotation, rotationSpeed * Time.deltaTime);
+            }
+            else
+            {
+                // Game 3D Top-down (Y là trục đứng): Xoay quanh trục Y cục bộ
+                // Trong 2D physics, X là ngang, Y là dọc (tương ứng với Z trong 3D)
+                // Giữ lại góc xoay đứng mặc định ở X (ví dụ -90 độ) và Z để mô hình không bị ngã rạp
+                float targetAngle = Mathf.Atan2(moveInput.x, moveInput.y) * Mathf.Rad2Deg;
+                Quaternion targetRotation = Quaternion.Euler(initialVisualLocalX, targetAngle, initialVisualLocalZ);
+                characterVisual.localRotation = Quaternion.Slerp(characterVisual.localRotation, targetRotation, rotationSpeed * Time.deltaTime);
+            }
         }
 
         private void OnDrawGizmosSelected()
