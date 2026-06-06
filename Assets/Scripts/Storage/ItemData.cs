@@ -8,7 +8,8 @@ namespace SownInStone.Storage
         NongSanKho,    // Khoai gieo phơi khô, dưa nhút muối (để cực lâu, cứu sinh mùa bão)
         NuocNgot,      // Nước gánh giếng, nước mưa trữ lu khạp
         Incense,       // Nhang cúng Tổ tiên / Thổ địa giúp nâng tinh thần
-        VatLieu        // Tre, mây, dây thừng, bao cát chằng chống nhà
+        VatLieu,       // Tre, mây, dây thừng, bao cát chằng chống nhà
+        HatGiong       // Hạt giống cây trồng
     }
 
     /// <summary>

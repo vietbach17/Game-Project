@@ -31,15 +31,21 @@ namespace SownInStone.Core
         [Tooltip("Mức độ nhiễm lạnh / úng nước do ngập lụt, dầm mưa (0 - 100).")]
         public float ColdStress { get; private set; }
 
+        [Header("--- TÀI CHÍNH GIA ĐÌNH ---")]
+        [Tooltip("Số lượng tiền xu hiện có.")]
+        [SerializeField] private int coins = 50;
+
         // Các thuộc tính truy cập công khai
         public float CurrentHealth => currentHealth;
         public float CurrentStamina => currentStamina;
         public float CurrentMorale => currentMorale;
+        public int Coins => coins;
 
         // Sự kiện gửi cho UI cập nhật khi chỉ số thay đổi
         public event Action<float, float> OnHealthChanged; // (current, max)
         public event Action<float, float> OnStaminaChanged; // (current, max)
         public event Action<float, float> OnMoraleChanged; // (current, max)
+        public event Action<int> OnCoinsChanged;
         public event Action<string> OnPlayerAlert; // Gửi thông điệp cảnh báo lên UI (ví dụ: "Bạn đang bị sốc nhiệt!")
 
         private void Awake()
@@ -137,6 +143,12 @@ namespace SownInStone.Core
             ColdStress = Mathf.Clamp(ColdStress + amount, 0f, 100f);
         }
 
+        public void ModifyCoins(int amount)
+        {
+            coins = Mathf.Max(0, coins + amount);
+            OnCoinsChanged?.Invoke(coins);
+        }
+
         #endregion
 
         private void HandlePlayerFaint()
@@ -152,6 +164,7 @@ namespace SownInStone.Core
             OnHealthChanged?.Invoke(currentHealth, maxHealth);
             OnStaminaChanged?.Invoke(currentStamina, maxStamina);
             OnMoraleChanged?.Invoke(currentMorale, maxMorale);
+            OnCoinsChanged?.Invoke(coins);
         }
     }
 }

@@ -159,6 +159,44 @@ namespace SownInStone.Community
         }
 
         /// <summary>
+        /// Lấy câu thoại phản hồi tương ứng khi Thành muốn giúp việc (Vần Công).
+        /// </summary>
+        public string GetWorkDialogue(bool hasStamina)
+        {
+            if (characterType == StoryCharacterType.BacNam)
+            {
+                if (hasStamina)
+                {
+                    return "\"Được quá con ơi! Bác già cả đau lưng cuốc đất không nổi, có con phụ bác cuốc giùm luống cát này đỡ biết bao. Bác ghi nợ con 1 ngày công vần công nhé!\"";
+                }
+                else
+                {
+                    return "\"Thôi thôi con ơi! Nhìn mặt mày tái mét kìa, vô mát nghỉ ngơi uống bát chè xanh đi, kẻo cảm nắng ngất xỉu ra đó bác không kham nổi đâu!\"";
+                }
+            }
+            else if (characterType == StoryCharacterType.OTham)
+            {
+                if (hasStamina)
+                {
+                    return "\"Trời đất, Thành ngoan quá hà! Phụ o Thắm bê mấy bao lúa giống xếp lên kệ sạp đi con. Bữa sau bão lụt o Thắm chở mì tôm sang cứu trợ trả nợ công nha con!\"";
+                }
+                else
+                {
+                    return "\"Thôi, o Thắm bộc trực chứ không ác độc nha! Người mệt lả thế kia bê vác cái gì, vô uống miếng nước lọc ăn cái kẹo cu đơ nghỉ đi con!\"";
+                }
+            }
+
+            if (hasStamina)
+            {
+                return "\"Cảm ơn con nhiều nhé! Việc này vất vả quá, bác ghi nợ con 1 ngày công vần công.\"";
+            }
+            else
+            {
+                return "\"Con mệt mỏi quá rồi, hãy nghỉ ngơi lấy lại sức khỏe đã.\"";
+            }
+        }
+
+        /// <summary>
         /// Tặng quà cho NPC.
         /// </summary>
         public bool ActionGiveGift(string itemName)

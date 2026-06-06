@@ -42,12 +42,15 @@ namespace SownInStone.Agriculture
         [SerializeField] private Sprite wetSoilSprite;
         [SerializeField] private Sprite siltSoilSprite; // Sprite đất phù sa bồi đắp màu đậm
 
+        private bool wasFloodedDuringStorm = false;
+
         private void Start()
         {
             // Lắng nghe ngày mới trôi qua để cập nhật sinh học của đất
             if (GameManager.Instance != null)
             {
                 GameManager.Instance.OnDayChanged += OnNewDay;
+                GameManager.Instance.OnPhaseChanged += OnPhaseChanged;
             }
             UpdateVisuals();
         }
@@ -57,6 +60,7 @@ namespace SownInStone.Agriculture
             if (GameManager.Instance != null)
             {
                 GameManager.Instance.OnDayChanged -= OnNewDay;
+                GameManager.Instance.OnPhaseChanged -= OnPhaseChanged;
             }
         }
 
@@ -64,6 +68,12 @@ namespace SownInStone.Agriculture
         {
             // Bốc hơi nước liên tục do thời tiết thực tế
             SimulateWaterEvaporation();
+
+            // Ghi nhận ngập lụt sâu trong bão lũ
+            if (WeatherManager.Instance != null && WeatherManager.Instance.FloodLevel > 0.5f)
+            {
+                wasFloodedDuringStorm = true;
+            }
         }
 
         /// <summary>
@@ -105,20 +115,23 @@ namespace SownInStone.Agriculture
         /// </summary>
         private void OnNewDay(int newDay)
         {
-            // Nếu ô đất bị ngập lụt lâu trong mùa bão, chất dinh dưỡng ban đầu bị rửa trôi
-            // Nhưng khi sang giai đoạn Phù Sa, đất ngập lụt được bồi đắp chất hữu cơ cực cao
-            if (GameManager.Instance != null)
-            {
-                if (GameManager.Instance.CurrentPhase == GamePhase.PhuSa && WeatherManager.Instance.FloodLevel > 0f)
-                {
-                    quality = SoilQuality.PhuSa;
-                    Nutrients = 100f; // Bồi đắp chất phù sa
-                    RockDensity = Mathf.Max(0f, RockDensity - 30f); // Phù sa phủ lấp sỏi đá cũ
-                    Debug.Log("[SOIL] Ô đất đã được bồi đắp PHÙ SA màu mỡ sau lũ!");
-                }
-            }
-
             UpdateVisuals();
+        }
+
+        /// <summary>
+        /// Tự động bồi đắp chất dinh dưỡng phù sa khi bão tan bước sang GĐ 4
+        /// </summary>
+        private void OnPhaseChanged(GamePhase newPhase)
+        {
+            if (newPhase == GamePhase.PhuSa && wasFloodedDuringStorm)
+            {
+                quality = SoilQuality.PhuSa;
+                Nutrients = 100f; // Dinh dưỡng tối đa
+                RockDensity = Mathf.Max(0f, RockDensity - 30f); // Che phủ sỏi đá
+                wasFloodedDuringStorm = false;
+                Debug.Log($"[SOIL] Ô đất {gameObject.name} đã được bồi đắp PHÙ SA trù phú sau lũ!");
+                UpdateVisuals();
+            }
         }
 
         #region HÀM CẢI TẠO ĐẤT ĐAI

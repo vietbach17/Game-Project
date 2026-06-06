@@ -29,12 +29,22 @@ namespace SownInStone.Core
         [Tooltip("Giờ hiện tại trong ngày (0 - 23).")]
         [SerializeField] private float currentHour = 6f; // Bắt đầu lúc 6:00 sáng
         
-        [Tooltip("Tốc độ trôi thời gian (Số giây ngoài đời thực cho 1 giờ trong game).")]
-        [SerializeField] private float secondsPerGameHour = 30f; 
+        [Tooltip("Tốc độ trôi thời gian (Số giây ngoài đời thực cho 1 giờ trong game). Cài đặt 12.5f giây tương ứng 1 ngày = 5 phút thực tế.")]
+        [SerializeField] private float secondsPerGameHour = 12.5f; 
 
         [Header("--- GIAI ĐOẠN GAME ---")]
         [Tooltip("Giai đoạn game hiện tại.")]
         [SerializeField] private GamePhase currentPhase = GamePhase.LapNghiep;
+
+        [Header("--- THIẾT LẬP MỐC CHUYỂN GIAI ĐOẠN ---")]
+        [Tooltip("Số ngày bước vào để chuyển sang Gió Lào (Đầu ngày này sẽ chuyển).")]
+        [SerializeField] private int lapNghiepDaysLimit = 3;
+        
+        [Tooltip("Số ngày bước vào để chuyển sang Mùa Bão (Đầu ngày này sẽ chuyển).")]
+        [SerializeField] private int gioLaoDaysLimit = 5;
+        
+        [Tooltip("Số ngày bước vào để chuyển sang Phù Sa (Đầu ngày này sẽ chuyển).")]
+        [SerializeField] private int muaBaoDaysLimit = 7;
 
         // Sự kiện thông báo khi chuyển giai đoạn, đổi ngày mới, đổi giờ
         public event Action<GamePhase> OnPhaseChanged;
@@ -93,15 +103,15 @@ namespace SownInStone.Core
         /// </summary>
         private void CheckPhaseTransitionProgress()
         {
-            if (currentDay == 10 && currentPhase == GamePhase.LapNghiep)
+            if (currentDay == lapNghiepDaysLimit && currentPhase == GamePhase.LapNghiep)
             {
                 TransitionToPhase(GamePhase.GioLao);
             }
-            else if (currentDay == 20 && currentPhase == GamePhase.GioLao)
+            else if (currentDay == gioLaoDaysLimit && currentPhase == GamePhase.GioLao)
             {
                 TransitionToPhase(GamePhase.MuaBao);
             }
-            else if (currentDay == 28 && currentPhase == GamePhase.MuaBao)
+            else if (currentDay == muaBaoDaysLimit && currentPhase == GamePhase.MuaBao)
             {
                 TransitionToPhase(GamePhase.PhuSa);
             }

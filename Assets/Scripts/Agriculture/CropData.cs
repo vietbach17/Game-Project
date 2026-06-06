@@ -33,6 +33,10 @@ namespace SownInStone.Agriculture
         [Tooltip("Cây có thể chịu được ngập úng không? (Ví dụ: Khoai lang, lạc ngập lũ sẽ thối củ rất nhanh).")]
         public bool CanSurviveFlooding = false;
 
+        [Header("--- NÔNG SẢN THU HOẠCH ---")]
+        [Tooltip("Vật phẩm thu hoạch được khi chín.")]
+        public SownInStone.Storage.ItemData HarvestedItem;
+
         [Header("--- HÌNH ẢNH MINH HỌA GIAI ĐOẠN ---")]
         [Tooltip("Mảng các Sprites mô tả các giai đoạn lớn lên (Ví dụ: Mầm non -> Phát triển -> Ra hoa -> Thu hoạch).")]
         public Sprite[] GrowthStageSprites;

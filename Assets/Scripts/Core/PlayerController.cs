@@ -16,8 +16,8 @@ namespace SownInStone.Core
     /// Hỗ trợ: Phát thông số cho Animator 2D, tiêu hao thể lực khi chạy dưới nắng Gió Lào,
     /// và bấm phím [E] để tương tác thực tế với NPC, Bàn thờ, Ô đất trồng trọt.
     /// </summary>
-    [RequireComponent(typeof(Rigidbody2D))]
-    [RequireComponent(typeof(BoxCollider2D))]
+    [RequireComponent(typeof(Rigidbody))]
+    [RequireComponent(typeof(BoxCollider))]
     public class PlayerController : MonoBehaviour
     {
         public static PlayerController Instance { get; private set; }
@@ -38,13 +38,20 @@ namespace SownInStone.Core
         [SerializeField] private RotationAxis rotationAxis = RotationAxis.RotateAroundY_3D;
 
         [Header("--- TƯƠNG TÁC PHÍM [E] ---")]
-        [Tooltip("Bán kính hình tròn quét tìm vật thể có thể tương tác xung quanh nhân vật.")]
+        [Tooltip("Bán kính hình cầu quét tìm vật thể có thể tương tác xung quanh nhân vật.")]
         [SerializeField] private float interactRadius = 1.2f;
         
         [Tooltip("Lớp vật lý (Layer) chứa các đối tượng có thể tương tác (nên chọn Everything hoặc thiết lập riêng).")]
         [SerializeField] private LayerMask interactableLayers = ~0;
 
-        private Rigidbody2D rb;
+        [Header("--- TRỒNG TRỌT KIỂM THỬ ---")]
+        [Tooltip("Hạt giống dùng để gieo hạt khi ruộng đất trống và ẩm.")]
+        [SerializeField] private CropData testSeedData;
+
+        [Tooltip("Vật phẩm Hạt giống thực tế trong kho đồ tiêu hao khi gieo trồng.")]
+        [SerializeField] private ItemData seedItem;
+
+        private Rigidbody rb;
         private Animator animator;
         private Vector2 moveInput;
         private Vector2 lastMoveDirection = Vector2.down; // Hướng quay mặt mặc định (nhìn xuống)
@@ -64,12 +71,12 @@ namespace SownInStone.Core
                 Destroy(gameObject);
             }
 
-            rb = GetComponent<Rigidbody2D>();
+            rb = GetComponent<Rigidbody>();
             animator = GetComponent<Animator>();
 
-            // Cấu hình Rigidbody2D để phù hợp với game 2D Top-down
-            rb.gravityScale = 0f;
-            rb.freezeRotation = true;
+            // Cấu hình Rigidbody để phù hợp với game 3D Top-down (di chuyển phẳng X/Z)
+            rb.useGravity = false;
+            rb.constraints = RigidbodyConstraints.FreezeRotation | RigidbodyConstraints.FreezePositionY;
 
             // Tự động tìm mô hình 3D con nếu chưa gán trong Inspector
             if (characterVisual == null && transform.childCount > 0)
@@ -142,8 +149,14 @@ namespace SownInStone.Core
 
         private void FixedUpdate()
         {
-            // Di chuyển nhân vật thông qua cơ chế vật lý Rigidbody2D tránh đi xuyên tường
-            rb.linearVelocity = moveInput * moveSpeed;
+            // Di chuyển nhân vật thông qua cơ chế vật lý Rigidbody 3D tránh đi xuyên tường
+            float currentSpeed = moveSpeed;
+            if (WeatherManager.Instance != null && WeatherManager.Instance.FloodLevel > 0.5f)
+            {
+                // Giảm 40% tốc độ di chuyển khi lội nước lụt sâu hơn 0.5m
+                currentSpeed *= 0.6f;
+            }
+            rb.linearVelocity = new Vector3(moveInput.x * currentSpeed, rb.linearVelocity.y, moveInput.y * currentSpeed);
         }
 
         /// <summary>
@@ -186,17 +199,17 @@ namespace SownInStone.Core
         {
             Debug.Log("[PLAYER] Bấm phím tương tác [E]!");
 
-            // Quét hình tròn vật lý xung quanh người chơi
-            Collider2D[] colliders = Physics2D.OverlapCircleAll(transform.position, interactRadius, interactableLayers);
+            // Quét hình cầu vật lý 3D xung quanh người chơi
+            Collider[] colliders = Physics.OverlapSphere(transform.position, interactRadius, interactableLayers);
             
-            Collider2D closestCollider = null;
+            Collider closestCollider = null;
             float minDistance = float.MaxValue;
 
             foreach (var col in colliders)
             {
                 if (col.gameObject == gameObject) continue; // Bỏ qua bản thân người chơi
 
-                float dist = Vector2.Distance(transform.position, col.transform.position);
+                float dist = Vector3.Distance(transform.position, col.transform.position);
                 if (dist < minDistance)
                 {
                     minDistance = dist;
@@ -213,12 +226,96 @@ namespace SownInStone.Core
                 NPCCharacter npc = target.GetComponent<NPCCharacter>();
                 if (npc != null)
                 {
-                    string dialogue = npc.GetDialogue();
-                    Debug.Log($"[HỘI THOẠI] {npc.NPCName} nói: {dialogue}");
-                    
-                    // Gửi thông báo hội thoại lên UI Debug
-                    PlayerStats.Instance?.ModifyMorale(2f); // Nói chuyện với hàng xóm giúp tăng nhẹ Morale
-                    target.SendMessage("ModifyAffection", 1, SendMessageOptions.DontRequireReceiver); // Tăng điểm thân thiết
+                    // Nếu khung đối thoại mới đang mở và không có lựa chọn đang chờ, nhấn E sẽ đóng nó lại
+                    if (SownInStone.UI.SurvivalUIManager.Instance != null && SownInStone.UI.SurvivalUIManager.Instance.IsDialogueActive)
+                    {
+                        if (!SownInStone.UI.SurvivalUIManager.Instance.IsChoiceActive)
+                        {
+                            SownInStone.UI.SurvivalUIManager.Instance.CloseDialogue();
+                        }
+                        return;
+                    }
+
+                    // Mở hội thoại tương ứng
+                    if (SownInStone.UI.SurvivalUIManager.Instance != null)
+                    {
+                        string greeting = $"\"Chào con, Thành! Hôm nay ghé qua bác/o chơi có việc chi không?\"";
+                        if (npc.characterType == NPCCharacter.StoryCharacterType.BacNam)
+                        {
+                            greeting = "\"Chào Thành! Việc cải tạo mảnh ruộng cát bạc màu gian khổ đến đâu rồi con?\"";
+                        }
+                        else if (npc.characterType == NPCCharacter.StoryCharacterType.OTham)
+                        {
+                            greeting = "\"Ủa Thành đó hả con! Ghé đại lý o chơi chút hén, hôm nay o Thắm nhập giống mới đây nè!\"";
+                        }
+
+                        if (npc.characterType == NPCCharacter.StoryCharacterType.OTham)
+                        {
+                            SownInStone.UI.SurvivalUIManager.Instance.ShowDialogueWithChoices(
+                                npc.NPCName,
+                                greeting,
+                                "Trò chuyện",
+                                () => {
+                                    string dialogue = npc.GetDialogue();
+                                    SownInStone.UI.SurvivalUIManager.Instance.ShowDialogue(npc.NPCName, dialogue);
+                                    PlayerStats.Instance?.ModifyMorale(2f);
+                                    npc.ModifyAffection(1);
+                                },
+                                "Giúp việc (Vần công)",
+                                () => {
+                                    float currentStamina = PlayerStats.Instance != null ? PlayerStats.Instance.CurrentStamina : 0f;
+                                    if (currentStamina >= 20f)
+                                    {
+                                        PlayerStats.Instance.ModifyStamina(-20f);
+                                        npc.ModifyVanCongCredits(1);
+                                        npc.ModifyAffection(5);
+                                        string workDialog = npc.GetWorkDialogue(true);
+                                        SownInStone.UI.SurvivalUIManager.Instance.ShowDialogue(npc.NPCName, workDialog);
+                                    }
+                                    else
+                                    {
+                                        string workDialog = npc.GetWorkDialogue(false);
+                                        SownInStone.UI.SurvivalUIManager.Instance.ShowDialogue(npc.NPCName, workDialog);
+                                    }
+                                },
+                                "Giao dịch (Mua/Bán)",
+                                () => {
+                                    OpenTradeMenu(npc);
+                                }
+                            );
+                        }
+                        else
+                        {
+                            SownInStone.UI.SurvivalUIManager.Instance.ShowDialogueWithChoices(
+                                npc.NPCName,
+                                greeting,
+                                "Trò chuyện",
+                                () => {
+                                    string dialogue = npc.GetDialogue();
+                                    SownInStone.UI.SurvivalUIManager.Instance.ShowDialogue(npc.NPCName, dialogue);
+                                    PlayerStats.Instance?.ModifyMorale(2f);
+                                    npc.ModifyAffection(1);
+                                },
+                                "Giúp việc (Vần công)",
+                                () => {
+                                    float currentStamina = PlayerStats.Instance != null ? PlayerStats.Instance.CurrentStamina : 0f;
+                                    if (currentStamina >= 20f)
+                                    {
+                                        PlayerStats.Instance.ModifyStamina(-20f);
+                                        npc.ModifyVanCongCredits(1);
+                                        npc.ModifyAffection(5);
+                                        string workDialog = npc.GetWorkDialogue(true);
+                                        SownInStone.UI.SurvivalUIManager.Instance.ShowDialogue(npc.NPCName, workDialog);
+                                    }
+                                    else
+                                    {
+                                        string workDialog = npc.GetWorkDialogue(false);
+                                        SownInStone.UI.SurvivalUIManager.Instance.ShowDialogue(npc.NPCName, workDialog);
+                                    }
+                                }
+                            );
+                        }
+                    }
                     return;
                 }
 
@@ -270,12 +367,13 @@ namespace SownInStone.Core
             // Nếu ô đất đã có cây và cây đã chín -> Tiến hành thu hoạch nông sản
             if (soil.plantedCrop != null && soil.plantedCrop.IsReadyToHarvest())
             {
+                ItemData harvestItem = soil.plantedCrop.cropData.HarvestedItem;
                 int yield = soil.plantedCrop.ActionHarvest();
-                if (StorageManager.Instance != null && soil.plantedCrop != null)
+                if (StorageManager.Instance != null && harvestItem != null)
                 {
-                    StorageManager.Instance.AddItem(soil.plantedCrop.cropData.GrowthStageSprites != null ? null : null, yield); // (Tự động thêm nông sản)
+                    StorageManager.Instance.AddItem(harvestItem, yield);
+                    Debug.Log($"[PLAYER] Thu hoạch thành công ruộng cây: {harvestItem.ItemName} x{yield}!");
                 }
-                Debug.Log($"[PLAYER] Thu hoạch thành công ruộng cây!");
                 return;
             }
 
@@ -291,7 +389,126 @@ namespace SownInStone.Core
                 return;
             }
 
+            // Nếu ô đất trống, đã tưới ẩm và dọn sạch sỏi đá -> Tiến hành gieo hạt giống
+            if (soil.plantedCrop == null)
+            {
+                if (testSeedData != null && seedItem != null)
+                {
+                    if (StorageManager.Instance != null && StorageManager.Instance.RemoveItem(seedItem, 1))
+                    {
+                        bool success = soil.ActionPlantCrop(testSeedData);
+                        if (success)
+                        {
+                            Debug.Log($"[PLAYER] Gieo hạt thành công giống cây: {testSeedData.CropName}!");
+                        }
+                    }
+                    else
+                    {
+                        Debug.LogWarning("[PLAYER] Không có Hạt giống Khoai Lang trong kho!");
+                        SownInStone.UI.SurvivalUIManager.Instance?.ShowDialogue("Hệ thống", "Không có hạt giống Khoai Lang trong kho đồ! Hãy đến gặp đại lý O Thắm để mua giống tái thiết.");
+                    }
+                    return;
+                }
+                else
+                {
+                    Debug.LogWarning("[PLAYER] Chưa gán Hạt giống (TestSeedData) hoặc Vật phẩm Hạt giống (SeedItem) trong PlayerController!");
+                }
+            }
+
             Debug.Log("[PLAYER] Ô đất đang ở trạng thái tốt, không cần thao tác thêm.");
+        }
+
+        private void OpenTradeMenu(NPCCharacter npc)
+        {
+            if (SownInStone.UI.SurvivalUIManager.Instance == null) return;
+
+            bool isPhuSa = (GameManager.Instance != null && GameManager.Instance.CurrentPhase == GamePhase.PhuSa);
+            int price = isPhuSa ? 6 : 10;
+
+            string tradeGreeting = $"\"Đại lý o Thắm bán giống Khoai Lang giá {price} xu (giá gốc 10 xu) và thu mua khoai tươi 25 xu/củ. Con muốn mua hay bán?\"";
+
+            SownInStone.UI.SurvivalUIManager.Instance.ShowDialogueWithChoices(
+                npc.NPCName,
+                tradeGreeting,
+                $"Mua Hạt giống (-{price} Xu)",
+                () => {
+                    if (PlayerStats.Instance != null && PlayerStats.Instance.Coins >= price)
+                    {
+                        PlayerStats.Instance.ModifyCoins(-price);
+                        if (StorageManager.Instance != null && seedItem != null)
+                        {
+                            StorageManager.Instance.AddItem(seedItem, 1);
+                            SownInStone.UI.SurvivalUIManager.Instance.ShowDialogue(npc.NPCName, $"\"Đây là hạt giống Khoai của con. Hòm đồ gia đình đã có hạt giống mới!\"");
+                        }
+                    }
+                    else
+                    {
+                        int current = PlayerStats.Instance != null ? PlayerStats.Instance.Coins : 0;
+                        SownInStone.UI.SurvivalUIManager.Instance.ShowDialogue(npc.NPCName, $"\"Không đủ tiền rồi con ơi! Thiếu {price - current} xu nữa nha con.\"");
+                    }
+                },
+                "Bán Khoai tươi (25 Xu/củ)",
+                () => {
+                    if (StorageManager.Instance != null && testSeedData != null && testSeedData.HarvestedItem != null)
+                    {
+                        ItemData freshCropItem = testSeedData.HarvestedItem;
+                        var slots = StorageManager.Instance.GetStorageSlots();
+                        var freshSlot = slots.Find(s => s.item.ItemID == freshCropItem.ItemID);
+                        int count = freshSlot != null ? freshSlot.quantity : 0;
+
+                        if (count > 0)
+                        {
+                            if (StorageManager.Instance.RemoveItem(freshCropItem, count))
+                            {
+                                int earn = count * 25;
+                                PlayerStats.Instance?.ModifyCoins(earn);
+                                SownInStone.UI.SurvivalUIManager.Instance.ShowDialogue(npc.NPCName, $"\"O gom hết {count} củ khoai tươi, gửi con {earn} xu nghen!\"");
+                            }
+                        }
+                        else
+                        {
+                            SownInStone.UI.SurvivalUIManager.Instance.ShowDialogue(npc.NPCName, $"\"Ủa con có củ khoai tươi nào trong kho mô mà đòi bán o nè!\"");
+                        }
+                    }
+                },
+                "Quay lại",
+                () => {
+                    // Mở lại menu chào của O Thắm
+                    string greeting = $"\"Ủa Thành đó hả con! Ghé đại lý o chơi chút hén, hôm nay o Thắm nhập giống mới đây nè!\"";
+                    SownInStone.UI.SurvivalUIManager.Instance.ShowDialogueWithChoices(
+                        npc.NPCName,
+                        greeting,
+                        "Trò chuyện",
+                        () => {
+                            string dialogue = npc.GetDialogue();
+                            SownInStone.UI.SurvivalUIManager.Instance.ShowDialogue(npc.NPCName, dialogue);
+                            PlayerStats.Instance?.ModifyMorale(2f);
+                            npc.ModifyAffection(1);
+                        },
+                        "Giúp việc (Vần công)",
+                        () => {
+                            float currentStamina = PlayerStats.Instance != null ? PlayerStats.Instance.CurrentStamina : 0f;
+                            if (currentStamina >= 20f)
+                            {
+                                PlayerStats.Instance.ModifyStamina(-20f);
+                                npc.ModifyVanCongCredits(1);
+                                npc.ModifyAffection(5);
+                                string workDialog = npc.GetWorkDialogue(true);
+                                SownInStone.UI.SurvivalUIManager.Instance.ShowDialogue(npc.NPCName, workDialog);
+                            }
+                            else
+                            {
+                                string workDialog = npc.GetWorkDialogue(false);
+                                SownInStone.UI.SurvivalUIManager.Instance.ShowDialogue(npc.NPCName, workDialog);
+                            }
+                        },
+                        "Giao dịch (Mua/Bán)",
+                        () => {
+                            OpenTradeMenu(npc);
+                        }
+                    );
+                }
+            );
         }
 
         /// <summary>

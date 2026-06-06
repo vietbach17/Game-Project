@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c9df24d8a8c988244ab71e5b37bab3ca, type: 3}
   m_Name: Crop_KhoaiLang
   m_EditorClassIdentifier: 
-  CropName: "Khoai Lang"
+  CropName: Khoai Lang
   DaysToMature: 5
   SeedPrice: 10
   BaseSellValue: 25
@@ -20,4 +20,8 @@ MonoBehaviour:
   RequiredNutrients: 20
   MaxTemperatureTolerance: 39
   CanSurviveFlooding: 0
-  GrowthStageSprites: []
+  HarvestedItem: {fileID: 11400000, guid: f0001001000100010001000100010001, type: 2}
+  GrowthStageSprites:
+  - {fileID: 10913, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 10911, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}

@@ -286,6 +286,12 @@ namespace SownInStone
                 debugUI.isUIVisible = true;
             }
 
+            // Kích hoạt hiển thị UI Canvas sinh tồn mới
+            if (SownInStone.UI.SurvivalUIManager.Instance != null)
+            {
+                SownInStone.UI.SurvivalUIManager.Instance.SetUIVisibility(true);
+            }
+
             Debug.Log("[MAIN MENU] Cuộc hành trình trở về bám đất Trường Sơn chính thức BẮT ĐẦU!");
             PlayerStats.Instance?.ModifyMorale(20f); // Tặng thêm 20 Morale làm động lực khởi nghiệp
         }

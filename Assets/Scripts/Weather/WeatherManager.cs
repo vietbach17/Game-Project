@@ -42,6 +42,16 @@ namespace SownInStone.Weather
         [Tooltip("Tốc độ dâng của nước lũ mỗi giờ game khi đang có bão.")]
         [SerializeField] private float floodRiseRatePerHour = 0.15f;
 
+        private float targetFloodLevel = 0f;
+        private float targetTemperature = 28f;
+        private float targetHumidity = 75f;
+        private float targetWindSpeed = 10f;
+        private float targetRainIntensity = 0f;
+
+        [Header("--- HIỆU ỨNG HẠT MƯA ---")]
+        private ParticleSystem rainParticles;
+        private GameObject rainParticlesObj;
+
         private void Awake()
         {
             if (Instance == null)
@@ -63,6 +73,9 @@ namespace SownInStone.Weather
                 GameManager.Instance.OnPhaseChanged += HandleGamePhaseWeatherChange;
                 GameManager.Instance.OnHourChanged += OnHourTick;
             }
+
+            // Thiết lập hạt mưa
+            SetupRainParticles();
         }
 
         private void OnDestroy()
@@ -78,6 +91,16 @@ namespace SownInStone.Weather
         {
             // Cập nhật các chỉ số thời tiết gián tiếp theo thời gian thực
             SimulateDynamicFluctuations();
+
+            // Nội suy mượt mà các thông số thời tiết
+            Temperature = Mathf.Lerp(Temperature, targetTemperature, Time.deltaTime * 0.3f);
+            Humidity = Mathf.Lerp(Humidity, targetHumidity, Time.deltaTime * 0.3f);
+            WindSpeed = Mathf.Lerp(WindSpeed, targetWindSpeed, Time.deltaTime * 0.3f);
+            RainIntensity = Mathf.Lerp(RainIntensity, targetRainIntensity, Time.deltaTime * 0.3f);
+            FloodLevel = Mathf.Lerp(FloodLevel, targetFloodLevel, Time.deltaTime * 0.2f);
+
+            // Cập nhật vị trí và cường độ hạt mưa
+            UpdateRainParticles();
         }
 
         /// <summary>
@@ -91,28 +114,33 @@ namespace SownInStone.Weather
             
             // Dao động nhiệt sinh học (nóng nhất lúc 13-14h, lạnh nhất lúc 4h sáng)
             float baseTemp = 28f;
+            float baseHum = 75f;
+            float baseWind = 10f;
             switch (currentVisualWeather)
             {
                 case WeatherType.OnDinh:
                     baseTemp = 28f + Mathf.Sin((hour - 8f) * Mathf.PI / 12f) * 4f; // 24°C - 32°C
-                    Humidity = 70f - Mathf.Sin((hour - 8f) * Mathf.PI / 12f) * 15f;
+                    baseHum = 70f - Mathf.Sin((hour - 8f) * Mathf.PI / 12f) * 15f;
+                    baseWind = 10f;
                     break;
 
                 case WeatherType.GioLao:
                     // Gió Lào kéo dài sang cả đêm, nhiệt độ ban ngày cực cao (40-42 độ C)
                     baseTemp = 36f + Mathf.Sin((hour - 8f) * Mathf.PI / 12f) * 6f; // 30°C - 42°C
-                    Humidity = 35f - Mathf.Sin((hour - 8f) * Mathf.PI / 12f) * 15f; // Khô nóng cực hạn (xuống dưới 20% ẩm)
-                    WindSpeed = 30f + Mathf.PingPong(Time.time, 15f);
+                    baseHum = 25f - Mathf.Sin((hour - 8f) * Mathf.PI / 12f) * 10f; // Khô nóng cực hạn (xuống dưới 20% ẩm)
+                    baseWind = 30f + Mathf.PingPong(Time.time, 15f);
                     break;
 
                 case WeatherType.BaoLu:
                     baseTemp = 22f + Mathf.PingPong(Time.time * 0.1f, 3f); // Mưa bão lạnh ẩm
-                    Humidity = 95f;
-                    WindSpeed = 70f + Mathf.PingPong(Time.time * 0.5f, 40f); // Gió giật cấp 8 - cấp 11
+                    baseHum = 95f;
+                    baseWind = 70f + Mathf.PingPong(Time.time * 0.5f, 40f); // Gió giật cấp 8 - cấp 11
                     break;
             }
 
-            Temperature = baseTemp;
+            targetTemperature = baseTemp;
+            targetHumidity = baseHum;
+            targetWindSpeed = baseWind;
 
             // Áp dụng stress thời tiết lên Player
             ApplyWeatherStressToPlayer();
@@ -127,33 +155,30 @@ namespace SownInStone.Weather
             {
                 case GamePhase.LapNghiep:
                     currentVisualWeather = WeatherType.OnDinh;
-                    RainIntensity = 0f;
-                    FloodLevel = 0f;
+                    targetRainIntensity = 0f;
+                    targetFloodLevel = 0f;
                     break;
 
                 case GamePhase.GioLao:
                     currentVisualWeather = WeatherType.GioLao;
-                    RainIntensity = 0f;
-                    FloodLevel = 0f;
+                    targetRainIntensity = 0f;
+                    targetFloodLevel = 0f;
                     break;
 
                 case GamePhase.MuaBao:
                     currentVisualWeather = WeatherType.BaoLu;
-                    RainIntensity = 0.9f;
+                    targetRainIntensity = 0.9f;
                     break;
 
                 case GamePhase.PhuSa:
                     currentVisualWeather = WeatherType.OnDinh;
-                    RainIntensity = 0.05f;
-                    // Sau lũ nước rút dần từ từ
+                    targetRainIntensity = 0.05f;
+                    // Sau lũ nước rút từ từ
                     break;
             }
             Debug.Log($"[WEATHER MANAGER] Đồng bộ thời tiết sang: {currentVisualWeather.ToString()}");
         }
 
-        /// <summary>
-        /// Tick mỗi giờ game để cập nhật nước lũ hoặc dự báo thời tiết.
-        /// </summary>
         private void OnHourTick(int currentHour)
         {
             if (GameManager.Instance == null) return;
@@ -161,14 +186,14 @@ namespace SownInStone.Weather
             // Nếu đang trong mùa bão lũ, nước lũ dâng đều đặn mỗi giờ
             if (GameManager.Instance.CurrentPhase == GamePhase.MuaBao)
             {
-                FloodLevel += floodRiseRatePerHour;
-                Debug.Log($"[WEATHER] Nước lũ dâng! Mực nước hiện tại: {FloodLevel:F2} mét.");
+                targetFloodLevel += floodRiseRatePerHour;
+                Debug.Log($"[WEATHER] Nước lũ dâng mục tiêu: {targetFloodLevel:F2} mét.");
             }
             // Nếu đã sang mùa Phù Sa tái thiết, nước rút nhanh
-            else if (GameManager.Instance.CurrentPhase == GamePhase.PhuSa && FloodLevel > 0f)
+            else if (GameManager.Instance.CurrentPhase == GamePhase.PhuSa && targetFloodLevel > 0f)
             {
-                FloodLevel = Mathf.Max(0f, FloodLevel - 0.25f);
-                Debug.Log($"[WEATHER] Nước lũ rút. Mực nước còn lại: {FloodLevel:F2} mét.");
+                targetFloodLevel = Mathf.Max(0f, targetFloodLevel - 0.25f);
+                Debug.Log($"[WEATHER] Nước lũ rút mục tiêu: {targetFloodLevel:F2} mét.");
             }
         }
 
@@ -202,5 +227,90 @@ namespace SownInStone.Weather
                 PlayerStats.Instance.ApplyColdStress(-1f * Time.deltaTime);
             }
         }
+
+        #region PHÂN HỆ HIỆU ỨNG HẠT MƯA BÃO (RAIN PARTICLES SYSTEM)
+
+        private void SetupRainParticles()
+        {
+            rainParticlesObj = new GameObject("RainParticles", typeof(ParticleSystem));
+            rainParticlesObj.transform.SetParent(this.transform);
+
+            rainParticles = rainParticlesObj.GetComponent<ParticleSystem>();
+
+            // Cấu hình Particle System chính
+            var main = rainParticles.main;
+            main.duration = 1f;
+            main.loop = true;
+            main.startLifetime = 1.2f;
+            main.startSpeed = 16f;
+            main.startSize = 0.12f;
+            main.gravityModifier = 1.2f;
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.maxParticles = 800;
+
+            // Hình dáng vùng phát (Shape)
+            var shape = rainParticles.shape;
+            shape.enabled = true;
+            shape.shapeType = ParticleSystemShapeType.Box;
+            shape.scale = new Vector3(25f, 1f, 1f); 
+            shape.rotation = new Vector3(0f, 0f, 12f); // Bắn hạt nghiêng nhẹ theo chiều gió
+
+            // Cấu hình di chuyển (Velocity over Lifetime) để tạo vệt mưa chéo nghiêng trái
+            var velocity = rainParticles.velocityOverLifetime;
+            velocity.enabled = true;
+            velocity.space = ParticleSystemSimulationSpace.World;
+            velocity.x = -5f; // Gió thổi chéo trái
+
+            // Thiết lập tốc độ sinh hạt mặc định là 0
+            var emission = rainParticles.emission;
+            emission.enabled = true;
+            emission.rateOverTime = 0f;
+
+            // Màu sắc hạt mưa (Trắng xám nhẹ trong suốt)
+            var colorOverLifetime = rainParticles.colorOverLifetime;
+            colorOverLifetime.enabled = true;
+            Gradient grad = new Gradient();
+            grad.SetKeys(
+                new GradientColorKey[] { new GradientColorKey(new Color(0.8f, 0.88f, 0.95f), 0f), new GradientColorKey(new Color(0.75f, 0.8f, 0.85f), 1f) },
+                new GradientAlphaKey[] { new GradientAlphaKey(0.35f, 0f), new GradientAlphaKey(0.08f, 1f) }
+            );
+            colorOverLifetime.color = grad;
+
+            // Thiết lập Renderer để kéo dãn hạt mưa thành sọc dài
+            var renderer = rainParticlesObj.GetComponent<ParticleSystemRenderer>();
+            renderer.renderMode = ParticleSystemRenderMode.Stretch;
+            renderer.lengthScale = 3f;
+            renderer.velocityScale = 0.1f;
+            
+            // Sử dụng Material Sprites-Default mặc định để hạt mưa sắc nét
+            #if UNITY_2022_1_OR_NEWER
+            renderer.material = new Material(Shader.Find("Sprites/Default"));
+            #else
+            renderer.material = new Material(Shader.Find("Sprites/Default"));
+            #endif
+
+            // Bắt đầu chạy hệ thống phát
+            rainParticles.Play();
+        }
+
+        private void UpdateRainParticles()
+        {
+            if (rainParticlesObj == null || rainParticles == null) return;
+
+            // Đồng bộ vị trí bộ phát mưa nằm phía trên đầu Camera
+            if (Camera.main != null)
+            {
+                // Đặt bộ phát mưa lệch nhẹ sang bên phải và phía trên Camera
+                Vector3 camPos = Camera.main.transform.position;
+                rainParticlesObj.transform.position = new Vector3(camPos.x + 3f, camPos.y + 6f, -2f);
+            }
+
+            // Đồng bộ cường độ hạt mưa rơi theo RainIntensity
+            var emission = rainParticles.emission;
+            float targetRate = RainIntensity * 400f; // Mưa bão to thì rơi 400 hạt/giây
+            emission.rateOverTime = targetRate;
+        }
+
+        #endregion
     }
 }

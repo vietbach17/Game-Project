@@ -1,102 +1,133 @@
-# Đất Cày Lên Sỏi Đá — Hướng dẫn Thiết lập Dự án & Trải nghiệm Game
+# Đất Cày Lên Sỏi Đá (Sown in Stone) — Hướng Dẫn Thiết Lập & Tài Liệu Dự Án
 
-Chào bạn! Dự án này mô phỏng cuộc sống làm nông và sinh tồn khắc nghiệt tại miền Trung Việt Nam qua các giai đoạn thiên tai (Gió Lào, Bão Lũ, Phù Sa). 
+Dự án này là một game mô phỏng sinh tồn và làm nông thực tế tại miền Trung Việt Nam qua các giai đoạn thiên tai khắc nghiệt (Lập Nghiệp, Nắng Cháy Gió Lào, Tình Người Trong Lũ, và Phù Sa Sau Lũ).
 
-Khi bạn mới clone dự án về, bạn mở Scene lên sẽ thấy trống trơn (chỉ có `Main Camera` và `Directional Light`). Điều này hoàn toàn bình thường vì **dự án Git chỉ lưu trữ mã nguồn (scripts) và cài đặt dựng hình (URP settings)** mà không đi kèm với một Scene được dựng sẵn các thực thể game hoặc Prefabs.
-
-Đặc biệt, dự án này sử dụng cơ chế **OnGUI-based UI** vẽ giao diện trực tiếp bằng code C#. Bạn **không cần tạo Canvas phức tạp**, chỉ cần thiết lập các GameObject và kéo thả script theo hướng dẫn dưới đây là có thể chạy thử nghiệm toàn bộ game ngay lập tức!
+Hiện tại, dự án đã được chuyển đổi hoàn toàn sang **môi trường đồ họa & vật lý 3D** với hệ thống điều phối tự động, thương mại thực tế và bồi đắp đất đai sau thiên tai.
 
 ---
 
-## Hướng dẫn Thiết lập Scene từng bước
+## 🌟 Tổng Quan Các Tính Năng Hiện Có
 
-Hãy mở dự án trong Unity và thực hiện theo 6 bước đơn giản sau:
+### 1. ⏱️ Hệ Thống Thời Gian Thực Tế & Tự Động Hóa Cốt Truyện
+* **Tỷ lệ thời gian:** `1 ngày trong game = 5 phút ngoài đời thực` (24 giờ game trôi qua trong 300 giây thực tế; tức `secondsPerGameHour = 12.5f`).
+* **Tự động chuyển Phase cốt truyện chính:**
+  * **Ngày 1 đến Ngày 2:** GĐ 1 — Tiếng Trống Đình Làng (Lập nghiệp, dọn đá cải tạo đất).
+  * **Ngày 3 đến Ngày 4:** GĐ 2 — Nắng Cháy Gió Lào (Nhiệt độ tăng cao, mất thể lực nhanh khi ra nắng).
+  * **Ngày 5 đến Ngày 6:** GĐ 3 — Tình Người Trong Bão Lũ (Mưa lớn đổ bộ, nước lũ dâng ngập ruộng vườn).
+  * **Ngày 7 trở đi:** GĐ 4 — Phù Sa Sau Cơn Lũ (Nước rút mượt mà, phù sa bồi đắp ruộng đất).
+* **Banner thông báo Điện ảnh:** Tự động tạo procedurally hiệu ứng banner trôi nổi giữa màn hình, Fade In/Fade Out trong 6 giây báo hiệu đổi Phase mà không cần thiết lập thủ công.
 
-### Bước 1: Tạo các GameObjects Quản lý (Managers)
-1. Trong cửa sổ **Hierarchy**, nhấp chuột phải và chọn **Create Empty**. Đặt tên GameObject này là `_Managers`.
-2. Chọn `_Managers` và kéo thả lần lượt 5 script quản lý cốt lõi từ thư mục `Assets/Scripts/` vào cửa sổ Inspector của nó:
-   - [GameManager](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Core/GameManager.cs) (Quản lý thời gian, ngày/giờ và chuyển giai đoạn game)
-   - [PlayerStats](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Core/PlayerStats.cs) (Quản lý các chỉ số sinh tồn: Máu, Thể lực, Tinh thần, Stress)
-   - [WeatherManager](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Weather/WeatherManager.cs) (Mô phỏng thời tiết nắng nóng, gió Lào, bão lũ, mực nước lụt)
-   - [StorageManager](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Storage/StorageManager.cs) (Quản lý kho chứa đồ, cơ chế thối mốc nông sản tươi, chế biến đồ khô)
-   - [CommunityManager](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Community/CommunityManager.cs) (Quản lý điểm Nghĩa Tình/Karma và cơ chế đổi công hỗ trợ chằng nhà chống bão)
+### 🌤️ 2. Nội Suy Thời Tiết & Nước Lũ Mượt Mà (Lerps)
+* Nhiệt độ, Độ ẩm, Sức gió, Mưa rơi và Mực nước lũ thay đổi từ từ bằng hàm `Mathf.Lerp` thay vì nhảy số tức thời.
+* Tích hợp hệ thống hạt mưa bão (`ParticleSystem`) tự động bám theo Camera, tăng/giảm mật độ hạt và thổi chéo theo chiều gió dựa trên cường độ thời tiết.
 
-### Bước 2: Tạo các ScriptableObject Tài nguyên (Data Assets)
-Do các file asset tĩnh lưu dữ liệu vật phẩm và cây trồng chưa có sẵn trong Git, bạn hãy tự tạo chúng chỉ bằng vài cú click chuột:
-1. Trong cửa sổ **Project**, tạo một thư mục mới tên là `Data` (nằm trong thư mục `Assets/`).
-2. Vào thư mục `Data`, nhấp chuột phải chọn **Create -> Sown In Stone -> Item Data** để tạo ra 3 vật phẩm:
-   - Đặt tên file là `Item_FreshCrop`: Thiết lập trong Inspector:
-     - **Item ID:** `item_fresh_crop`
-     - **Item Name:** `Khoai Lang Tươi`
-     - **Type:** `Nong San Tuoi`
-     - **Decay Rate In Humidity:** `0.8` (Thức ăn tươi sẽ thối rữa rất nhanh khi lụt ẩm)
-   - Đặt tên file là `Item_PreservedCrop`: Thiết lập trong Inspector:
-     - **Item ID:** `item_khoai_gieo`
-     - **Item Name:** `Khoai Gieo`
-     - **Type:** `Nong San Kho`
-     - **Decay Rate In Humidity:** `0` (Khoai gieo phơi khô để lâu không bao giờ mốc)
-   - Đặt tên file là `Item_Incense`: Thiết lập trong Inspector:
-     - **Item ID:** `item_incense`
-     - **Item Name:** `Nhang`
-     - **Type:** `Incense`
-     - **Morale Restore Value:** `10`
-3. Nhấp chuột phải chọn **Create -> Sown In Stone -> Crop Data** để tạo ra hạt giống cây trồng:
-   - Đặt tên file là `Crop_KhoaiLang`: Thiết lập trong Inspector:
-     - **Crop Name:** `Khoai Lang`
-     - **Days To Mature:** `5` (Mất 5 ngày để lớn)
-     - **Seed Price:** `10`
-     - **Base Sell Value:** `25`
-     - **Ideal Moisture:** `60`
+### 💰 3. Hệ Thống Tiền Xu & Thương Mại Thực Tế (No Fake Debug)
+* **Tiền tệ:** Nhân vật Thành khởi đầu với **50 Xu** (Hiển thị ở đáy bảng Hòm đồ `Tab` và trên Debug UI).
+* **Khấu trừ hạt giống:** Gieo hạt giống sẽ tiêu hao đúng **1 Hạt giống thực tế** (`Item_Seed.asset`) trong kho đồ. Nếu hết hạt giống, hệ thống sẽ từ chối gieo và hướng dẫn người chơi đi mua.
+* **Giao dịch 3 lựa chọn với đại lý O Thắm:** Khi tiếp cận O Thắm nhấn `[E]`, menu thoại hỗ trợ 3 nút phân nhánh:
+  1. **Trò chuyện:** Giao lưu tăng tinh thần và tình cảm.
+  2. **Giúp việc (Vần công):** Tiêu hao 20 Thể lực giúp đỡ O Thắm để nhận 1 công vần công.
+  3. **Giao dịch (Mua/Bán):**
+     * **Mua hạt giống:** Giá gốc 10 xu/hạt. Riêng ở **Phase 4 (Phù Sa)**, O Thắm giảm giá đặc biệt còn **6 xu/hạt** hỗ trợ bà con tái thiết.
+     * **Bán khoai tươi:** Bán toàn bộ khoai tươi thu hoạch được lấy **25 xu/củ** để làm giàu tài sản.
 
-### Bước 3: Tạo các GameObject Tương tác trong Game
-Hãy tạo các thực thể trên bản đồ để người chơi có thể cải tạo đất, thắp hương cầu an hoặc trò chuyện với láng giềng:
-1. Tạo một Empty GameObject tên là `SoilCell` và gắn script [SoilCell](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Agriculture/SoilCell.cs) vào nó.
-2. Tạo một Empty GameObject tên là `AncestralAltar` và gắn script [AncestralAltar](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Interactions/AncestralAltar.cs) vào nó.
-3. Tạo hai Empty GameObject đại diện cho láng giềng:
-   - GameObject thứ nhất đặt tên là `NPC_BacNam`, gắn script [NPCCharacter](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Community/NPCCharacter.cs), và chỉnh trường **Character Type** thành `Bac Nam`.
-   - GameObject thứ hai đặt tên là `NPC_OTham`, gắn script [NPCCharacter](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Community/NPCCharacter.cs), và chỉnh trường **Character Type** thành `O Tham`.
+### 🌱 4. Cơ Chế Đất Phù Sa Màu Mỡ
+* Ghi nhận các ô đất bị ngập nước lũ sâu (>0.5m) trong mùa bão lũ.
+* Khi bão tan bước sang Phase 4, các ô đất ngập nước này tự động chuyển đổi thành **Đất Phù Sa (Silt Soil)**:
+  * Tự động dọn sạch 30% sỏi đá cũ.
+  * Hồi phục dinh dưỡng lên mức tối đa 100%.
+  * Nhân đôi sản lượng thu hoạch cây trồng khi chín (nhận về **5 củ khoai tươi** thay vì 2).
 
-### Bước 4: Tạo Giao diện & Trình kiểm thử (UI & Tester)
-1. Tạo một Empty GameObject mới đặt tên là `_UI_Tester`.
-2. Kéo thả lần lượt 3 script sau vào `_UI_Tester`:
-   - [FrameworkMainMenuUI](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/FrameworkMainMenuUI.cs) (Menu bắt đầu điện ảnh)
-   - [FrameworkDebugUI](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/FrameworkDebugUI.cs) (Bảng kiểm soát sinh tồn)
-   - [FrameworkTester](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/FrameworkTester.cs) (Bộ chạy kịch bản thử nghiệm gieo trồng ảo)
-
-### Bước 5: Cấu hình liên kết trên Inspector (Quan trọng)
-Chọn GameObject `_UI_Tester`, nhìn vào cửa sổ Inspector và thực hiện kéo thả các liên kết sau:
-1. **Trên component `Framework Tester`:**
-   - Kéo GameObject `SoilCell` từ Hierarchy vào ô **Test Soil Cell**.
-   - Kéo asset `Crop_KhoaiLang` từ thư mục Project vào ô **Test Seed Data**.
-   - Kéo asset `Item_Incense` từ thư mục Project vào ô **Test Incense Item**.
-   - Kéo GameObject `AncestralAltar` từ Hierarchy vào ô **Test Altar**.
-2. **Trên component `Framework Debug UI`:**
-   - Kéo asset `Item_FreshCrop` vào ô **Test Fresh Crop**.
-   - Kéo asset `Item_PreservedCrop` vào ô **Test Preserved Crop**.
-   - Kéo asset `Item_Incense` vào ô **Test Incense**.
-   - Kéo GameObject `AncestralAltar` vào ô **Test Altar**.
-3. **Trên component `AncestralAltar` (của GameObject `AncestralAltar`):**
-   - Kéo asset `Item_Incense` vào ô **Incense Item**.
+### 🛠️ 5. Bảng Điều Khiển Lập Trình Nhanh (F1 Debug UI)
+* Bấm **`F1`** khi chơi để bật/tắt bảng Debug:
+  * Hiển thị trực quan chỉ số, thời tiết và tài sản.
+  * 3 nút kiểm thử stress sinh lý: **`Thêm +35% Stress Nhiệt`**, **`Thêm +35% Stress Lạnh`**, và **`Reset Toàn Bộ Stress`** về 0%.
+  * Nút tặng nhanh: +50 Xu, -50 Xu, +5 Khoai Tươi, +5 Hạt Giống để test nhanh.
 
 ---
 
-## Trải nghiệm Gameplay sau khi bấm Play
+## 🛠️ Hướng Dẫn Thiết Lập Scene Từ Đầu
 
-Khi bạn đã hoàn thành thiết lập trên và nhấn nút **Play** ở góc trên cùng của Unity Editor, kịch bản game sẽ diễn ra như sau:
+Do dự án Git chỉ lưu trữ mã nguồn và tài nguyên cấu hình tĩnh, hãy làm theo các bước sau trong Unity Editor để dựng lại Scene 3D hoàn chỉnh:
 
-1. **Màn hình Menu Gỗ Nghệ Thuật hiện lên:**
-   - Màn hình chuyển sang tông cam đất hoàng hôn miền Trung.
-   - Có hiệu ứng các hạt bụi rơm vàng lãng mạn bay ngang qua màn hình.
-   - Thời gian trong game tạm dừng để bạn đọc cốt truyện trong tab **Ký Ức Miền Trung** hoặc nhấn **"Về quê bám đất"** để chính thức bắt đầu hành trình.
-2. **Bảng Điều Khiển Sinh Tồn Xuất Hiện:**
-   - Sau khi thoát Menu, thời gian game sẽ bắt đầu chạy (đồng hồ tăng dần).
-   - Ở phía bên trái và phải màn hình, bảng điều khiển gỗ hiển thị đầy đủ các thông tin:
-     - **Thời gian & Giai đoạn:** Hiện ngày giờ và 4 mùa cốt truyện.
-     - **Thời tiết:** Nhiệt độ biến động ngày đêm, ẩm độ, sức gió và mực nước lũ.
-     - **Sức khỏe nhân vật:** Thanh máu (Health), thể lực (Stamina) và tinh thần (Morale).
-     - **Tích Cốc Phòng Cơ:** Xem các vật phẩm trong hòm kho. Bạn có thể nhấn nút **Chế biến Khoai Gieo** để dùng 3 củ khoai tươi tạo ra khoai khô tránh ẩm mốc.
-     - **Tín ngưỡng & Vần công:** Thắp nhang hồi morale hoặc cử Bác Năm đi đổi công làm ruộng tích lũy nghĩa tình.
-     - **Hội thoại cốt truyện:** Có thể trò chuyện, nghe Bác Năm hoặc O Thắm tâm sự ca dao tục ngữ hoặc tặng quà cho họ để tăng điểm thân thiết.
-     - **Bàn điều phối thiên tai (Dev Controls):** Trực tiếp kích hoạt giả lập chuyển mùa từ Mùa Lập nghiệp -> Nắng nóng Gió Lào (nhiệt tăng 42°C, làm việc mất máu) -> Bão lũ (nước sông dâng lút nhà, kích hoạt cả làng sang chằng chống nhà hộ bạn nhờ điểm đổi công tích lũy) -> Phù Sa bồi đắp sau lũ.
+### Bước 1: Thiết Lập Quản Lý Hệ Thống (Managers)
+1. Trong cửa sổ **Hierarchy**, nhấp chuột phải chọn **Create Empty**. Đặt tên GameObject này là `_Managers`.
+2. Kéo thả lần lượt 5 script quản lý từ thư mục `Assets/Scripts/` vào cửa sổ Inspector của nó:
+   * **`GameManager`** (Cài đặt `secondsPerGameHour = 12.5` để có 1 ngày = 5 phút thực).
+   * **`PlayerStats`** (Quản lý Máu, Thể lực, Tinh thần, Xu).
+   * **`WeatherManager`** (Nội suy thời tiết, lũ lụt, hệ thống mưa rơi).
+   * **`StorageManager`** (Quản lý kho chứa, thối nông sản ẩm, chế biến khoai khô).
+   * **`CommunityManager`** (Quản lý nghĩa tình làng xóm và đổi công chống bão).
 
-Chúc bạn có những trải nghiệm thú vị khi kiểm thử dự án game giàu ý nghĩa nhân văn này! Nếu gặp bất kỳ khó khăn nào trong quá trình kéo thả thiết lập, hãy đặt câu hỏi để mình hỗ trợ nhé.
+### Bước 2: Tạo Các Vật Phẩm & Cây Trồng (Data Assets)
+1. Trong thư mục **Project**, tạo thư mục con tên là `Data` (nếu chưa có) nằm trực tiếp dưới `Assets/`.
+2. Trong thư mục `Data`, nhấp chuột phải chọn **Create -> Sown In Stone -> Item Data** để tạo ra 4 vật phẩm:
+   * **`Item_FreshCrop`** (Khoai Lang Tươi): *Item ID = item_fresh_crop, Item Name = Khoai Lang Tươi, Type = Nong San Tuoi, Decay Rate In Humidity = 0.8*.
+   * **`Item_PreservedCrop`** (Khoai Gieo): *Item ID = item_khoai_gieo, Item Name = Khoai Gieo, Type = Nong San Kho, Decay Rate In Humidity = 0*.
+   * **`Item_Incense`** (Nhang): *Item ID = item_incense, Item Name = Nhang, Type = Incense, Morale Restore Value = 10*.
+   * **`Item_Seed`** (Hạt giống Khoai Lang): *Item ID = item_potato_seed, Item Name = Hạt giống Khoai Lang, Type = Item_Seed*.
+3. Nhấp chuột phải chọn **Create -> Sown In Stone -> Crop Data**:
+   * **`Crop_KhoaiLang`**: *Crop Name = Khoai Lang, Days To Mature = 5, Seed Price = 10, Base Sell Value = 25, Ideal Moisture = 60, Harvested Item = Item_FreshCrop*.
+
+### Bước 3: Tạo Nhân Vật Chính (Player)
+1. Tạo một Empty GameObject trong Hierarchy, đặt tên là **`Player`**.
+2. Kéo thả script **`PlayerController`** vào đối tượng này.
+3. Thêm các thành phần vật lý 3D:
+   * Thêm component **`Rigidbody`**: Trong Inspector, mở phần **Constraints**, tích chọn **tất cả các ô Freeze Rotation** (X, Y, Z) và **Freeze Position Y** (Khóa chiều cao để nhân vật di chuyển phẳng trên trục X/Z, không bị rơi tự do).
+   * Thêm component **`Box Collider`** (hoặc `Capsule Collider`).
+4. Đưa mô hình nhân vật 3D (ví dụ tệp `indonesian_farmer_pak_tani.glb`) làm con của GameObject Player.
+   * Kéo đối tượng mô hình con này vào ô **Character Visual** trên component `PlayerController`.
+5. Tạo Animator Controller mới, cấu hình Blend Tree chuyển động và gán vào component **Animator** trên Player.
+
+### Bước 4: Thiết Lập Camera Theo Dõi 3D
+1. Chọn đối tượng **Main Camera** trong Hierarchy.
+2. Thêm component **`Camera Follow 3D`** vào Main Camera.
+3. Kéo đối tượng **Player** ở Hierarchy thả vào trường **Target** của `Camera Follow 3D` để camera tự động bám theo mượt mà.
+
+### Bước 5: Tạo Các Đối Tượng Tương Tác Trên Bản Đồ
+1. **Các ô đất trồng (`SoilCell`):**
+   * Tạo Empty GameObject tên là `SoilCell`, gắn script **`SoilCell`**.
+   * Thêm component **`Box Collider`** (3D) và **tích chọn `Is Trigger`** để nhân vật có thể đi xuyên qua.
+2. **Bàn thờ tổ tiên (`AncestralAltar`):**
+   * Tạo Empty GameObject tên là `AncestralAltar`, gắn script **`AncestralAltar`** (Kéo tệp `Item_Incense` vào trường *Incense Item*).
+   * Thêm **`Box Collider`** (3D) và **tích chọn `Is Trigger`**.
+3. **Dân làng (NPCs):**
+   * Tạo Empty GameObject tên là `NPC_BacNam`, gắn script **`NPCCharacter`** (chọn Character Type = *Bac Nam*). Thêm **`Box Collider`** (3D), tích **`Is Trigger`**.
+   * Tạo Empty GameObject tên là `NPC_OTham`, gắn script **`NPCCharacter`** (chọn Character Type = *O Tham*). Thêm **`Box Collider`** (3D), tích **`Is Trigger`**.
+
+### Bước 6: Tạo Giao Diện & Bộ Kiểm Thử (UI & Tester)
+1. Tạo Empty GameObject tên là `_UI_Tester`.
+2. Gắn các script sau vào nó:
+   * **`FrameworkMainMenuUI`** (Menu gỗ mở đầu)
+   * **`FrameworkDebugUI`** (Bảng điều khiển test F1)
+   * **`FrameworkTester`** (Bộ chạy kịch bản thử nghiệm)
+
+### Bước 7: Cấu Hình Inspector Cho UI & Tester (Quan Trọng)
+Chọn GameObject `_UI_Tester`, tại Inspector kéo thả liên kết:
+1. **Component `Framework Tester`:**
+   * Kéo đối tượng `SoilCell` từ Hierarchy vào ô **Test Soil Cell**.
+   * Kéo asset `Crop_KhoaiLang` từ Project vào ô **Test Seed Data**.
+   * Kéo asset `Item_Incense` vào ô **Test Incense Item**.
+   * Kéo đối tượng `AncestralAltar` vào ô **Test Altar**.
+2. **Component `Framework Debug UI`:**
+   * Kéo asset `Item_FreshCrop` vào ô **Test Fresh Crop**.
+   * Kéo asset `Item_PreservedCrop` vào ô **Test Preserved Crop**.
+   * Kéo asset `Item_Incense` vào ô **Test Incense**.
+   * Kéo asset `Item_Seed` vào ô **Test Seed Item**.
+   * Kéo đối tượng `AncestralAltar` vào ô **Test Altar**.
+3. **Component `PlayerController` (trên đối tượng `Player`):**
+   * Kéo asset `Crop_KhoaiLang` vào ô **Test Seed Data**.
+   * Kéo asset `Item_Seed` vào ô **Seed Item**.
+
+---
+
+## 🎮 Cách Bắt Đầu Trải Nghiệm Game
+
+1. Nhấn nút **Play** trong Unity Editor.
+2. Màn hình **Menu Gỗ Ký Ức** sẽ hiện lên, nhấn nút **"Về quê bám đất"** để bắt đầu.
+3. Sử dụng các phím **WASD** để di chuyển nhân vật trong không gian 3D.
+4. Lại gần các luống đất hoặc NPC, nhấn **`[E]`** để thực hiện tương tác:
+   * Nhặt đá dọn ruộng -> Tưới nước -> Gieo hạt giống thực tế -> Thu hoạch nông sản khi chín.
+   * Nói chuyện với O Thắm, chọn giao dịch mua hạt giống hoặc bán khoai tích xu.
+5. Nhấn phím **`Tab`** hoặc **`I`** để mở hòm đồ theo dõi tài sản Xu và hạt giống thực tế.
+6. Nhấn phím **`F1`** để mở bảng debug kiểm thử nhanh chỉ số stress sinh lý hoặc tặng/trừ tài nguyên.

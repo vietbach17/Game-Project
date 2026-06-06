@@ -5,6 +5,10 @@ using SownInStone.Community;
 using SownInStone.Storage;
 using SownInStone.Interactions;
 
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+#endif
+
 namespace SownInStone
 {
     /// <summary>
@@ -17,6 +21,7 @@ namespace SownInStone
         [SerializeField] private ItemData testFreshCrop;
         [SerializeField] private ItemData testPreservedCrop;
         [SerializeField] private ItemData testIncense;
+        [SerializeField] private ItemData testSeedItem;
         [SerializeField] private AncestralAltar testAltar;
 
         private string alertMessage = "Hệ thống hoạt động bình thường.";
@@ -70,6 +75,19 @@ namespace SownInStone
 
         private void Update()
         {
+            // Lắng nghe phím tắt F1 để tắt/bật nhanh bảng điều khiển debug
+#if ENABLE_INPUT_SYSTEM
+            if (Keyboard.current != null && Keyboard.current.f1Key.wasPressedThisFrame)
+            {
+                isUIVisible = !isUIVisible;
+            }
+#else
+            if (Input.GetKeyDown(KeyCode.F1))
+            {
+                isUIVisible = !isUIVisible;
+            }
+#endif
+
             if (alertTimer > 0f)
             {
                 alertTimer -= Time.deltaTime;
@@ -90,10 +108,11 @@ namespace SownInStone
         {
             if (StorageManager.Instance == null) return;
 
-            // Thêm khoai lang tươi, khoai gieo khô và nhang thắp cúng
+            // Thêm khoai lang tươi, khoai gieo khô, nhang thắp cúng và hạt giống
             if (testFreshCrop != null) StorageManager.Instance.AddItem(testFreshCrop, 15);
             if (testPreservedCrop != null) StorageManager.Instance.AddItem(testPreservedCrop, 3);
             if (testIncense != null) StorageManager.Instance.AddItem(testIncense, 5);
+            if (testSeedItem != null) StorageManager.Instance.AddItem(testSeedItem, 5);
         }
 
         private void OnGUI()
@@ -146,7 +165,7 @@ namespace SownInStone
             GUILayout.EndArea();
 
             // 4. Phân hệ CHỈ SỐ SINH TỒN NHÂN VẬT
-            Rect statsRect = new Rect(10, 185, 250, 160);
+            Rect statsRect = new Rect(10, 185, 250, 195);
             GUI.Box(statsRect, "<b>CHỈ SỐ SỨC KHỎE NHÂN VẬT</b>");
             GUILayout.BeginArea(new Rect(statsRect.x + 10, statsRect.y + 20, statsRect.width - 20, statsRect.height - 30));
             if (PlayerStats.Instance != null)
@@ -162,6 +181,7 @@ namespace SownInStone
                 DrawProgressBar(new Color(0.7f, 0.4f, 0.9f)); // Màu tím thiền
 
                 GUILayout.Label($"Stress Nhiệt: {PlayerStats.Instance.HeatStress:F0}% | Lạnh: {PlayerStats.Instance.ColdStress:F0}%");
+                GUILayout.Label($"Tài sản: <color=#F4D03F><b>{PlayerStats.Instance.Coins} Xu</b></color>");
             }
             GUILayout.EndArea();
 
@@ -304,7 +324,7 @@ namespace SownInStone
             GUILayout.EndArea();
 
             // 7. PHÂN HỆ GIẢ LẬP TRÌNH DIỄN THIÊN TAI (DEV CONTROL)
-            Rect devRect = new Rect(10, 560, 520, 95);
+            Rect devRect = new Rect(10, 560, 520, 165);
             GUI.Box(devRect, "<b>BÀN ĐIỀU PHỐI THIÊN TAI (DÀNH CHO ĐỘI NGŨ PHÁT TRIỂN)</b>");
             GUILayout.BeginArea(new Rect(devRect.x + 10, devRect.y + 20, devRect.width - 20, devRect.height - 30));
             GUILayout.BeginHorizontal();
@@ -333,6 +353,56 @@ namespace SownInStone
 
             GUILayout.EndHorizontal();
             
+            // Dòng nút phụ để test nhanh chỉ số Stress Nhiệt / Lạnh
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("Thêm +35% Stress Nhiệt"))
+            {
+                PlayerStats.Instance?.ApplyHeatStress(35f);
+                ShowAlert("Đã tăng +35% Stress Nhiệt cho Thành!");
+            }
+            if (GUILayout.Button("Thêm +35% Stress Lạnh"))
+            {
+                PlayerStats.Instance?.ApplyColdStress(35f);
+                ShowAlert("Đã tăng +35% Stress Lạnh cho Thành!");
+            }
+            if (GUILayout.Button("Reset Toàn Bộ Stress"))
+            {
+                PlayerStats.Instance?.ApplyHeatStress(-100f);
+                PlayerStats.Instance?.ApplyColdStress(-100f);
+                ShowAlert("Đã reset chỉ số Stress về 0%!");
+            }
+            GUILayout.EndHorizontal();
+
+            // Dòng nút kiểm thử Tài chính và Vật phẩm
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("Tặng +50 Xu"))
+            {
+                PlayerStats.Instance?.ModifyCoins(50);
+                ShowAlert("Đã cộng thêm 50 Xu tài sản!");
+            }
+            if (GUILayout.Button("Trừ -50 Xu"))
+            {
+                PlayerStats.Instance?.ModifyCoins(-50);
+                ShowAlert("Đã khấu trừ 50 Xu!");
+            }
+            if (GUILayout.Button("Tặng +5 Khoai Tươi"))
+            {
+                if (StorageManager.Instance != null && testFreshCrop != null)
+                {
+                    StorageManager.Instance.AddItem(testFreshCrop, 5);
+                    ShowAlert("Đã thêm 5 Khoai lang tươi vào kho đồ!");
+                }
+            }
+            if (GUILayout.Button("Tặng +5 Hạt Giống"))
+            {
+                if (StorageManager.Instance != null && testSeedItem != null)
+                {
+                    StorageManager.Instance.AddItem(testSeedItem, 5);
+                    ShowAlert("Đã thêm 5 Hạt giống Khoai vào kho đồ!");
+                }
+            }
+            GUILayout.EndHorizontal();
+
             // Thanh trạng thái cảnh báo hệ thống màu vàng cam nổi bật
             GUI.color = new Color(1f, 0.6f, 0.1f);
             GUILayout.Label($"THÔNG BÁO: {alertMessage}");
