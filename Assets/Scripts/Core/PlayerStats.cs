@@ -149,6 +149,11 @@ namespace SownInStone.Core
             OnCoinsChanged?.Invoke(coins);
         }
 
+        public void TriggerAlert(string message)
+        {
+            OnPlayerAlert?.Invoke(message);
+        }
+
         #endregion
 
         private void HandlePlayerFaint()

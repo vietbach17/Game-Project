@@ -237,6 +237,9 @@ namespace SownInStone.Weather
 
             rainParticles = rainParticlesObj.GetComponent<ParticleSystem>();
 
+            // Stop the system before configuring main module properties to avoid warnings
+            rainParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+
             // Cấu hình Particle System chính
             var main = rainParticles.main;
             main.duration = 1f;

@@ -189,8 +189,9 @@ namespace SownInStone.Agriculture
 
             // Tạo GameObject cây con từ code hoặc Instantiate Prefab
             GameObject cropObj = new GameObject($"Crop_{seedData.CropName}");
-            cropObj.transform.SetParent(this.transform);
-            cropObj.transform.localPosition = Vector3.up * 0.2f; // Định vị cây nhô lên mặt đất
+            cropObj.transform.SetParent(this.transform, false);
+            cropObj.transform.localPosition = new Vector3(0f, 0f, -0.08f); // Định vị cây nhô lên mặt đất
+            cropObj.transform.localRotation = Quaternion.Euler(-90f, 0f, 0f); // Đứng thẳng upright
 
             plantedCrop = cropObj.AddComponent<CropInstance>();
             plantedCrop.Initialize(seedData, this);

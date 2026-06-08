@@ -25,13 +25,222 @@ namespace SownInStone.Agriculture
 
         private SpriteRenderer spriteRenderer;
 
+        private GameObject visual3DObj;
+        private Transform stemTransform;
+        private Transform leaf1Transform;
+        private Transform leaf2Transform;
+        private Renderer stemRenderer;
+        private Renderer leaf1Renderer;
+        private Renderer leaf2Renderer;
+
+        private void Create3DPlaceholder()
+        {
+            if (visual3DObj != null) return;
+
+            // Create parent visual object to hold stem and leaves
+            visual3DObj = new GameObject("Visual3D");
+            visual3DObj.transform.SetParent(this.transform, false);
+            visual3DObj.transform.localPosition = Vector3.zero;
+            visual3DObj.transform.localRotation = Quaternion.identity;
+
+            // 1. Stem (Cylinder)
+            GameObject stemObj = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            if (stemObj.GetComponent<CapsuleCollider>() != null)
+            {
+                Destroy(stemObj.GetComponent<CapsuleCollider>());
+            }
+            stemObj.transform.SetParent(visual3DObj.transform, false);
+            stemObj.transform.localPosition = new Vector3(0f, 0.2f, 0f);
+            stemObj.transform.localScale = new Vector3(0.1f, 0.2f, 0.1f);
+            stemTransform = stemObj.transform;
+            stemRenderer = stemObj.GetComponent<Renderer>();
+
+            // 2. Leaf 1 (Flattened Cube)
+            GameObject leaf1Obj = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            if (leaf1Obj.GetComponent<BoxCollider>() != null)
+            {
+                Destroy(leaf1Obj.GetComponent<BoxCollider>());
+            }
+            leaf1Obj.transform.SetParent(visual3DObj.transform, false);
+            leaf1Obj.transform.localPosition = new Vector3(0.15f, 0.3f, 0f);
+            leaf1Obj.transform.localRotation = Quaternion.Euler(20f, 0f, 45f);
+            leaf1Obj.transform.localScale = new Vector3(0.3f, 0.05f, 0.15f);
+            leaf1Transform = leaf1Obj.transform;
+            leaf1Renderer = leaf1Obj.GetComponent<Renderer>();
+
+            // 3. Leaf 2 (Flattened Cube)
+            GameObject leaf2Obj = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            if (leaf2Obj.GetComponent<BoxCollider>() != null)
+            {
+                Destroy(leaf2Obj.GetComponent<BoxCollider>());
+            }
+            leaf2Obj.transform.SetParent(visual3DObj.transform, false);
+            leaf2Obj.transform.localPosition = new Vector3(-0.15f, 0.3f, 0f);
+            leaf2Obj.transform.localRotation = Quaternion.Euler(20f, 0f, -45f);
+            leaf2Obj.transform.localScale = new Vector3(0.3f, 0.05f, 0.15f);
+            leaf2Transform = leaf2Obj.transform;
+            leaf2Renderer = leaf2Obj.GetComponent<Renderer>();
+        }
+
+        private void UpdateVisual3D(int stageIndex)
+        {
+            if (visual3DObj == null) Create3DPlaceholder();
+
+            Color stemColor = Color.white;
+            Color leafColor = Color.white;
+
+            if (isWithered)
+            {
+                Color brown = new Color(0.5f, 0.4f, 0.3f, 1f);
+                stemColor = brown;
+                leafColor = brown;
+            }
+            else if (isRotted)
+            {
+                Color rot = new Color(0.15f, 0.2f, 0.15f, 0.8f);
+                stemColor = rot;
+                leafColor = rot;
+            }
+            else
+            {
+                if (stageIndex == 0)
+                {
+                    // Seedling: stem green, leaves bright green
+                    stemColor = new Color(0.2f, 0.7f, 0.2f, 1f);
+                    leafColor = new Color(0.1f, 1.0f, 0.1f, 1f);
+                }
+                else if (stageIndex == 1)
+                {
+                    // Growing: stem darker green, leaves healthy green
+                    stemColor = new Color(0.05f, 0.4f, 0.05f, 1f);
+                    leafColor = new Color(0.0f, 0.7f, 0.0f, 1f);
+                }
+                else
+                {
+                    // Ready: stem green/brown, leaves yellow-green
+                    stemColor = new Color(0.4f, 0.35f, 0.2f, 1f);
+                    leafColor = new Color(0.8f, 0.9f, 0.0f, 1f);
+                }
+            }
+
+            if (stemRenderer != null) stemRenderer.material.color = stemColor;
+            if (leaf1Renderer != null) leaf1Renderer.material.color = leafColor;
+            if (leaf2Renderer != null) leaf2Renderer.material.color = leafColor;
+
+            if (stageIndex == 0)
+            {
+                // Seedling: short stem, small leaves
+                if (stemTransform != null)
+                {
+                    stemTransform.localPosition = new Vector3(0f, 0.1f, 0f);
+                    stemTransform.localScale = new Vector3(0.08f, 0.1f, 0.08f);
+                }
+                if (leaf1Transform != null)
+                {
+                    leaf1Transform.localPosition = new Vector3(0.08f, 0.15f, 0f);
+                    leaf1Transform.localScale = new Vector3(0.15f, 0.03f, 0.08f);
+                }
+                if (leaf2Transform != null)
+                {
+                    leaf2Transform.localPosition = new Vector3(-0.08f, 0.15f, 0f);
+                    leaf2Transform.localScale = new Vector3(0.15f, 0.03f, 0.08f);
+                }
+            }
+            else if (stageIndex == 1)
+            {
+                // Growing: taller stem, medium leaves
+                if (stemTransform != null)
+                {
+                    stemTransform.localPosition = new Vector3(0f, 0.25f, 0f);
+                    stemTransform.localScale = new Vector3(0.12f, 0.25f, 0.12f);
+                }
+                if (leaf1Transform != null)
+                {
+                    leaf1Transform.localPosition = new Vector3(0.2f, 0.35f, 0f);
+                    leaf1Transform.localScale = new Vector3(0.35f, 0.05f, 0.15f);
+                }
+                if (leaf2Transform != null)
+                {
+                    leaf2Transform.localPosition = new Vector3(-0.2f, 0.35f, 0f);
+                    leaf2Transform.localScale = new Vector3(0.35f, 0.05f, 0.15f);
+                }
+            }
+            else
+            {
+                // Ready to harvest: tallest stem, largest leaves
+                if (stemTransform != null)
+                {
+                    stemTransform.localPosition = new Vector3(0f, 0.4f, 0f);
+                    stemTransform.localScale = new Vector3(0.15f, 0.4f, 0.15f);
+                }
+                if (leaf1Transform != null)
+                {
+                    leaf1Transform.localPosition = new Vector3(0.3f, 0.6f, 0f);
+                    leaf1Transform.localScale = new Vector3(0.5f, 0.06f, 0.2f);
+                }
+                if (leaf2Transform != null)
+                {
+                    leaf2Transform.localPosition = new Vector3(-0.3f, 0.6f, 0f);
+                    leaf2Transform.localScale = new Vector3(0.5f, 0.06f, 0.2f);
+                }
+            }
+        }
+
+        private void Cleanup3DVisual()
+        {
+            if (visual3DObj != null)
+            {
+                if (stemRenderer != null)
+                {
+                    Material mat = stemRenderer.material;
+                    if (mat != null) Destroy(mat);
+                }
+                if (leaf1Renderer != null)
+                {
+                    Material mat = leaf1Renderer.material;
+                    if (mat != null) Destroy(mat);
+                }
+                if (leaf2Renderer != null)
+                {
+                    Material mat = leaf2Renderer.material;
+                    if (mat != null) Destroy(mat);
+                }
+                Destroy(visual3DObj);
+                visual3DObj = null;
+            }
+        }
+
+        private static Sprite cachedFallbackSprite;
+
+        private static Sprite GetFallbackSprite()
+        {
+            if (cachedFallbackSprite == null)
+            {
+                Texture2D tex = new Texture2D(8, 8);
+                for (int y = 0; y < 8; y++)
+                {
+                    for (int x = 0; x < 8; x++)
+                    {
+                        tex.SetPixel(x, y, Color.white);
+                    }
+                }
+                tex.Apply();
+                cachedFallbackSprite = Sprite.Create(tex, new Rect(0, 0, 8, 8), new Vector2(0.5f, 0.5f));
+            }
+            return cachedFallbackSprite;
+        }
+
         public void Initialize(CropData data, SoilCell soil)
         {
             cropData = data;
             parentSoil = soil;
 
             spriteRenderer = gameObject.AddComponent<SpriteRenderer>();
-            spriteRenderer.sortingOrder = 5; // Hiển thị đè lên trên ô đất
+            spriteRenderer.sortingOrder = 20; // Hiển thị đè lên trên ô đất (sortingOrder 10)
+
+            // Maintain local position and rotation aligned with parent to avoid shearing (Y-offset 0.25)
+            transform.localPosition = new Vector3(0f, 0f, -0.25f);
+            transform.localRotation = Quaternion.Euler(-90f, 0f, 0f);
 
             UpdateVisualSprite();
 
@@ -47,6 +256,7 @@ namespace SownInStone.Agriculture
             {
                 GameManager.Instance.OnDayChanged -= OnNewDayTick;
             }
+            Cleanup3DVisual();
         }
 
         /// <summary>
@@ -119,6 +329,20 @@ namespace SownInStone.Agriculture
         }
 
         /// <summary>
+        /// Ép cây trồng chín lập tức phục vụ debug kiểm thử.
+        /// </summary>
+        public void DebugMature()
+        {
+            if (cropData != null)
+            {
+                currentGrowthDays = cropData.DaysToMature;
+                isWithered = false;
+                isRotted = false;
+                UpdateVisualSprite();
+            }
+        }
+
+        /// <summary>
         /// Tiến hành thu hoạch. Trả về số lượng nông sản thu được. Giải phóng ô đất.
         /// </summary>
         public int ActionHarvest()
@@ -143,36 +367,91 @@ namespace SownInStone.Agriculture
             return baseYield;
         }
 
-        /// <summary>
-        /// Cập nhật hình ảnh cây trồng dựa vào giai đoạn tăng trưởng hoặc trạng thái chết úng/héo.
-        /// </summary>
         private void UpdateVisualSprite()
         {
             if (spriteRenderer == null || cropData == null) return;
 
-            if (isWithered)
-            {
-                // Sử dụng màu xám cháy hoặc vẽ đè màu nâu đỏ khô héo
-                spriteRenderer.color = new Color(0.5f, 0.4f, 0.3f, 1f);
-                return;
-            }
-
-            if (isRotted)
-            {
-                // Màu đen úng mốc thối rữa
-                spriteRenderer.color = new Color(0.2f, 0.3f, 0.2f, 0.8f);
-                return;
-            }
-
-            // Tính tỷ lệ lớn để lấy sprite tương ứng trong mảng Sprites của CropData
-            if (cropData.GrowthStageSprites == null || cropData.GrowthStageSprites.Length == 0) return;
+            // Maintain local position and rotation aligned with parent to avoid shearing (Y-offset 0.25)
+            transform.localRotation = Quaternion.Euler(-90f, 0f, 0f);
+            transform.localPosition = new Vector3(0f, 0f, -0.25f);
 
             float ratio = currentGrowthDays / cropData.DaysToMature;
-            int stageIndex = Mathf.FloorToInt(ratio * (cropData.GrowthStageSprites.Length - 1));
-            stageIndex = Mathf.Clamp(stageIndex, 0, cropData.GrowthStageSprites.Length - 1);
+            int stageIndex = 0;
+            Sprite selectedSprite = null;
 
-            spriteRenderer.sprite = cropData.GrowthStageSprites[stageIndex];
-            spriteRenderer.color = Color.white; // Màu bình thường tươi xanh
+            if (cropData.GrowthStageSprites != null && cropData.GrowthStageSprites.Length > 0)
+            {
+                stageIndex = Mathf.FloorToInt(ratio * (cropData.GrowthStageSprites.Length - 1));
+                stageIndex = Mathf.Clamp(stageIndex, 0, cropData.GrowthStageSprites.Length - 1);
+                selectedSprite = cropData.GrowthStageSprites[stageIndex];
+            }
+            else
+            {
+                if (ratio >= 0.8f) stageIndex = 2;
+                else if (ratio >= 0.33f) stageIndex = 1;
+                else stageIndex = 0;
+            }
+
+            // Determine Color and Scale based on state and stage
+            Color stageColor = Color.white;
+            Vector3 targetScale = Vector3.one;
+
+            if (isWithered)
+            {
+                stageColor = new Color(0.5f, 0.4f, 0.3f, 1f);
+                targetScale = new Vector3(1.2f, 1.0f, 1f);
+            }
+            else if (isRotted)
+            {
+                stageColor = new Color(0.15f, 0.2f, 0.15f, 0.8f);
+                targetScale = new Vector3(1.2f, 1.0f, 1f);
+            }
+            else
+            {
+                if (stageIndex == 0)
+                {
+                    stageColor = new Color(0.1f, 1.0f, 0.1f, 1f); // bright green
+                    targetScale = new Vector3(0.8f, 0.8f, 1f);
+                }
+                else if (stageIndex == 1)
+                {
+                    stageColor = new Color(0.0f, 0.7f, 0.0f, 1f); // deeper green
+                    targetScale = new Vector3(1.2f, 1.2f, 1f);
+                }
+                else
+                {
+                    stageColor = new Color(0.8f, 0.9f, 0.0f, 1f); // yellow-green
+                    targetScale = new Vector3(1.6f, 1.6f, 1f);
+                }
+            }
+
+            // Check if the sprite is null or a default UI sprite name
+            bool isInvalid = selectedSprite == null;
+            if (selectedSprite != null)
+            {
+                string sName = selectedSprite.name;
+                if (sName == "Knob" || sName == "InputFieldBackground" || sName == "UISprite" || sName == "Background" || sName == "Checkmark")
+                {
+                    isInvalid = true;
+                }
+            }
+
+            if (isInvalid)
+            {
+                // Use 3D Visual
+                spriteRenderer.enabled = false;
+                UpdateVisual3D(stageIndex);
+                transform.localScale = Vector3.one; // 3D model handles its own scaling internally
+            }
+            else
+            {
+                // Use 2D Sprite Visual
+                spriteRenderer.enabled = true;
+                Cleanup3DVisual();
+                spriteRenderer.sprite = selectedSprite;
+                spriteRenderer.color = stageColor;
+                transform.localScale = targetScale;
+            }
         }
     }
 }

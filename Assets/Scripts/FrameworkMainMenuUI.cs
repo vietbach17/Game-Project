@@ -283,7 +283,7 @@ namespace SownInStone
 #endif
             if (debugUI != null)
             {
-                debugUI.isUIVisible = true;
+                debugUI.isUIVisible = false;
             }
 
             // Kích hoạt hiển thị UI Canvas sinh tồn mới

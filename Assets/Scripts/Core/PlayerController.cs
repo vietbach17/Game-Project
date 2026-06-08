@@ -23,8 +23,27 @@ namespace SownInStone.Core
         public static PlayerController Instance { get; private set; }
 
         [Header("--- THÔNG SỐ DI CHUYỂN ---")]
-        [Tooltip("Tốc độ di chuyển của nhân vật.")]
+        [Tooltip("Tốc độ đi bộ của nhân vật.")]
+        [SerializeField] private float walkSpeed = 3f;
+
+        [Tooltip("Tốc độ chạy của nhân vật.")]
+        [SerializeField] private float runSpeed = 6f;
+
+        [Tooltip("Tốc độ di chuyển của nhân vật (để tương thích ngược).")]
         [SerializeField] private float moveSpeed = 4f;
+
+        [Header("--- THỜI GIAN KHÓA HÀNH ĐỘNG ---")]
+        [Tooltip("Thời gian khóa di chuyển khi nhặt đá (giây).")]
+        [SerializeField] private float digActionDuration = 1.2f;
+
+        [Tooltip("Thời gian khóa di chuyển khi tưới nước (giây).")]
+        [SerializeField] private float waterActionDuration = 1.2f;
+
+        [Tooltip("Thời gian khóa di chuyển khi gieo hạt (giây).")]
+        [SerializeField] private float plantActionDuration = 1.0f;
+
+        [Tooltip("Thời gian khóa di chuyển khi thu hoạch (giây).")]
+        [SerializeField] private float harvestActionDuration = 1.2f;
 
         [Header("--- XOAY NHÂN VẬT 3D ---")]
         [Tooltip("Kéo mô hình 3D con vào đây. Nếu trống, script tự tìm con đầu tiên.")]
@@ -55,6 +74,8 @@ namespace SownInStone.Core
         private Animator animator;
         private Vector2 moveInput;
         private Vector2 lastMoveDirection = Vector2.down; // Hướng quay mặt mặc định (nhìn xuống)
+        private bool isRunning; // Cho biết người chơi đang chạy nhanh hay đi bộ
+        private bool isPerformingAction; // Cho biết người chơi đang thực hiện động tác trồng trọt
 
         // Lưu trữ góc xoay cục bộ ban đầu của mô hình 3D để tránh bị lật ngã do sai lệch trục nhập khẩu
         private float initialVisualLocalX = 0f;
@@ -73,6 +94,10 @@ namespace SownInStone.Core
 
             rb = GetComponent<Rigidbody>();
             animator = GetComponent<Animator>();
+            if (animator == null)
+            {
+                animator = GetComponentInChildren<Animator>();
+            }
 
             // Cấu hình Rigidbody để phù hợp với game 3D Top-down (di chuyển phẳng X/Z)
             rb.useGravity = false;
@@ -90,6 +115,13 @@ namespace SownInStone.Core
                 initialVisualLocalX = characterVisual.localRotation.eulerAngles.x;
                 initialVisualLocalZ = characterVisual.localRotation.eulerAngles.z;
             }
+
+#if UNITY_EDITOR
+            if (seedItem == null)
+            {
+                seedItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_PreservedCrop.asset");
+            }
+#endif
         }
 
         private void Update()
@@ -108,10 +140,16 @@ namespace SownInStone.Core
                 else if (Keyboard.current.aKey.isPressed || Keyboard.current.leftArrowKey.isPressed) moveX = -1f;
 
                 moveInput = new Vector2(moveX, moveY);
+
+                // Nhận diện phím Shift để chạy nhanh
+                isRunning = Keyboard.current.leftShiftKey.isPressed || Keyboard.current.rightShiftKey.isPressed;
             }
 #else
             moveInput.x = Input.GetAxisRaw("Horizontal");
             moveInput.y = Input.GetAxisRaw("Vertical");
+
+            // Nhận diện phím Shift để chạy nhanh
+            isRunning = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
 #endif
 
             // Bình thường hóa vector để tốc độ đi chéo không bị nhanh hơn đi thẳng
@@ -145,18 +183,63 @@ namespace SownInStone.Core
                 TryPerformInteraction();
             }
 #endif
+            // Cập nhật gợi ý tương tác lên UI
+            UpdateInteractionPrompt();
         }
 
         private void FixedUpdate()
         {
+            // Khóa di chuyển nếu đang thực hiện động tác trồng trọt
+            if (isPerformingAction)
+            {
+                if (rb != null)
+                {
+                    rb.linearVelocity = new Vector3(0f, rb.linearVelocity.y, 0f);
+                }
+                return;
+            }
+
             // Di chuyển nhân vật thông qua cơ chế vật lý Rigidbody 3D tránh đi xuyên tường
-            float currentSpeed = moveSpeed;
+            // Tính toán tốc độ cơ bản tùy theo việc người chơi giữ Shift để chạy nhanh
+            float baseSpeed = isRunning ? runSpeed : walkSpeed;
+            float currentSpeed = baseSpeed;
+
             if (WeatherManager.Instance != null && WeatherManager.Instance.FloodLevel > 0.5f)
             {
-                // Giảm 40% tốc độ di chuyển khi lội nước lụt sâu hơn 0.5m
+                // Giảm 40% tốc độ di chuyển khi lội nước lụt sâu hơn 0.5m (flood penalty)
                 currentSpeed *= 0.6f;
             }
-            rb.linearVelocity = new Vector3(moveInput.x * currentSpeed, rb.linearVelocity.y, moveInput.y * currentSpeed);
+
+            // Tính toán hướng di chuyển camera-relative trong không gian 3D
+            Transform cameraTransform = Camera.main != null ? Camera.main.transform : null;
+            if (cameraTransform != null && moveInput.sqrMagnitude > 0.01f)
+            {
+                Vector3 cameraForward = cameraTransform.forward;
+                Vector3 cameraRight = cameraTransform.right;
+
+                cameraForward.y = 0f;
+                cameraRight.y = 0f;
+
+                cameraForward.Normalize();
+                cameraRight.Normalize();
+
+                Vector3 targetMoveDir = cameraForward * moveInput.y + cameraRight * moveInput.x;
+                if (targetMoveDir.sqrMagnitude > 0.01f)
+                {
+                    targetMoveDir.Normalize();
+                }
+
+                rb.linearVelocity = new Vector3(targetMoveDir.x * currentSpeed, rb.linearVelocity.y, targetMoveDir.z * currentSpeed);
+            }
+            else if (moveInput.sqrMagnitude > 0.01f)
+            {
+                // Fallback nếu không tìm thấy Camera chính
+                rb.linearVelocity = new Vector3(moveInput.x * currentSpeed, rb.linearVelocity.y, moveInput.y * currentSpeed);
+            }
+            else
+            {
+                rb.linearVelocity = new Vector3(0f, rb.linearVelocity.y, 0f);
+            }
         }
 
         /// <summary>
@@ -166,11 +249,30 @@ namespace SownInStone.Core
         {
             if (animator == null) return;
 
+            float targetAnimSpeed = 0f;
+            if (isPerformingAction)
+            {
+                // Tốc độ di chuyển về 0 khi đang thực hiện động tác để Animator quay về Idle
+                targetAnimSpeed = 0f;
+            }
+            else if (moveInput.sqrMagnitude > 0.01f)
+            {
+                // Animator Speed mapping: 0.5f khi đi bộ, 1.0f khi chạy nhanh
+                targetAnimSpeed = isRunning ? 1.0f : 0.5f;
+            }
+            else
+            {
+                // 0.0f khi đứng im (Idle)
+                targetAnimSpeed = 0f;
+            }
+
+            float currentAnimSpeed = animator.GetFloat("Speed");
+            float newAnimSpeed = Mathf.MoveTowards(currentAnimSpeed, targetAnimSpeed, Time.deltaTime * 5f);
+            animator.SetFloat("Speed", newAnimSpeed);
+
+            // Keep other parameters for compatibility/harmlessness
             animator.SetFloat("Horizontal", moveInput.x);
             animator.SetFloat("Vertical", moveInput.y);
-            animator.SetFloat("Speed", moveInput.sqrMagnitude);
-            
-            // Giữ lại hướng quay mặt khi đứng yên
             animator.SetFloat("LastHorizontal", lastMoveDirection.x);
             animator.SetFloat("LastVertical", lastMoveDirection.y);
         }
@@ -192,11 +294,23 @@ namespace SownInStone.Core
         }
 
         /// <summary>
+        /// Coroutine tạm thời khóa di chuyển của người chơi khi đang làm vườn.
+        /// </summary>
+        private System.Collections.IEnumerator LockMovementForSeconds(float duration)
+        {
+            isPerformingAction = true;
+            yield return new WaitForSeconds(duration);
+            isPerformingAction = false;
+        }
+
+        /// <summary>
         /// Quét tìm các đối tượng xung quanh trong bán kính quét và thực hiện tương tác.
         /// Ưu tiên đối tượng ở gần nhất.
         /// </summary>
         private void TryPerformInteraction()
         {
+            if (isPerformingAction) return;
+
             Debug.Log("[PLAYER] Bấm phím tương tác [E]!");
 
             // Quét hình cầu vật lý 3D xung quanh người chơi
@@ -348,13 +462,16 @@ namespace SownInStone.Core
         {
             if (PlayerStats.Instance == null) return;
 
-            // Nếu đất còn đá sỏi -> Ưu tiên dọn sỏi đá cải tạo đất
+            // Priority 1: Clear rocks
             if (soil.RockDensity > 0f)
             {
-                if (PlayerStats.Instance.CurrentStamina >= 8f) // Kiểm tra đủ stamina không
+                if (PlayerStats.Instance.CurrentStamina >= 8f)
                 {
-                    PlayerStats.Instance.ModifyStamina(-8f); // Tiêu hao thể lực nhặt đá
-                    soil.ActionClearRocks(25f);
+                    PlayerStats.Instance.ModifyStamina(-8f);
+                    if (animator != null) animator.SetTrigger("Dig");
+                    StartCoroutine(LockMovementForSeconds(digActionDuration));
+                    soil.ActionClearRocks(999f);
+                    Debug.Log("Cleared rocks on soil cell");
                     Debug.Log("[PLAYER] Nhặt đá sỏi cải tạo ruộng!");
                 }
                 else
@@ -364,55 +481,85 @@ namespace SownInStone.Core
                 return;
             }
 
-            // Nếu ô đất đã có cây và cây đã chín -> Tiến hành thu hoạch nông sản
-            if (soil.plantedCrop != null && soil.plantedCrop.IsReadyToHarvest())
+            // Priority 2: Harvest crop
+            else if (soil.plantedCrop != null && soil.plantedCrop.IsReadyToHarvest())
             {
                 ItemData harvestItem = soil.plantedCrop.cropData.HarvestedItem;
+                if (animator != null) animator.SetTrigger("Harvest");
+                StartCoroutine(LockMovementForSeconds(harvestActionDuration));
                 int yield = soil.plantedCrop.ActionHarvest();
+                Debug.Log("Harvested crop");
                 if (StorageManager.Instance != null && harvestItem != null)
                 {
                     StorageManager.Instance.AddItem(harvestItem, yield);
                     Debug.Log($"[PLAYER] Thu hoạch thành công ruộng cây: {harvestItem.ItemName} x{yield}!");
                 }
+                
+                string itemName = (harvestItem != null && !string.IsNullOrEmpty(harvestItem.ItemName)) ? harvestItem.ItemName : "Nông sản";
+                string harvestMsg = $"Thu hoạch thành công: +{yield} {itemName}";
+                Debug.Log(harvestMsg);
+                PlayerStats.Instance.TriggerAlert(harvestMsg);
+
                 return;
             }
 
-            // Nếu ô đất khô ráo và chưa tưới -> Thực hiện tưới nước
-            if (soil.Moisture < 40f)
-            {
-                if (PlayerStats.Instance.CurrentStamina >= 3f)
-                {
-                    PlayerStats.Instance.ModifyStamina(-3f);
-                    soil.ActionWaterSoil(50f);
-                    Debug.Log("[PLAYER] Tưới nước cho đất ẩm mát!");
-                }
-                return;
-            }
-
-            // Nếu ô đất trống, đã tưới ẩm và dọn sạch sỏi đá -> Tiến hành gieo hạt giống
-            if (soil.plantedCrop == null)
+            // Priority 3: Plant seed (Moved before watering to fix pacing bug)
+            else if (soil.plantedCrop == null)
             {
                 if (testSeedData != null && seedItem != null)
                 {
-                    if (StorageManager.Instance != null && StorageManager.Instance.RemoveItem(seedItem, 1))
+                    bool hasSeed = false;
+                    if (StorageManager.Instance != null)
+                    {
+                        var slots = StorageManager.Instance.GetStorageSlots();
+                        var seedSlot = slots.Find(s => s.item.ItemID == seedItem.ItemID);
+                        if (seedSlot != null && seedSlot.quantity > 0)
+                        {
+                            hasSeed = true;
+                            Debug.Log("Plant attempt: seed item found");
+                        }
+                        else
+                        {
+                            Debug.Log("Plant attempt: seed item not found");
+                        }
+                    }
+
+                    if (hasSeed && StorageManager.Instance.RemoveItem(seedItem, 1))
                     {
                         bool success = soil.ActionPlantCrop(testSeedData);
                         if (success)
                         {
-                            Debug.Log($"[PLAYER] Gieo hạt thành công giống cây: {testSeedData.CropName}!");
+                            if (animator != null) animator.SetTrigger("Plant");
+                            StartCoroutine(LockMovementForSeconds(plantActionDuration));
+                            Debug.Log("Plant success: seed consumed");
                         }
                     }
                     else
                     {
-                        Debug.LogWarning("[PLAYER] Không có Hạt giống Khoai Lang trong kho!");
+                        Debug.Log("Plant failed: no seeds");
                         SownInStone.UI.SurvivalUIManager.Instance?.ShowDialogue("Hệ thống", "Không có hạt giống Khoai Lang trong kho đồ! Hãy đến gặp đại lý O Thắm để mua giống tái thiết.");
                     }
-                    return;
                 }
                 else
                 {
                     Debug.LogWarning("[PLAYER] Chưa gán Hạt giống (TestSeedData) hoặc Vật phẩm Hạt giống (SeedItem) trong PlayerController!");
                 }
+                return;
+            }
+
+            // Priority 4: Water soil
+            else if (soil.Moisture < 40f)
+            {
+                if (PlayerStats.Instance.CurrentStamina >= 3f)
+                {
+                    PlayerStats.Instance.ModifyStamina(-3f);
+                    if (animator != null) animator.SetTrigger("Water");
+                    StartCoroutine(LockMovementForSeconds(waterActionDuration));
+                    soil.ActionWaterSoil(50f);
+                    Debug.Log("Watered soil");
+                    Debug.Log("[PLAYER] Tưới nước cho đất ẩm mát!");
+                }
+                return;
             }
 
             Debug.Log("[PLAYER] Ô đất đang ở trạng thái tốt, không cần thao tác thêm.");
@@ -518,22 +665,107 @@ namespace SownInStone.Core
         {
             if (characterVisual == null || moveInput.sqrMagnitude < 0.01f) return;
 
-            if (rotationAxis == RotationAxis.RotateAroundZ_2D)
+            Transform cameraTransform = Camera.main != null ? Camera.main.transform : null;
+            if (cameraTransform != null && rotationAxis == RotationAxis.RotateAroundY_3D)
             {
-                // Game 2D truyền thống: Xoay quanh trục Z cục bộ
-                float targetAngle = Mathf.Atan2(moveInput.y, moveInput.x) * Mathf.Rad2Deg;
-                // Trừ 90 độ nếu mô hình mặc định hướng lên trên, giữ lại góc xoay ban đầu ở X và Z
-                Quaternion targetRotation = Quaternion.Euler(initialVisualLocalX, initialVisualLocalZ, targetAngle - 90f);
+                Vector3 cameraForward = cameraTransform.forward;
+                Vector3 cameraRight = cameraTransform.right;
+
+                cameraForward.y = 0f;
+                cameraRight.y = 0f;
+
+                cameraForward.Normalize();
+                cameraRight.Normalize();
+
+                Vector3 targetMoveDir = cameraForward * moveInput.y + cameraRight * moveInput.x;
+                if (targetMoveDir.sqrMagnitude > 0.01f)
+                {
+                    targetMoveDir.Normalize();
+                }
+
+                // Xoay quanh trục Y cục bộ dựa trên hướng di chuyển camera-relative thực tế
+                float targetAngle = Mathf.Atan2(targetMoveDir.x, targetMoveDir.z) * Mathf.Rad2Deg;
+                Quaternion targetRotation = Quaternion.Euler(initialVisualLocalX, targetAngle, initialVisualLocalZ);
                 characterVisual.localRotation = Quaternion.Slerp(characterVisual.localRotation, targetRotation, rotationSpeed * Time.deltaTime);
             }
             else
             {
-                // Game 3D Top-down (Y là trục đứng): Xoay quanh trục Y cục bộ
-                // Trong 2D physics, X là ngang, Y là dọc (tương ứng với Z trong 3D)
-                // Giữ lại góc xoay đứng mặc định ở X (ví dụ -90 độ) và Z để mô hình không bị ngã rạp
-                float targetAngle = Mathf.Atan2(moveInput.x, moveInput.y) * Mathf.Rad2Deg;
-                Quaternion targetRotation = Quaternion.Euler(initialVisualLocalX, targetAngle, initialVisualLocalZ);
-                characterVisual.localRotation = Quaternion.Slerp(characterVisual.localRotation, targetRotation, rotationSpeed * Time.deltaTime);
+                if (rotationAxis == RotationAxis.RotateAroundZ_2D)
+                {
+                    // Game 2D truyền thống: Xoay quanh trục Z cục bộ
+                    float targetAngle = Mathf.Atan2(moveInput.y, moveInput.x) * Mathf.Rad2Deg;
+                    // Trừ 90 độ nếu mô hình mặc định hướng lên trên, giữ lại góc xoay ban đầu ở X và Z
+                    Quaternion targetRotation = Quaternion.Euler(initialVisualLocalX, initialVisualLocalZ, targetAngle - 90f);
+                    characterVisual.localRotation = Quaternion.Slerp(characterVisual.localRotation, targetRotation, rotationSpeed * Time.deltaTime);
+                }
+                else
+                {
+                    // Game 3D Top-down truyền thống không camera
+                    float targetAngle = Mathf.Atan2(moveInput.x, moveInput.y) * Mathf.Rad2Deg;
+                    Quaternion targetRotation = Quaternion.Euler(initialVisualLocalX, targetAngle, initialVisualLocalZ);
+                    characterVisual.localRotation = Quaternion.Slerp(characterVisual.localRotation, targetRotation, rotationSpeed * Time.deltaTime);
+                }
+            }
+        }
+
+        private void UpdateInteractionPrompt()
+        {
+            if (SownInStone.UI.SurvivalUIManager.Instance == null) return;
+
+            Collider[] colliders = Physics.OverlapSphere(transform.position, interactRadius, interactableLayers);
+            Collider closestCollider = null;
+            float minDistance = float.MaxValue;
+
+            foreach (var col in colliders)
+            {
+                if (col.gameObject == gameObject) continue;
+                float dist = Vector3.Distance(transform.position, col.transform.position);
+                if (dist < minDistance)
+                {
+                    minDistance = dist;
+                    closestCollider = col;
+                }
+            }
+
+            if (closestCollider != null)
+            {
+                string prompt = "";
+                NPCCharacter npc = closestCollider.GetComponent<NPCCharacter>();
+                if (npc != null)
+                {
+                    prompt = $"[E] Trò chuyện với {npc.NPCName}";
+                }
+                else
+                {
+                    AncestralAltar altar = closestCollider.GetComponent<AncestralAltar>();
+                    if (altar != null)
+                    {
+                        prompt = "[E] Thắp nhang bàn thờ";
+                    }
+                    else
+                    {
+                        SoilCell soil = closestCollider.GetComponent<SoilCell>();
+                        if (soil != null)
+                        {
+                            if (soil.RockDensity > 0f)
+                                prompt = "[E] Dọn đá cải tạo ruộng";
+                            else if (soil.plantedCrop != null && soil.plantedCrop.IsReadyToHarvest())
+                                prompt = "[E] Thu hoạch khoai tươi";
+                            else if (soil.plantedCrop == null)
+                                prompt = "[E] Gieo hạt giống khoai";
+                            else if (soil.Moisture < 40f)
+                                prompt = "[E] Tưới nước cho đất ẩm";
+                            else
+                                prompt = "Đất đã được gieo hạt";
+                        }
+                    }
+                }
+
+                SownInStone.UI.SurvivalUIManager.Instance.SetInteractionPrompt(prompt);
+            }
+            else
+            {
+                SownInStone.UI.SurvivalUIManager.Instance.SetInteractionPrompt("");
             }
         }
 

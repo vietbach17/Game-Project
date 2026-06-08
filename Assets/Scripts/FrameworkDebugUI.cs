@@ -403,6 +403,23 @@ namespace SownInStone
             }
             GUILayout.EndHorizontal();
 
+            // Dòng nút kiểm thử nông nghiệp
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("Debug: Mature Crops"))
+            {
+#if UNITY_2023_1_OR_NEWER
+                var crops = FindObjectsByType<SownInStone.Agriculture.CropInstance>(FindObjectsInactive.Include);
+#else
+                var crops = FindObjectsOfType<SownInStone.Agriculture.CropInstance>();
+#endif
+                foreach (var crop in crops)
+                {
+                    crop.DebugMature();
+                }
+                ShowAlert("Đã ép tất cả cây trồng chín ngay lập tức!");
+            }
+            GUILayout.EndHorizontal();
+
             // Thanh trạng thái cảnh báo hệ thống màu vàng cam nổi bật
             GUI.color = new Color(1f, 0.6f, 0.1f);
             GUILayout.Label($"THÔNG BÁO: {alertMessage}");
