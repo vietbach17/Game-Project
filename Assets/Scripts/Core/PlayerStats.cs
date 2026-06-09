@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using SownInStone.Storage;
 
 namespace SownInStone.Core
 {
@@ -152,6 +153,65 @@ namespace SownInStone.Core
         public void TriggerAlert(string message)
         {
             OnPlayerAlert?.Invoke(message);
+        }
+
+        /// <summary>
+        /// Sử dụng vật phẩm tiêu thụ để hồi phục chỉ số sinh lý.
+        /// </summary>
+        public bool UseItem(ItemData item)
+        {
+            if (item == null) return false;
+
+            // Kiểm tra khả năng tiêu thụ (có giá trị hồi phục thể lực hoặc tinh thần)
+            if (item.StaminaRestoreValue <= 0f && item.MoraleRestoreValue <= 0f)
+            {
+                OnPlayerAlert?.Invoke($"Vật phẩm {item.ItemName} không thể tiêu thụ trực tiếp!");
+                return false;
+            }
+
+            // Nhang cúng chỉ được thắp tại bàn thờ
+            if (item.type == ItemType.Incense)
+            {
+                OnPlayerAlert?.Invoke("Nhang nên được thắp tại Bàn thờ Gia tiên để cầu nguyện bình an!");
+                return false;
+            }
+
+            // Hạt giống chỉ để gieo trồng
+            if (item.type == ItemType.HatGiong)
+            {
+                OnPlayerAlert?.Invoke("Hạt giống dùng để gieo trồng cải tạo ruộng vườn!");
+                return false;
+            }
+
+            // Tiến hành khấu trừ và phục hồi chỉ số
+            if (StorageManager.Instance != null)
+            {
+                if (StorageManager.Instance.RemoveItem(item, 1))
+                {
+                    if (item.StaminaRestoreValue > 0f)
+                    {
+                        ModifyStamina(item.StaminaRestoreValue);
+                    }
+                    if (item.MoraleRestoreValue > 0f)
+                    {
+                        ModifyMorale(item.MoraleRestoreValue);
+                    }
+
+                    string logMsg = $"Đã dùng 1 {item.ItemName}";
+                    System.Collections.Generic.List<string> statsList = new System.Collections.Generic.List<string>();
+                    if (item.StaminaRestoreValue > 0f) statsList.Add($"+{item.StaminaRestoreValue} Thể lực");
+                    if (item.MoraleRestoreValue > 0f) statsList.Add($"+{item.MoraleRestoreValue} Tinh thần");
+                    if (statsList.Count > 0)
+                    {
+                        logMsg += $" ({string.Join(", ", statsList)})";
+                    }
+                    logMsg += "!";
+
+                    OnPlayerAlert?.Invoke(logMsg);
+                    return true;
+                }
+            }
+            return false;
         }
 
         #endregion

@@ -685,6 +685,17 @@ namespace SownInStone.UI
                         img.enabled = true;
                     }
                 }
+
+                // Thêm Button Component để nhận click
+                Button btn = newSlot.GetComponent<Button>();
+                if (btn == null)
+                {
+                    btn = newSlot.AddComponent<Button>();
+                }
+                
+                ItemData currentItem = slot.item;
+                btn.onClick.RemoveAllListeners();
+                btn.onClick.AddListener(() => OnItemSlotClicked(currentItem));
             }
 
             // Cập nhật số lượng tiền xu hiện có của gia đình
@@ -702,6 +713,59 @@ namespace SownInStone.UI
             if (success)
             {
                 RefreshInventoryUI();
+            }
+        }
+
+        /// <summary>
+        /// Xử lý sự kiện khi click vào một ô vật phẩm trong hòm đồ.
+        /// </summary>
+        private void OnItemSlotClicked(ItemData item)
+        {
+            if (item == null) return;
+
+            // Nếu vật phẩm có thể tiêu thụ trực tiếp (hồi Stamina hoặc Morale) và không phải là Nhang/Hạt giống
+            if ((item.StaminaRestoreValue > 0f || item.MoraleRestoreValue > 0f) && 
+                item.type != ItemType.Incense && item.type != ItemType.HatGiong)
+            {
+                string usageText = $"Bạn có muốn sử dụng 1 {item.ItemName} không?\n\nHiệu quả:";
+                if (item.StaminaRestoreValue > 0f) usageText += $"\n• +{item.StaminaRestoreValue} Thể lực";
+                if (item.MoraleRestoreValue > 0f) usageText += $"\n• +{item.MoraleRestoreValue} Tinh thần";
+
+                ShowDialogueWithChoices(
+                    "Hành lý gia đình",
+                    usageText,
+                    "Sử dụng",
+                    () => {
+                        if (PlayerStats.Instance != null)
+                        {
+                            PlayerStats.Instance.UseItem(item);
+                        }
+                        RefreshInventoryUI();
+                    },
+                    "Hủy bỏ",
+                    () => {
+                        CloseDialogue();
+                    }
+                );
+            }
+            else
+            {
+                // Đối với các vật phẩm không dùng trực tiếp (Nhang, Hạt giống, Vật liệu...)
+                string descText = $"{item.Description}";
+                if (item.type == ItemType.Incense)
+                {
+                    descText += "\n\n<color=#F4D03F>Hướng dẫn:</color> Nhang nên được mang đến Bàn thờ Gia tiên hoặc Am thờ Thổ Địa ngoài vườn để thắp cúng.";
+                }
+                else if (item.type == ItemType.HatGiong)
+                {
+                    descText += "\n\n<color=#F4D03F>Hướng dẫn:</color> Hạt giống dùng gieo trực tiếp lên các ô ruộng đất trống đã dọn sạch sỏi đá và tưới ẩm.";
+                }
+                else if (item.type == ItemType.VatLieu)
+                {
+                    descText += "\n\n<color=#F4D03F>Hướng dẫn:</color> Vật liệu chằng chống nhà. Dân làng sẽ tự động dùng khi bão lụt đổ bộ.";
+                }
+
+                ShowDialogue(item.ItemName, descText);
             }
         }
 
