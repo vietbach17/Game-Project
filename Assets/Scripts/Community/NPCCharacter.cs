@@ -24,7 +24,10 @@ namespace SownInStone.Community
         [Tooltip("Dữ liệu ScriptableObject tùy biến (nếu dùng loại Custom).")]
         public NPCData npcData;
 
-        [Header("--- QUAN HỆ & NGHĨA TÌNH ---")]
+        [Header("--- MÔ HÌNH 3D NHÂN VẬT ---")]
+        [Tooltip("Kéo file FBX hoặc Prefab mô hình 3D của nhân vật vào đây để tự động hiển thị.")]
+        public GameObject visualModelPrefab;
+
         [Range(0, 100)]
         [Tooltip("Điểm thân thiết hiện tại (0 - 100). Tăng khi gặt hộ, biếu quà Tết.")]
         public int Affection = 20;
@@ -46,6 +49,68 @@ namespace SownInStone.Community
             else if (npcData != null)
             {
                 gameObject.name = $"NPC_{npcData.NPCName}";
+            }
+
+            // Tự động kiểm tra và sửa hiển thị visual ở Runtime
+            EnsureVisualModel();
+        }
+
+        /// <summary>
+        /// Đảm bảo mô hình 3D hiển thị đúng và thay thế các placeholder (như capsule, sprite rỗng).
+        /// </summary>
+        public void EnsureVisualModel()
+        {
+            Transform existingVisual = transform.Find("Visual");
+            bool isPlaceholder = false;
+
+            if (existingVisual != null)
+            {
+                // Nếu có SpriteRenderer nhưng không có Sprite -> Placeholder cần thay thế
+                var spriteRen = existingVisual.GetComponent<SpriteRenderer>();
+                if (spriteRen != null && spriteRen.sprite == null)
+                {
+                    isPlaceholder = true;
+                }
+
+                // Nếu có MeshFilter và đang sử dụng Mesh mặc định là Capsule -> Placeholder cần thay thế
+                var meshFilter = existingVisual.GetComponent<MeshFilter>();
+                if (meshFilter != null && meshFilter.sharedMesh != null && (meshFilter.sharedMesh.name.Contains("Capsule") || meshFilter.sharedMesh.name == "Default-Capsule"))
+                {
+                    isPlaceholder = true;
+                }
+            }
+            else
+            {
+                isPlaceholder = true;
+            }
+
+            if (isPlaceholder && visualModelPrefab != null)
+            {
+                Debug.Log($"[NPC RUNTIME] Tự động tải và dựng mô hình 3D cho {gameObject.name}...");
+                
+                // Xóa Visual cũ
+                if (existingVisual != null)
+                {
+                    Destroy(existingVisual.gameObject);
+                }
+
+                // Khởi tạo visual mới từ FBX model
+                GameObject modelObj = Instantiate(visualModelPrefab, transform);
+                modelObj.name = "Visual";
+                
+                // Căn chỉnh vị trí, góc xoay và tỉ lệ giống như thiết lập chuẩn
+                modelObj.transform.localPosition = new Vector3(0f, -0.5f, 0f);
+                modelObj.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
+                modelObj.transform.localScale = Vector3.one;
+
+                // Cập nhật lại BoxCollider nếu cần thiết
+                BoxCollider boxCol = GetComponent<BoxCollider>();
+                if (boxCol != null)
+                {
+                    boxCol.isTrigger = true;
+                    boxCol.center = new Vector3(0f, 1f, 0f);
+                    boxCol.size = new Vector3(1.2f, 2f, 1.2f);
+                }
             }
         }
 

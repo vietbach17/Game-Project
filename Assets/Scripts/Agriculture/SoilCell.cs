@@ -36,6 +36,13 @@ namespace SownInStone.Agriculture
         [Tooltip("Cây trồng đang ký sinh trên ô đất này (nếu có).")]
         public CropInstance plantedCrop;
 
+        [Header("--- LIÊN KẾT Ô ĐẤT CHA-CON ---")]
+        [Tooltip("Ô đất cha (đại diện cho toàn bộ lưới ruộng).")]
+        public SoilCell parentField;
+        [Tooltip("Danh sách các ô đất con.")]
+        public System.Collections.Generic.List<SoilCell> childCells = new System.Collections.Generic.List<SoilCell>();
+        public bool IsParentField => childCells != null && childCells.Count > 0;
+
         [Header("--- HIỆU ỨNG HÌNH ẢNH ---")]
         [SerializeField] private SpriteRenderer soilSpriteRenderer;
         [SerializeField] private Sprite drySoilSprite;
@@ -141,6 +148,24 @@ namespace SownInStone.Agriculture
         /// </summary>
         public void ActionClearRocks(float efficiency)
         {
+            if (parentField != null)
+            {
+                parentField.ActionClearRocks(efficiency);
+                return;
+            }
+
+            if (IsParentField)
+            {
+                foreach (var child in childCells)
+                {
+                    if (child != null) child.ActionClearRocks(efficiency);
+                }
+                RockDensity = 0f;
+                quality = SoilQuality.TrungBinh;
+                UpdateVisuals();
+                return;
+            }
+
             if (RockDensity <= 0f) return;
 
             RockDensity = Mathf.Max(0f, RockDensity - efficiency);
@@ -159,6 +184,23 @@ namespace SownInStone.Agriculture
         /// </summary>
         public void ActionWaterSoil(float amount)
         {
+            if (parentField != null)
+            {
+                parentField.ActionWaterSoil(amount);
+                return;
+            }
+
+            if (IsParentField)
+            {
+                foreach (var child in childCells)
+                {
+                    if (child != null) child.ActionWaterSoil(amount);
+                }
+                Moisture = amount;
+                UpdateVisuals();
+                return;
+            }
+
             Moisture = Mathf.Clamp(Moisture + amount, 0f, 100f);
             UpdateVisuals();
         }
@@ -168,6 +210,23 @@ namespace SownInStone.Agriculture
         /// </summary>
         public void ActionFertilize(float nutrientBoost)
         {
+            if (parentField != null)
+            {
+                parentField.ActionFertilize(nutrientBoost);
+                return;
+            }
+
+            if (IsParentField)
+            {
+                foreach (var child in childCells)
+                {
+                    if (child != null) child.ActionFertilize(nutrientBoost);
+                }
+                Nutrients = nutrientBoost;
+                UpdateVisuals();
+                return;
+            }
+
             Nutrients = Mathf.Clamp(Nutrients + nutrientBoost, 0f, 100f);
             if (quality == SoilQuality.BacMau && Nutrients > 50f && RockDensity < 40f)
             {
@@ -181,6 +240,27 @@ namespace SownInStone.Agriculture
         /// </summary>
         public bool ActionPlantCrop(CropData seedData)
         {
+            if (parentField != null)
+            {
+                return parentField.ActionPlantCrop(seedData);
+            }
+
+            if (IsParentField)
+            {
+                bool anyPlanted = false;
+                foreach (var child in childCells)
+                {
+                    if (child != null && child.plantedCrop == null)
+                    {
+                        if (child.ActionPlantCrop(seedData))
+                        {
+                            anyPlanted = true;
+                        }
+                    }
+                }
+                return anyPlanted;
+            }
+
             if (plantedCrop != null)
             {
                 Debug.LogWarning("[SOIL] Ô đất này đã có cây trồng rồi!");
