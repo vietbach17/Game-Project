@@ -462,73 +462,155 @@ namespace SownInStone.Core
         {
             if (PlayerStats.Instance == null) return;
 
+            SoilCell activeSoil = soil.parentField != null ? soil.parentField : soil;
+
             // Priority 1: Clear rocks
-            if (soil.RockDensity > 0f)
+            int cellsWithRocks = 0;
+            if (activeSoil.IsParentField)
             {
+                foreach (var child in activeSoil.childCells)
+                {
+                    if (child != null && child.RockDensity > 0f) cellsWithRocks++;
+                }
+            }
+            else
+            {
+                if (activeSoil.RockDensity > 0f) cellsWithRocks = 1;
+            }
+
+            if (cellsWithRocks > 0)
+            {
+                float staminaCost = 8f * cellsWithRocks;
                 if (PlayerStats.Instance.CurrentStamina >= 8f)
                 {
-                    PlayerStats.Instance.ModifyStamina(-8f);
+                    float actualCost = Mathf.Min(PlayerStats.Instance.CurrentStamina, staminaCost);
+                    PlayerStats.Instance.ModifyStamina(-actualCost);
                     if (animator != null) animator.SetTrigger("Dig");
                     StartCoroutine(LockMovementForSeconds(digActionDuration));
-                    soil.ActionClearRocks(999f);
-                    Debug.Log("Cleared rocks on soil cell");
-                    Debug.Log("[PLAYER] Nhặt đá sỏi cải tạo ruộng!");
+                    activeSoil.ActionClearRocks(999f);
+                    Debug.Log($"Cleared rocks on {cellsWithRocks} cell(s)");
+                    PlayerStats.Instance.TriggerAlert($"Đã nhặt đá cải tạo {cellsWithRocks} ô ruộng!");
                 }
                 else
                 {
                     Debug.LogWarning("[PLAYER] Không đủ thể lực để nhặt đá!");
+                    PlayerStats.Instance.TriggerAlert("Không đủ thể lực để dọn đá!");
                 }
                 return;
             }
 
             // Priority 2: Harvest crop
-            else if (soil.plantedCrop != null && soil.plantedCrop.IsReadyToHarvest())
+            bool hasReadyCrops = false;
+            if (activeSoil.IsParentField)
             {
-                ItemData harvestItem = soil.plantedCrop.cropData.HarvestedItem;
+                foreach (var child in activeSoil.childCells)
+                {
+                    if (child != null && child.plantedCrop != null && child.plantedCrop.IsReadyToHarvest())
+                    {
+                        hasReadyCrops = true;
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                hasReadyCrops = (activeSoil.plantedCrop != null && activeSoil.plantedCrop.IsReadyToHarvest());
+            }
+
+            if (hasReadyCrops)
+            {
                 if (animator != null) animator.SetTrigger("Harvest");
                 StartCoroutine(LockMovementForSeconds(harvestActionDuration));
-                int yield = soil.plantedCrop.ActionHarvest();
-                Debug.Log("Harvested crop");
-                if (StorageManager.Instance != null && harvestItem != null)
-                {
-                    StorageManager.Instance.AddItem(harvestItem, yield);
-                    Debug.Log($"[PLAYER] Thu hoạch thành công ruộng cây: {harvestItem.ItemName} x{yield}!");
-                }
-                
-                string itemName = (harvestItem != null && !string.IsNullOrEmpty(harvestItem.ItemName)) ? harvestItem.ItemName : "Nông sản";
-                string harvestMsg = $"Thu hoạch thành công: +{yield} {itemName}";
-                Debug.Log(harvestMsg);
-                PlayerStats.Instance.TriggerAlert(harvestMsg);
 
+                int totalYield = 0;
+                ItemData harvestItem = null;
+
+                if (activeSoil.IsParentField)
+                {
+                    foreach (var child in activeSoil.childCells)
+                    {
+                        if (child != null && child.plantedCrop != null && child.plantedCrop.IsReadyToHarvest())
+                        {
+                            if (harvestItem == null) harvestItem = child.plantedCrop.cropData.HarvestedItem;
+                            totalYield += child.plantedCrop.ActionHarvest();
+                        }
+                    }
+                }
+                else
+                {
+                    harvestItem = activeSoil.plantedCrop.cropData.HarvestedItem;
+                    totalYield = activeSoil.plantedCrop.ActionHarvest();
+                }
+
+                if (totalYield > 0 && StorageManager.Instance != null && harvestItem != null)
+                {
+                    StorageManager.Instance.AddItem(harvestItem, totalYield);
+                    Debug.Log($"[PLAYER] Thu hoạch thành công ruộng cây: {harvestItem.ItemName} x{totalYield}!");
+                    string itemName = !string.IsNullOrEmpty(harvestItem.ItemName) ? harvestItem.ItemName : "Nông sản";
+                    string harvestMsg = $"Thu hoạch thành công: +{totalYield} {itemName}";
+                    PlayerStats.Instance.TriggerAlert(harvestMsg);
+                }
                 return;
             }
 
-            // Priority 3: Plant seed (Moved before watering to fix pacing bug)
-            else if (soil.plantedCrop == null)
+            // Priority 3: Plant seed
+            bool canPlant = false;
+            int emptySlots = 0;
+            if (activeSoil.IsParentField)
+            {
+                foreach (var child in activeSoil.childCells)
+                {
+                    if (child != null && child.plantedCrop == null) emptySlots++;
+                }
+                canPlant = (emptySlots > 0);
+            }
+            else
+            {
+                canPlant = (activeSoil.plantedCrop == null);
+                if (canPlant) emptySlots = 1;
+            }
+
+            if (canPlant)
             {
                 if (testSeedData != null && seedItem != null)
                 {
-                    bool hasSeed = false;
+                    int availableSeeds = 0;
                     if (StorageManager.Instance != null)
                     {
                         var slots = StorageManager.Instance.GetStorageSlots();
                         var seedSlot = slots.Find(s => s.item.ItemID == seedItem.ItemID);
                         if (seedSlot != null && seedSlot.quantity > 0)
                         {
-                            hasSeed = true;
-                            Debug.Log("Plant attempt: seed item found");
-                        }
-                        else
-                        {
-                            Debug.Log("Plant attempt: seed item not found");
+                            availableSeeds = seedSlot.quantity;
                         }
                     }
 
-                    if (hasSeed && StorageManager.Instance.RemoveItem(seedItem, 1))
+                    int seedsToPlant = Mathf.Min(emptySlots, availableSeeds);
+
+                    if (seedsToPlant > 0)
                     {
-                        bool success = soil.ActionPlantCrop(testSeedData);
-                        if (success)
+                        if (StorageManager.Instance.RemoveItem(seedItem, seedsToPlant))
                         {
+                            if (activeSoil.IsParentField)
+                            {
+                                int planted = 0;
+                                foreach (var child in activeSoil.childCells)
+                                {
+                                    if (child != null && child.plantedCrop == null && planted < seedsToPlant)
+                                    {
+                                        if (child.ActionPlantCrop(testSeedData))
+                                        {
+                                            planted++;
+                                        }
+                                    }
+                                }
+                                PlayerStats.Instance.TriggerAlert($"Đã gieo {planted} hạt giống!");
+                            }
+                            else
+                            {
+                                activeSoil.ActionPlantCrop(testSeedData);
+                            }
+
                             if (animator != null) animator.SetTrigger("Plant");
                             StartCoroutine(LockMovementForSeconds(plantActionDuration));
                             Debug.Log("Plant success: seed consumed");
@@ -548,16 +630,31 @@ namespace SownInStone.Core
             }
 
             // Priority 4: Water soil
-            else if (soil.Moisture < 40f)
+            int dryCells = 0;
+            if (activeSoil.IsParentField)
             {
+                foreach (var child in activeSoil.childCells)
+                {
+                    if (child != null && child.Moisture < 40f) dryCells++;
+                }
+            }
+            else
+            {
+                if (activeSoil.Moisture < 40f) dryCells = 1;
+            }
+
+            if (dryCells > 0)
+            {
+                float staminaCost = 3f * dryCells;
                 if (PlayerStats.Instance.CurrentStamina >= 3f)
                 {
-                    PlayerStats.Instance.ModifyStamina(-3f);
+                    float actualCost = Mathf.Min(PlayerStats.Instance.CurrentStamina, staminaCost);
+                    PlayerStats.Instance.ModifyStamina(-actualCost);
                     if (animator != null) animator.SetTrigger("Water");
                     StartCoroutine(LockMovementForSeconds(waterActionDuration));
-                    soil.ActionWaterSoil(50f);
-                    Debug.Log("Watered soil");
-                    Debug.Log("[PLAYER] Tưới nước cho đất ẩm mát!");
+                    activeSoil.ActionWaterSoil(50f);
+                    Debug.Log($"Watered {dryCells} cell(s)");
+                    PlayerStats.Instance.TriggerAlert($"Đã tưới nước cho {dryCells} ô ruộng!");
                 }
                 return;
             }
@@ -568,94 +665,7 @@ namespace SownInStone.Core
         private void OpenTradeMenu(NPCCharacter npc)
         {
             if (SownInStone.UI.SurvivalUIManager.Instance == null) return;
-
-            bool isPhuSa = (GameManager.Instance != null && GameManager.Instance.CurrentPhase == GamePhase.PhuSa);
-            int price = isPhuSa ? 6 : 10;
-
-            string tradeGreeting = $"\"Đại lý o Thắm bán giống Khoai Lang giá {price} xu (giá gốc 10 xu) và thu mua khoai tươi 25 xu/củ. Con muốn mua hay bán?\"";
-
-            SownInStone.UI.SurvivalUIManager.Instance.ShowDialogueWithChoices(
-                npc.NPCName,
-                tradeGreeting,
-                $"Mua Hạt giống (-{price} Xu)",
-                () => {
-                    if (PlayerStats.Instance != null && PlayerStats.Instance.Coins >= price)
-                    {
-                        PlayerStats.Instance.ModifyCoins(-price);
-                        if (StorageManager.Instance != null && seedItem != null)
-                        {
-                            StorageManager.Instance.AddItem(seedItem, 1);
-                            SownInStone.UI.SurvivalUIManager.Instance.ShowDialogue(npc.NPCName, $"\"Đây là hạt giống Khoai của con. Hòm đồ gia đình đã có hạt giống mới!\"");
-                        }
-                    }
-                    else
-                    {
-                        int current = PlayerStats.Instance != null ? PlayerStats.Instance.Coins : 0;
-                        SownInStone.UI.SurvivalUIManager.Instance.ShowDialogue(npc.NPCName, $"\"Không đủ tiền rồi con ơi! Thiếu {price - current} xu nữa nha con.\"");
-                    }
-                },
-                "Bán Khoai tươi (25 Xu/củ)",
-                () => {
-                    if (StorageManager.Instance != null && testSeedData != null && testSeedData.HarvestedItem != null)
-                    {
-                        ItemData freshCropItem = testSeedData.HarvestedItem;
-                        var slots = StorageManager.Instance.GetStorageSlots();
-                        var freshSlot = slots.Find(s => s.item.ItemID == freshCropItem.ItemID);
-                        int count = freshSlot != null ? freshSlot.quantity : 0;
-
-                        if (count > 0)
-                        {
-                            if (StorageManager.Instance.RemoveItem(freshCropItem, count))
-                            {
-                                int earn = count * 25;
-                                PlayerStats.Instance?.ModifyCoins(earn);
-                                SownInStone.UI.SurvivalUIManager.Instance.ShowDialogue(npc.NPCName, $"\"O gom hết {count} củ khoai tươi, gửi con {earn} xu nghen!\"");
-                            }
-                        }
-                        else
-                        {
-                            SownInStone.UI.SurvivalUIManager.Instance.ShowDialogue(npc.NPCName, $"\"Ủa con có củ khoai tươi nào trong kho mô mà đòi bán o nè!\"");
-                        }
-                    }
-                },
-                "Quay lại",
-                () => {
-                    // Mở lại menu chào của O Thắm
-                    string greeting = $"\"Ủa Thành đó hả con! Ghé đại lý o chơi chút hén, hôm nay o Thắm nhập giống mới đây nè!\"";
-                    SownInStone.UI.SurvivalUIManager.Instance.ShowDialogueWithChoices(
-                        npc.NPCName,
-                        greeting,
-                        "Trò chuyện",
-                        () => {
-                            string dialogue = npc.GetDialogue();
-                            SownInStone.UI.SurvivalUIManager.Instance.ShowDialogue(npc.NPCName, dialogue);
-                            PlayerStats.Instance?.ModifyMorale(2f);
-                            npc.ModifyAffection(1);
-                        },
-                        "Giúp việc (Vần công)",
-                        () => {
-                            float currentStamina = PlayerStats.Instance != null ? PlayerStats.Instance.CurrentStamina : 0f;
-                            if (currentStamina >= 20f)
-                            {
-                                PlayerStats.Instance.ModifyStamina(-20f);
-                                npc.ModifyVanCongCredits(1);
-                                npc.ModifyAffection(5);
-                                string workDialog = npc.GetWorkDialogue(true);
-                                SownInStone.UI.SurvivalUIManager.Instance.ShowDialogue(npc.NPCName, workDialog);
-                            }
-                            else
-                            {
-                                string workDialog = npc.GetWorkDialogue(false);
-                                SownInStone.UI.SurvivalUIManager.Instance.ShowDialogue(npc.NPCName, workDialog);
-                            }
-                        },
-                        "Giao dịch (Mua/Bán)",
-                        () => {
-                            OpenTradeMenu(npc);
-                        }
-                    );
-                }
-            );
+            SownInStone.UI.SurvivalUIManager.Instance.ToggleShop(true);
         }
 
         /// <summary>
@@ -747,11 +757,39 @@ namespace SownInStone.Core
                         SoilCell soil = closestCollider.GetComponent<SoilCell>();
                         if (soil != null)
                         {
-                            if (soil.RockDensity > 0f)
+                            SoilCell activeSoil = soil.parentField != null ? soil.parentField : soil;
+
+                            int cellsWithRocks = 0;
+                            int emptySlots = 0;
+                            bool hasReadyCrops = false;
+                            int dryCells = 0;
+
+                            if (activeSoil.IsParentField)
+                            {
+                                foreach (var child in activeSoil.childCells)
+                                {
+                                    if (child != null)
+                                    {
+                                        if (child.RockDensity > 0f) cellsWithRocks++;
+                                        if (child.plantedCrop == null) emptySlots++;
+                                        if (child.plantedCrop != null && child.plantedCrop.IsReadyToHarvest()) hasReadyCrops = true;
+                                        if (child.Moisture < 40f) dryCells++;
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                if (activeSoil.RockDensity > 0f) cellsWithRocks = 1;
+                                if (activeSoil.plantedCrop == null) emptySlots = 1;
+                                if (activeSoil.plantedCrop != null && activeSoil.plantedCrop.IsReadyToHarvest()) hasReadyCrops = true;
+                                if (activeSoil.Moisture < 40f) dryCells = 1;
+                            }
+
+                            if (cellsWithRocks > 0)
                                 prompt = "[E] Dọn đá cải tạo ruộng";
-                            else if (soil.plantedCrop != null && soil.plantedCrop.IsReadyToHarvest())
+                            else if (hasReadyCrops)
                                 prompt = "[E] Thu hoạch khoai tươi";
-                            else if (soil.plantedCrop == null)
+                            else if (emptySlots > 0)
                                 prompt = "[E] Gieo hạt giống khoai";
                             else if (soil.Moisture < 40f)
                                 prompt = "[E] Tưới nước cho đất ẩm";
