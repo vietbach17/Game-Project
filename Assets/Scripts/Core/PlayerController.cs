@@ -322,7 +322,11 @@ namespace SownInStone.Core
                 }
 
                 debugTargetMoveDir = targetMoveDir;
-                rb.linearVelocity = new Vector3(targetMoveDir.x * currentSpeed, rb.linearVelocity.y, targetMoveDir.z * currentSpeed);
+                
+                // Sử dụng MovePosition để di chuyển mượt mà, tôn trọng va chạm và tránh kẹt vật lý
+                Vector3 nextPos = rb.position + new Vector3(targetMoveDir.x * currentSpeed, 0f, targetMoveDir.z * currentSpeed) * Time.fixedDeltaTime;
+                rb.MovePosition(nextPos);
+                rb.linearVelocity = Vector3.zero;
             }
             else if (moveInput.sqrMagnitude > 0.01f)
             {
@@ -333,12 +337,18 @@ namespace SownInStone.Core
                     fallbackMoveDir.Normalize();
                 }
                 debugTargetMoveDir = fallbackMoveDir;
-                rb.linearVelocity = new Vector3(fallbackMoveDir.x * currentSpeed, rb.linearVelocity.y, fallbackMoveDir.z * currentSpeed);
+                
+                Vector3 nextPos = rb.position + new Vector3(fallbackMoveDir.x * currentSpeed, 0f, fallbackMoveDir.z * currentSpeed) * Time.fixedDeltaTime;
+                rb.MovePosition(nextPos);
+                rb.linearVelocity = Vector3.zero;
             }
             else
             {
                 debugTargetMoveDir = Vector3.zero;
-                rb.linearVelocity = new Vector3(0f, rb.linearVelocity.y, 0f);
+                if (rb != null)
+                {
+                    rb.linearVelocity = Vector3.zero;
+                }
             }
 
             if (isOnRoof)
@@ -350,7 +360,7 @@ namespace SownInStone.Core
 
                 rb.position = constrainedPos;
                 transform.position = constrainedPos;
-                rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+                rb.linearVelocity = Vector3.zero;
             }
         }
 
