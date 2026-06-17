@@ -27,6 +27,18 @@
 
 * **O Thắm's Seed Shop & Economy Loop**: Fully implemented shop interface and trade loop, allowing players to spend coins to buy seeds and incense, and sell harvested fresh/preserved crop products with instant inventory updates and HUD feedback.
 
+* **Environment Polish & Collision Alignment**:
+  * Visual meshes for landmarks (Village Well, Thanh's House, Bac Nam's House) have been scaled up to match their physical meters size.
+  * Decorative rock instances (`Rock_1`, `Rock_2`, `Rock_5`) have been correctly rescaled to natural sizes in the scene.
+  * All modular `FenceSegment` objects have been rotated to stand upright (`270` degrees on X) and form a proper enclosure around the farming plot.
+  * All BoxColliders have been aligned in the scene to match their visible mesh dimensions exactly, eliminating invisible wall blocking issues around wells, houses, rocks, and fences.
+  * Verified player movement in Play Mode to ensure smooth navigation.
+
+* **3D Crop Growth Visuals**:
+  * Upgraded the farming system to support optional 3D prefab models for growth stages (`GrowthStagePrefabs` field added to `CropData`).
+  * Updated `CropInstance` to dynamically instantiate and display these 3D prefabs during growth stages, falling back to procedural primitives only if prefabs are absent.
+  * Replaced the default UI sprite placeholders on `Crop_KhoaiLang` with actual stylized plant models (`Plant_1`, `Plant_3`, `Plant_5` from the Ultimate Nature Pack) representing seedling, growing, and mature stages.
+
 ## In Progress
 
 * Polish characters and transition from prototype layout to low-poly stylized models.
@@ -37,9 +49,8 @@
 
 ## Known Issues
 
-* Some invisible colliders/blockers still exist near parts of the environment.
-* Houses and village environment still need polishing.
-* Real crop art assets (sprites/models) are not implemented yet; currently `Crop_KhoaiLang` relies on placeholder UI sprites and triggers the 3D visual fallback.
+* Outer boundary elements (`BoundaryElement`) are currently microscopic under `globalScale = 1.0` import settings and act as invisible collision barriers. They will be addressed in a future dedicated boundary pass.
+* Real crop art assets (sprites/models) for other crops are not implemented yet.
 
 ---
 

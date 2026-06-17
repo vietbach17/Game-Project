@@ -2,9 +2,9 @@
 
 ## High Priority
 
-1. Fix remaining invisible blockers/colliders near the environment.
-2. Replace placeholder crop visuals with real crop sprites/models.
-3. Improve village environment layout and replace primitive placeholders.
+1. Replace remaining placeholder crop visuals with real crop sprites/models for other crops.
+2. Upgrade remaining village environment landmarks and layout structures.
+3. Fix outer boundary elements (`BoundaryElement`) microscopic visual scales.
 
 ## Medium Priority
 
