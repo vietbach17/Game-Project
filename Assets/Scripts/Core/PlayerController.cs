@@ -333,10 +333,11 @@ namespace SownInStone.Core
 
                 debugTargetMoveDir = targetMoveDir;
                 
-                // Sử dụng MovePosition để di chuyển mượt mà, tôn trọng va chạm và tránh kẹt vật lý
-                Vector3 nextPos = rb.position + new Vector3(targetMoveDir.x * currentSpeed, 0f, targetMoveDir.z * currentSpeed) * Time.fixedDeltaTime;
-                rb.MovePosition(nextPos);
-                rb.linearVelocity = Vector3.zero;
+                // Di chuyển bằng linearVelocity (phù hợp với Rigidbody phi kinematic)
+                if (rb != null)
+                {
+                    rb.linearVelocity = new Vector3(targetMoveDir.x * currentSpeed, 0f, targetMoveDir.z * currentSpeed);
+                }
             }
             else if (moveInput.sqrMagnitude > 0.01f)
             {
@@ -348,9 +349,10 @@ namespace SownInStone.Core
                 }
                 debugTargetMoveDir = fallbackMoveDir;
                 
-                Vector3 nextPos = rb.position + new Vector3(fallbackMoveDir.x * currentSpeed, 0f, fallbackMoveDir.z * currentSpeed) * Time.fixedDeltaTime;
-                rb.MovePosition(nextPos);
-                rb.linearVelocity = Vector3.zero;
+                if (rb != null)
+                {
+                    rb.linearVelocity = new Vector3(fallbackMoveDir.x * currentSpeed, 0f, fallbackMoveDir.z * currentSpeed);
+                }
             }
             else
             {
