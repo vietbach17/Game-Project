@@ -106,6 +106,11 @@ namespace SownInStone.Core
                 animator = GetComponentInChildren<Animator>();
             }
 
+            if (animator != null)
+            {
+                animator.applyRootMotion = false; // Tắt root motion để Rigidbody có thể di chuyển nhân vật bình thường
+            }
+
             // Cấu hình Rigidbody để phù hợp với game 3D Top-down (di chuyển phẳng X/Z)
             rb.useGravity = false;
             rb.constraints = RigidbodyConstraints.FreezeRotation | RigidbodyConstraints.FreezePositionY;
