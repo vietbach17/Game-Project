@@ -146,6 +146,32 @@ namespace SownInStone.Core
 #endif
         }
 
+        /// <summary>
+        /// Di chuyển tức thời nhân vật đến tọa độ mới một cách an toàn,
+        /// tạm thời mở khóa các ràng buộc vật lý để tránh lỗi lệch tọa độ giữa Transform và Rigidbody.
+        /// </summary>
+        public void Teleport(Vector3 targetPosition)
+        {
+            if (rb != null)
+            {
+                rb.linearVelocity = Vector3.zero;
+                // Tạm thời bỏ FreezePositionY để cập nhật được trục Y trong vật lý
+                rb.constraints = RigidbodyConstraints.FreezeRotation;
+                rb.position = targetPosition;
+            }
+            
+            transform.position = targetPosition;
+            
+            // Đồng bộ ngay lập tức sang hệ thống vật lý của Unity để tránh sai lệch tọa độ
+            Physics.SyncTransforms();
+
+            if (rb != null)
+            {
+                // Khôi phục lại khóa trục Y và khóa xoay
+                rb.constraints = RigidbodyConstraints.FreezeRotation | RigidbodyConstraints.FreezePositionY;
+            }
+        }
+
         private void HandleFloodRoofSurvival()
         {
             if (WeatherManager.Instance == null || GameManager.Instance == null) return;
@@ -156,16 +182,8 @@ namespace SownInStone.Core
                 isOnRoof = true;
                 
                 // Teleport lên nóc nhà
-                if (rb != null)
-                {
-                    rb.linearVelocity = Vector3.zero;
-                }
                 Vector3 roofPos = new Vector3(0f, 3.5f, -10f);
-                transform.position = roofPos;
-                if (rb != null)
-                {
-                    rb.position = roofPos;
-                }
+                Teleport(roofPos);
                 
                 // Phát mì tôm cứu trợ
                 if (StorageManager.Instance != null && noodlesItem != null)
@@ -188,16 +206,8 @@ namespace SownInStone.Core
                 isOnRoof = false;
                 
                 // Teleport về mặt đất
-                if (rb != null)
-                {
-                    rb.linearVelocity = Vector3.zero;
-                }
                 Vector3 groundPos = new Vector3(0f, 0.5f, -6f);
-                transform.position = groundPos;
-                if (rb != null)
-                {
-                    rb.position = groundPos;
-                }
+                Teleport(groundPos);
                 
                 // Hiển thị thông báo trở lại đất liền
                 if (SownInStone.UI.SurvivalUIManager.Instance != null)
