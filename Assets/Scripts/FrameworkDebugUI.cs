@@ -373,6 +373,26 @@ namespace SownInStone
             }
             GUILayout.EndHorizontal();
 
+            // Dòng nút kiểm thử Lũ lụt dâng cao / rút nước
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("Dâng lũ khẩn cấp (1.6m)"))
+            {
+                if (WeatherManager.Instance != null)
+                {
+                    WeatherManager.Instance.DebugSetFloodLevel(1.6f);
+                    ShowAlert("Lũ dâng lên 1.6m! Nước ngập lút đồng ruộng!");
+                }
+            }
+            if (GUILayout.Button("Tua nhanh nước rút (0m)"))
+            {
+                if (WeatherManager.Instance != null)
+                {
+                    WeatherManager.Instance.DebugSetFloodLevel(0f);
+                    ShowAlert("Nước rút hoàn toàn về 0m!");
+                }
+            }
+            GUILayout.EndHorizontal();
+
             // Dòng nút kiểm thử Tài chính và Vật phẩm
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("Tặng +50 Xu"))

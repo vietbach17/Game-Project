@@ -88,6 +88,8 @@ namespace SownInStone.Core
         private float initialVisualLocalX = 0f;
         private float initialVisualLocalZ = 0f;
 
+        private System.Collections.Generic.HashSet<string> animatorParams = new System.Collections.Generic.HashSet<string>();
+
         private void Awake()
         {
             if (Instance == null)
@@ -104,6 +106,15 @@ namespace SownInStone.Core
             if (animator == null)
             {
                 animator = GetComponentInChildren<Animator>();
+            }
+
+            if (animator != null)
+            {
+                animator.applyRootMotion = false; // Tắt root motion để Rigidbody có thể di chuyển nhân vật bình thường
+                foreach (var param in animator.parameters)
+                {
+                    animatorParams.Add(param.name);
+                }
             }
 
             // Cấu hình Rigidbody để phù hợp với game 3D Top-down (di chuyển phẳng X/Z)
@@ -273,6 +284,8 @@ namespace SownInStone.Core
                 {
                     rb.linearVelocity = new Vector3(0f, rb.linearVelocity.y, 0f);
                 }
+                debugCurrentSpeed = 0f;
+                debugTargetMoveDir = Vector3.zero;
                 return;
             }
 
@@ -286,6 +299,8 @@ namespace SownInStone.Core
                 // Giảm 40% tốc độ di chuyển khi lội nước lụt sâu hơn 0.5m (flood penalty)
                 currentSpeed *= 0.6f;
             }
+
+            debugCurrentSpeed = currentSpeed;
 
             // Tính toán hướng di chuyển camera-relative trong không gian 3D
             Transform cameraTransform = Camera.main != null ? Camera.main.transform : null;
@@ -306,15 +321,23 @@ namespace SownInStone.Core
                     targetMoveDir.Normalize();
                 }
 
+                debugTargetMoveDir = targetMoveDir;
                 rb.linearVelocity = new Vector3(targetMoveDir.x * currentSpeed, rb.linearVelocity.y, targetMoveDir.z * currentSpeed);
             }
             else if (moveInput.sqrMagnitude > 0.01f)
             {
                 // Fallback nếu không tìm thấy Camera chính
-                rb.linearVelocity = new Vector3(moveInput.x * currentSpeed, rb.linearVelocity.y, moveInput.y * currentSpeed);
+                Vector3 fallbackMoveDir = new Vector3(moveInput.x, 0f, moveInput.y);
+                if (fallbackMoveDir.sqrMagnitude > 0.01f)
+                {
+                    fallbackMoveDir.Normalize();
+                }
+                debugTargetMoveDir = fallbackMoveDir;
+                rb.linearVelocity = new Vector3(fallbackMoveDir.x * currentSpeed, rb.linearVelocity.y, fallbackMoveDir.z * currentSpeed);
             }
             else
             {
+                debugTargetMoveDir = Vector3.zero;
                 rb.linearVelocity = new Vector3(0f, rb.linearVelocity.y, 0f);
             }
 
@@ -357,13 +380,13 @@ namespace SownInStone.Core
 
             float currentAnimSpeed = animator.GetFloat("Speed");
             float newAnimSpeed = Mathf.MoveTowards(currentAnimSpeed, targetAnimSpeed, Time.deltaTime * 5f);
-            animator.SetFloat("Speed", newAnimSpeed);
+            SetAnimFloat("Speed", newAnimSpeed);
 
             // Keep other parameters for compatibility/harmlessness
-            animator.SetFloat("Horizontal", moveInput.x);
-            animator.SetFloat("Vertical", moveInput.y);
-            animator.SetFloat("LastHorizontal", lastMoveDirection.x);
-            animator.SetFloat("LastVertical", lastMoveDirection.y);
+            SetAnimFloat("Horizontal", moveInput.x);
+            SetAnimFloat("Vertical", moveInput.y);
+            SetAnimFloat("LastHorizontal", lastMoveDirection.x);
+            SetAnimFloat("LastVertical", lastMoveDirection.y);
         }
 
         /// <summary>
@@ -625,7 +648,7 @@ namespace SownInStone.Core
                 {
                     float actualCost = Mathf.Min(PlayerStats.Instance.CurrentStamina, staminaCost);
                     PlayerStats.Instance.ModifyStamina(-actualCost);
-                    if (animator != null) animator.SetTrigger("Dig");
+                    SetAnimTrigger("Dig");
                     StartCoroutine(LockMovementForSeconds(digActionDuration));
                     activeSoil.ActionClearRocks(999f);
                     Debug.Log($"Cleared rocks on {cellsWithRocks} cell(s)");
@@ -659,7 +682,7 @@ namespace SownInStone.Core
 
             if (hasReadyCrops)
             {
-                if (animator != null) animator.SetTrigger("Harvest");
+                SetAnimTrigger("Harvest");
                 StartCoroutine(LockMovementForSeconds(harvestActionDuration));
 
                 int totalYield = 0;
@@ -751,7 +774,7 @@ namespace SownInStone.Core
                                 activeSoil.ActionPlantCrop(testSeedData);
                             }
 
-                            if (animator != null) animator.SetTrigger("Plant");
+                            SetAnimTrigger("Plant");
                             StartCoroutine(LockMovementForSeconds(plantActionDuration));
                             Debug.Log("Plant success: seed consumed");
                         }
@@ -790,7 +813,7 @@ namespace SownInStone.Core
                 {
                     float actualCost = Mathf.Min(PlayerStats.Instance.CurrentStamina, staminaCost);
                     PlayerStats.Instance.ModifyStamina(-actualCost);
-                    if (animator != null) animator.SetTrigger("Water");
+                    SetAnimTrigger("Water");
                     StartCoroutine(LockMovementForSeconds(waterActionDuration));
                     activeSoil.ActionWaterSoil(50f);
                     Debug.Log($"Watered {dryCells} cell(s)");
@@ -951,6 +974,41 @@ namespace SownInStone.Core
             {
                 SownInStone.UI.SurvivalUIManager.Instance.SetInteractionPrompt("");
             }
+        }
+
+        private void SetAnimFloat(string paramName, float value)
+        {
+            if (animator != null && animatorParams.Contains(paramName))
+            {
+                animator.SetFloat(paramName, value);
+            }
+        }
+
+        private void SetAnimTrigger(string paramName)
+        {
+            if (animator != null && animatorParams.Contains(paramName))
+            {
+                animator.SetTrigger(paramName);
+            }
+        }
+
+        private Vector3 debugTargetMoveDir;
+        private float debugCurrentSpeed;
+
+        private void OnGUI()
+        {
+            GUI.color = Color.red;
+            GUI.Box(new Rect(10, 150, 270, 220), "--- PLAYER MOVEMENT DEBUG ---");
+            GUI.Label(new Rect(20, 170, 250, 20), $"Pos: {transform.position}");
+            GUI.Label(new Rect(20, 190, 250, 20), $"RB Pos: {(rb != null ? rb.position : Vector3.zero)}");
+            GUI.Label(new Rect(20, 210, 250, 20), $"Vel: {(rb != null ? rb.linearVelocity : Vector3.zero)}");
+            GUI.Label(new Rect(20, 230, 250, 20), $"Input: {moveInput}");
+            GUI.Label(new Rect(20, 250, 250, 20), $"TargetMoveDir: {debugTargetMoveDir}");
+            GUI.Label(new Rect(20, 270, 250, 20), $"Speed: {debugCurrentSpeed}");
+            GUI.Label(new Rect(20, 290, 250, 20), $"Kinematic: {(rb != null ? rb.isKinematic : false)}");
+            GUI.Label(new Rect(20, 310, 250, 20), $"Constraints: {(rb != null ? rb.constraints : RigidbodyConstraints.None)}");
+            GUI.Label(new Rect(20, 330, 250, 20), $"Cam: {(Camera.main != null ? Camera.main.name : "null")}");
+            GUI.Label(new Rect(20, 350, 250, 20), $"RootMotion: {(animator != null ? animator.applyRootMotion.ToString() : "null")}");
         }
 
         private void OnDrawGizmosSelected()

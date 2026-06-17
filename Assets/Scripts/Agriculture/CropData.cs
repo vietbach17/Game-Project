@@ -40,5 +40,9 @@ namespace SownInStone.Agriculture
         [Header("--- HÌNH ẢNH MINH HỌA GIAI ĐOẠN ---")]
         [Tooltip("Mảng các Sprites mô tả các giai đoạn lớn lên (Ví dụ: Mầm non -> Phát triển -> Ra hoa -> Thu hoạch).")]
         public Sprite[] GrowthStageSprites;
+
+        [Header("--- MÔ HÌNH 3D GIAI ĐOẠN (TÙY CHỌN) ---")]
+        [Tooltip("Mảng các Prefabs mô hình 3D mô tả các giai đoạn lớn lên (Mầm -> Phát triển -> Chín).")]
+        public GameObject[] GrowthStagePrefabs;
     }
 }

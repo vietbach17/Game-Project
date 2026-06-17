@@ -51,6 +51,26 @@ namespace SownInStone.Agriculture
 
         private bool wasFloodedDuringStorm = false;
 
+        private void Awake()
+        {
+            // Tự động tìm kiếm và liên kết ruộng Cha - Con tại runtime nếu chưa được cấu hình
+            if (gameObject.name == "SoilCell_Large")
+            {
+                childCells.Clear();
+                // Tìm tất cả các SoilCell con có tên chứa "SoilCell_Grid"
+                SoilCell[] allSoils = FindObjectsByType<SoilCell>();
+                foreach (var s in allSoils)
+                {
+                    if (s != this && s.gameObject.name.StartsWith("SoilCell_Grid"))
+                    {
+                        childCells.Add(s);
+                        s.parentField = this;
+                    }
+                }
+                Debug.Log($"[SOIL] Tự động liên kết {childCells.Count} ô ruộng con cho SoilCell_Large.");
+            }
+        }
+
         private void Start()
         {
             // Lắng nghe ngày mới trôi qua để cập nhật sinh học của đất
@@ -148,12 +168,6 @@ namespace SownInStone.Agriculture
         /// </summary>
         public void ActionClearRocks(float efficiency)
         {
-            if (parentField != null)
-            {
-                parentField.ActionClearRocks(efficiency);
-                return;
-            }
-
             if (IsParentField)
             {
                 foreach (var child in childCells)
@@ -184,12 +198,6 @@ namespace SownInStone.Agriculture
         /// </summary>
         public void ActionWaterSoil(float amount)
         {
-            if (parentField != null)
-            {
-                parentField.ActionWaterSoil(amount);
-                return;
-            }
-
             if (IsParentField)
             {
                 foreach (var child in childCells)
@@ -210,12 +218,6 @@ namespace SownInStone.Agriculture
         /// </summary>
         public void ActionFertilize(float nutrientBoost)
         {
-            if (parentField != null)
-            {
-                parentField.ActionFertilize(nutrientBoost);
-                return;
-            }
-
             if (IsParentField)
             {
                 foreach (var child in childCells)
@@ -240,11 +242,6 @@ namespace SownInStone.Agriculture
         /// </summary>
         public bool ActionPlantCrop(CropData seedData)
         {
-            if (parentField != null)
-            {
-                return parentField.ActionPlantCrop(seedData);
-            }
-
             if (IsParentField)
             {
                 bool anyPlanted = false;
@@ -297,6 +294,16 @@ namespace SownInStone.Agriculture
             {
                 // Thay đổi giữa Sprite Đất Ướt hay Đất Khô dựa trên độ ẩm ẩm (Mốc 35%)
                 soilSpriteRenderer.sprite = (Moisture > 35f) ? wetSoilSprite : drySoilSprite;
+            }
+
+            // Nếu là ô ruộng lớn làm nền, ta tô màu đậm hơn một chút để làm nổi bật 9 ô con cát bạc màu ở trên
+            if (gameObject.name == "SoilCell_Large")
+            {
+                soilSpriteRenderer.color = new Color(0.72f, 0.65f, 0.58f, 1.0f); // Màu đất cát tối hơn làm nền lót
+            }
+            else
+            {
+                soilSpriteRenderer.color = Color.white;
             }
         }
     }
