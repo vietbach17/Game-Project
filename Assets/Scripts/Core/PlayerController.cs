@@ -88,6 +88,8 @@ namespace SownInStone.Core
         private float initialVisualLocalX = 0f;
         private float initialVisualLocalZ = 0f;
 
+        private System.Collections.Generic.HashSet<string> animatorParams = new System.Collections.Generic.HashSet<string>();
+
         private void Awake()
         {
             if (Instance == null)
@@ -109,6 +111,10 @@ namespace SownInStone.Core
             if (animator != null)
             {
                 animator.applyRootMotion = false; // Tắt root motion để Rigidbody có thể di chuyển nhân vật bình thường
+                foreach (var param in animator.parameters)
+                {
+                    animatorParams.Add(param.name);
+                }
             }
 
             // Cấu hình Rigidbody để phù hợp với game 3D Top-down (di chuyển phẳng X/Z)
@@ -362,13 +368,13 @@ namespace SownInStone.Core
 
             float currentAnimSpeed = animator.GetFloat("Speed");
             float newAnimSpeed = Mathf.MoveTowards(currentAnimSpeed, targetAnimSpeed, Time.deltaTime * 5f);
-            animator.SetFloat("Speed", newAnimSpeed);
+            SetAnimFloat("Speed", newAnimSpeed);
 
             // Keep other parameters for compatibility/harmlessness
-            animator.SetFloat("Horizontal", moveInput.x);
-            animator.SetFloat("Vertical", moveInput.y);
-            animator.SetFloat("LastHorizontal", lastMoveDirection.x);
-            animator.SetFloat("LastVertical", lastMoveDirection.y);
+            SetAnimFloat("Horizontal", moveInput.x);
+            SetAnimFloat("Vertical", moveInput.y);
+            SetAnimFloat("LastHorizontal", lastMoveDirection.x);
+            SetAnimFloat("LastVertical", lastMoveDirection.y);
         }
 
         /// <summary>
@@ -630,7 +636,7 @@ namespace SownInStone.Core
                 {
                     float actualCost = Mathf.Min(PlayerStats.Instance.CurrentStamina, staminaCost);
                     PlayerStats.Instance.ModifyStamina(-actualCost);
-                    if (animator != null) animator.SetTrigger("Dig");
+                    SetAnimTrigger("Dig");
                     StartCoroutine(LockMovementForSeconds(digActionDuration));
                     activeSoil.ActionClearRocks(999f);
                     Debug.Log($"Cleared rocks on {cellsWithRocks} cell(s)");
@@ -664,7 +670,7 @@ namespace SownInStone.Core
 
             if (hasReadyCrops)
             {
-                if (animator != null) animator.SetTrigger("Harvest");
+                SetAnimTrigger("Harvest");
                 StartCoroutine(LockMovementForSeconds(harvestActionDuration));
 
                 int totalYield = 0;
@@ -756,7 +762,7 @@ namespace SownInStone.Core
                                 activeSoil.ActionPlantCrop(testSeedData);
                             }
 
-                            if (animator != null) animator.SetTrigger("Plant");
+                            SetAnimTrigger("Plant");
                             StartCoroutine(LockMovementForSeconds(plantActionDuration));
                             Debug.Log("Plant success: seed consumed");
                         }
@@ -795,7 +801,7 @@ namespace SownInStone.Core
                 {
                     float actualCost = Mathf.Min(PlayerStats.Instance.CurrentStamina, staminaCost);
                     PlayerStats.Instance.ModifyStamina(-actualCost);
-                    if (animator != null) animator.SetTrigger("Water");
+                    SetAnimTrigger("Water");
                     StartCoroutine(LockMovementForSeconds(waterActionDuration));
                     activeSoil.ActionWaterSoil(50f);
                     Debug.Log($"Watered {dryCells} cell(s)");
@@ -955,6 +961,22 @@ namespace SownInStone.Core
             else
             {
                 SownInStone.UI.SurvivalUIManager.Instance.SetInteractionPrompt("");
+            }
+        }
+
+        private void SetAnimFloat(string paramName, float value)
+        {
+            if (animator != null && animatorParams.Contains(paramName))
+            {
+                animator.SetFloat(paramName, value);
+            }
+        }
+
+        private void SetAnimTrigger(string paramName)
+        {
+            if (animator != null && animatorParams.Contains(paramName))
+            {
+                animator.SetTrigger(paramName);
             }
         }
 
