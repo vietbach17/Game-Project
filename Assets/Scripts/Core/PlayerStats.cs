@@ -197,10 +197,18 @@ namespace SownInStone.Core
                         ModifyMorale(item.MoraleRestoreValue);
                     }
 
+                    // Giảm chỉ số nhiễm lạnh ColdStress khi ăn thực phẩm nóng/khô hoặc mì tôm cứu trợ
+                    bool isWarmDryFood = (item.type == ItemType.NongSanKho || item.ItemID == "item_mi_tom");
+                    if (isWarmDryFood)
+                    {
+                        ApplyColdStress(-25f);
+                    }
+
                     string logMsg = $"Đã dùng 1 {item.ItemName}";
                     System.Collections.Generic.List<string> statsList = new System.Collections.Generic.List<string>();
                     if (item.StaminaRestoreValue > 0f) statsList.Add($"+{item.StaminaRestoreValue} Thể lực");
                     if (item.MoraleRestoreValue > 0f) statsList.Add($"+{item.MoraleRestoreValue} Tinh thần");
+                    if (isWarmDryFood) statsList.Add("-25 Lạnh");
                     if (statsList.Count > 0)
                     {
                         logMsg += $" ({string.Join(", ", statsList)})";

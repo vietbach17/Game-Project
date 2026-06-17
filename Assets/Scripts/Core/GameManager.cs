@@ -127,6 +127,36 @@ namespace SownInStone.Core
             Debug.Log($"[GAME MANAGER] Chuyển sang Giai Đoạn: {newPhase.ToString()}");
         }
 
+        /// <summary>
+        /// Tua nhanh thời gian trong game theo số giờ truyền vào.
+        /// Tự động cập nhật chuyển phase và kích hoạt OnHourChanged qua mỗi mốc giờ chẵn.
+        /// </summary>
+        public void AdvanceTime(float hours)
+        {
+            float timeToAdvance = hours;
+            while (timeToAdvance > 0f)
+            {
+                float step = Mathf.Min(timeToAdvance, 1f); // Xử lý tối đa 1 giờ mỗi bước
+                currentHour += step;
+                timeToAdvance -= step;
+
+                if (currentHour >= 24f)
+                {
+                    currentHour -= 24f;
+                    currentDay++;
+                    OnDayChanged?.Invoke(currentDay);
+                    CheckPhaseTransitionProgress();
+                }
+
+                int newHourInt = Mathf.FloorToInt(currentHour);
+                if (newHourInt != lastTriggeredHour)
+                {
+                    lastTriggeredHour = newHourInt;
+                    OnHourChanged?.Invoke(newHourInt);
+                }
+            }
+        }
+
         #region GETTERS VÀ SETTERS CƠ BẢN
         public int CurrentDay => currentDay;
         public float CurrentHour => currentHour;
