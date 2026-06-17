@@ -70,6 +70,13 @@ namespace SownInStone.Core
         [Tooltip("Vật phẩm Hạt giống thực tế trong kho đồ tiêu hao khi gieo trồng.")]
         [SerializeField] private ItemData seedItem;
 
+        [Header("--- LŨ LỤT & SINH TỒN TRÊN NÓC NHÀ ---")]
+        [Tooltip("Mì tôm cứu trợ khi dâng lũ.")]
+        [SerializeField] private ItemData noodlesItem;
+        private bool isOnRoof = false;
+
+        public bool IsOnRoof => isOnRoof;
+
         private Rigidbody rb;
         private Animator animator;
         private Vector2 moveInput;
@@ -121,11 +128,81 @@ namespace SownInStone.Core
             {
                 seedItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_PreservedCrop.asset");
             }
+            if (noodlesItem == null)
+            {
+                noodlesItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Noodles.asset");
+            }
 #endif
+        }
+
+        private void HandleFloodRoofSurvival()
+        {
+            if (WeatherManager.Instance == null || GameManager.Instance == null) return;
+
+            // 1. Tự động di tản lên nóc nhà khi nước ngập cao trong mùa bão lũ
+            if (GameManager.Instance.CurrentPhase == GamePhase.MuaBao && WeatherManager.Instance.FloodLevel > 1.5f && !isOnRoof)
+            {
+                isOnRoof = true;
+                
+                // Teleport lên nóc nhà
+                if (rb != null)
+                {
+                    rb.linearVelocity = Vector3.zero;
+                }
+                Vector3 roofPos = new Vector3(0f, 3.5f, -10f);
+                transform.position = roofPos;
+                if (rb != null)
+                {
+                    rb.position = roofPos;
+                }
+                
+                // Phát mì tôm cứu trợ
+                if (StorageManager.Instance != null && noodlesItem != null)
+                {
+                    StorageManager.Instance.AddItem(noodlesItem, 5);
+                }
+                
+                // Hiển thị thông báo cứu trợ
+                if (SownInStone.UI.SurvivalUIManager.Instance != null)
+                {
+                    SownInStone.UI.SurvivalUIManager.Instance.ShowDialogue(
+                        "Thông báo thiên tai", 
+                        "Nước lũ dâng cao ngập lút ruộng vườn! Bạn đã phải di tản lên nóc nhà lánh nạn. Hãy cố gắng sưởi ấm và ăn mì cứu trợ để sinh tồn qua đợt thiên tai!"
+                    );
+                }
+            }
+            // 2. Trở lại đất liền khi nước rút hoặc chuyển phase mới
+            else if (isOnRoof && (GameManager.Instance.CurrentPhase != GamePhase.MuaBao || WeatherManager.Instance.FloodLevel < 0.5f))
+            {
+                isOnRoof = false;
+                
+                // Teleport về mặt đất
+                if (rb != null)
+                {
+                    rb.linearVelocity = Vector3.zero;
+                }
+                Vector3 groundPos = new Vector3(0f, 0.5f, -6f);
+                transform.position = groundPos;
+                if (rb != null)
+                {
+                    rb.position = groundPos;
+                }
+                
+                // Hiển thị thông báo trở lại đất liền
+                if (SownInStone.UI.SurvivalUIManager.Instance != null)
+                {
+                    SownInStone.UI.SurvivalUIManager.Instance.ShowDialogue(
+                        "Thiên tai đi qua", 
+                        "Nước lũ đã rút! Bạn có thể trở lại mặt đất để bắt đầu dọn dẹp và khôi phục lại ruộng vườn."
+                    );
+                }
+            }
         }
 
         private void Update()
         {
+            HandleFloodRoofSurvival();
+
             // 1. Nhận dữ liệu di chuyển từ WASD / Phím mũi tên (Tự động tương thích cả 2 Input System)
 #if ENABLE_INPUT_SYSTEM
             if (Keyboard.current != null)
@@ -240,6 +317,18 @@ namespace SownInStone.Core
             {
                 rb.linearVelocity = new Vector3(0f, rb.linearVelocity.y, 0f);
             }
+
+            if (isOnRoof)
+            {
+                Vector3 constrainedPos = rb.position;
+                constrainedPos.x = Mathf.Clamp(constrainedPos.x, -2.2f, 2.2f);
+                constrainedPos.z = Mathf.Clamp(constrainedPos.z, -12.0f, -8.0f);
+                constrainedPos.y = 3.5f;
+
+                rb.position = constrainedPos;
+                transform.position = constrainedPos;
+                rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+            }
         }
 
         /// <summary>
@@ -312,6 +401,57 @@ namespace SownInStone.Core
             if (isPerformingAction) return;
 
             Debug.Log("[PLAYER] Bấm phím tương tác [E]!");
+
+            // 0. Nếu đang ở trên nóc nhà và không có đối thoại nào đang mở
+            if (isOnRoof)
+            {
+                if (SownInStone.UI.SurvivalUIManager.Instance != null)
+                {
+                    if (SownInStone.UI.SurvivalUIManager.Instance.IsDialogueActive)
+                    {
+                        if (!SownInStone.UI.SurvivalUIManager.Instance.IsChoiceActive)
+                        {
+                            SownInStone.UI.SurvivalUIManager.Instance.CloseDialogue();
+                        }
+                        return;
+                    }
+
+                    // Mở hội thoại lựa chọn nghỉ ngơi trên nóc nhà
+                    SownInStone.UI.SurvivalUIManager.Instance.ShowDialogueWithChoices(
+                        "Sinh tồn trên nóc nhà",
+                        "Bạn có muốn nghỉ ngơi trên nóc nhà để chờ nước lũ rút không? (Trôi qua 1 giờ, hồi phục 15 Thể lực, giảm 10 nhiễm lạnh, hồi phục 5 tinh thần)",
+                        "Nghỉ ngơi (1 giờ)",
+                        () => {
+                            // Thực hiện nghỉ ngơi
+                            if (GameManager.Instance != null)
+                            {
+                                GameManager.Instance.AdvanceTime(1f);
+                            }
+                            if (PlayerStats.Instance != null)
+                            {
+                                PlayerStats.Instance.ModifyStamina(15f);
+                                PlayerStats.Instance.ApplyColdStress(-10f);
+                                PlayerStats.Instance.ModifyMorale(5f);
+                            }
+                            if (SownInStone.UI.SurvivalUIManager.Instance != null)
+                            {
+                                SownInStone.UI.SurvivalUIManager.Instance.ShowDialogue(
+                                    "Sinh tồn trên nóc nhà", 
+                                    "Bạn đã chợp mắt một lúc. Thể lực và tinh thần phục hồi nhẹ, cơ thể ấm áp hơn."
+                                );
+                            }
+                        },
+                        "Hủy bỏ",
+                        () => {
+                            if (SownInStone.UI.SurvivalUIManager.Instance != null)
+                            {
+                                SownInStone.UI.SurvivalUIManager.Instance.CloseDialogue();
+                            }
+                        }
+                    );
+                    return;
+                }
+            }
 
             // Quét hình cầu vật lý 3D xung quanh người chơi
             Collider[] colliders = Physics.OverlapSphere(transform.position, interactRadius, interactableLayers);
@@ -721,6 +861,12 @@ namespace SownInStone.Core
         private void UpdateInteractionPrompt()
         {
             if (SownInStone.UI.SurvivalUIManager.Instance == null) return;
+
+            if (isOnRoof)
+            {
+                SownInStone.UI.SurvivalUIManager.Instance.SetInteractionPrompt("[E] Nghỉ ngơi trên nóc nhà");
+                return;
+            }
 
             Collider[] colliders = Physics.OverlapSphere(transform.position, interactRadius, interactableLayers);
             Collider closestCollider = null;
