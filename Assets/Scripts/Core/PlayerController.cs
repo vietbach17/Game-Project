@@ -980,6 +980,19 @@ namespace SownInStone.Core
             }
         }
 
+        private void OnGUI()
+        {
+            GUI.color = Color.red;
+            GUI.Box(new Rect(10, 150, 250, 160), "--- PLAYER MOVEMENT DEBUG ---");
+            GUI.Label(new Rect(20, 170, 230, 20), $"Pos: {transform.position}");
+            GUI.Label(new Rect(20, 190, 230, 20), $"RB Pos: {(rb != null ? rb.position : Vector3.zero)}");
+            GUI.Label(new Rect(20, 210, 230, 20), $"Vel: {(rb != null ? rb.linearVelocity : Vector3.zero)}");
+            GUI.Label(new Rect(20, 230, 230, 20), $"Input: {moveInput}");
+            GUI.Label(new Rect(20, 250, 230, 20), $"Kinematic: {(rb != null ? rb.isKinematic : false)}");
+            GUI.Label(new Rect(20, 270, 230, 20), $"Constraints: {(rb != null ? rb.constraints : RigidbodyConstraints.None)}");
+            GUI.Label(new Rect(20, 290, 230, 20), $"TimeScale: {Time.timeScale}");
+        }
+
         private void OnDrawGizmosSelected()
         {
             // Vẽ vòng tròn kiểm tra phạm vi tương tác trong Scene View của Unity Editor
