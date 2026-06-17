@@ -2567,7 +2567,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: c6dfab7488237b94c99f9525270344fb, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 3.2
+      value: -0.342
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: c6dfab7488237b94c99f9525270344fb, type: 3}
       propertyPath: m_LocalPosition.y
@@ -10056,6 +10056,7 @@ MonoBehaviour:
     m_Bits: 4294967295
   testSeedData: {fileID: 11400000, guid: f0001001000100010001000100010004, type: 2}
   seedItem: {fileID: 0}
+  noodlesItem: {fileID: 0}
 --- !u!4 &1651069070
 Transform:
   m_ObjectHideFlags: 0
@@ -10658,6 +10659,7 @@ MonoBehaviour:
   coldColor: {r: 0.35, g: 0.65, b: 0.85, a: 1}
   seedItem: {fileID: 0}
   incenseItem: {fileID: 0}
+  noodlesItem: {fileID: 0}
 --- !u!225 &1772250569
 CanvasGroup:
   m_ObjectHideFlags: 0

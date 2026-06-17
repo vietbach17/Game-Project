@@ -10,6 +10,7 @@
   * Left Shift triggers running smoothly.
   * Player model is properly attached as a child under the `Player` GameObject and follows movement correctly.
 * **Farming System**:
+  * Fixed a critical `StackOverflowException` (mutual recursion loop) in `SoilCell.cs` when executing actions (clearing rocks, watering, fertilizing, planting) due to child cells delegating back to parent cell.
   * SoilCells can be cultivated/tilled (cleared of rock density).
   * SoilCells can be watered.
   * SoilCells can be planted with seeds.

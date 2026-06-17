@@ -168,12 +168,6 @@ namespace SownInStone.Agriculture
         /// </summary>
         public void ActionClearRocks(float efficiency)
         {
-            if (parentField != null)
-            {
-                parentField.ActionClearRocks(efficiency);
-                return;
-            }
-
             if (IsParentField)
             {
                 foreach (var child in childCells)
@@ -204,12 +198,6 @@ namespace SownInStone.Agriculture
         /// </summary>
         public void ActionWaterSoil(float amount)
         {
-            if (parentField != null)
-            {
-                parentField.ActionWaterSoil(amount);
-                return;
-            }
-
             if (IsParentField)
             {
                 foreach (var child in childCells)
@@ -230,12 +218,6 @@ namespace SownInStone.Agriculture
         /// </summary>
         public void ActionFertilize(float nutrientBoost)
         {
-            if (parentField != null)
-            {
-                parentField.ActionFertilize(nutrientBoost);
-                return;
-            }
-
             if (IsParentField)
             {
                 foreach (var child in childCells)
@@ -260,11 +242,6 @@ namespace SownInStone.Agriculture
         /// </summary>
         public bool ActionPlantCrop(CropData seedData)
         {
-            if (parentField != null)
-            {
-                return parentField.ActionPlantCrop(seedData);
-            }
-
             if (IsParentField)
             {
                 bool anyPlanted = false;
