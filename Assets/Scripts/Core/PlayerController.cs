@@ -284,6 +284,8 @@ namespace SownInStone.Core
                 {
                     rb.linearVelocity = new Vector3(0f, rb.linearVelocity.y, 0f);
                 }
+                debugCurrentSpeed = 0f;
+                debugTargetMoveDir = Vector3.zero;
                 return;
             }
 
@@ -297,6 +299,8 @@ namespace SownInStone.Core
                 // Giảm 40% tốc độ di chuyển khi lội nước lụt sâu hơn 0.5m (flood penalty)
                 currentSpeed *= 0.6f;
             }
+
+            debugCurrentSpeed = currentSpeed;
 
             // Tính toán hướng di chuyển camera-relative trong không gian 3D
             Transform cameraTransform = Camera.main != null ? Camera.main.transform : null;
@@ -317,15 +321,23 @@ namespace SownInStone.Core
                     targetMoveDir.Normalize();
                 }
 
+                debugTargetMoveDir = targetMoveDir;
                 rb.linearVelocity = new Vector3(targetMoveDir.x * currentSpeed, rb.linearVelocity.y, targetMoveDir.z * currentSpeed);
             }
             else if (moveInput.sqrMagnitude > 0.01f)
             {
                 // Fallback nếu không tìm thấy Camera chính
-                rb.linearVelocity = new Vector3(moveInput.x * currentSpeed, rb.linearVelocity.y, moveInput.y * currentSpeed);
+                Vector3 fallbackMoveDir = new Vector3(moveInput.x, 0f, moveInput.y);
+                if (fallbackMoveDir.sqrMagnitude > 0.01f)
+                {
+                    fallbackMoveDir.Normalize();
+                }
+                debugTargetMoveDir = fallbackMoveDir;
+                rb.linearVelocity = new Vector3(fallbackMoveDir.x * currentSpeed, rb.linearVelocity.y, fallbackMoveDir.z * currentSpeed);
             }
             else
             {
+                debugTargetMoveDir = Vector3.zero;
                 rb.linearVelocity = new Vector3(0f, rb.linearVelocity.y, 0f);
             }
 
@@ -980,17 +992,22 @@ namespace SownInStone.Core
             }
         }
 
+        private Vector3 debugTargetMoveDir;
+        private float debugCurrentSpeed;
+
         private void OnGUI()
         {
             GUI.color = Color.red;
-            GUI.Box(new Rect(10, 150, 250, 160), "--- PLAYER MOVEMENT DEBUG ---");
-            GUI.Label(new Rect(20, 170, 230, 20), $"Pos: {transform.position}");
-            GUI.Label(new Rect(20, 190, 230, 20), $"RB Pos: {(rb != null ? rb.position : Vector3.zero)}");
-            GUI.Label(new Rect(20, 210, 230, 20), $"Vel: {(rb != null ? rb.linearVelocity : Vector3.zero)}");
-            GUI.Label(new Rect(20, 230, 230, 20), $"Input: {moveInput}");
-            GUI.Label(new Rect(20, 250, 230, 20), $"Kinematic: {(rb != null ? rb.isKinematic : false)}");
-            GUI.Label(new Rect(20, 270, 230, 20), $"Constraints: {(rb != null ? rb.constraints : RigidbodyConstraints.None)}");
-            GUI.Label(new Rect(20, 290, 230, 20), $"TimeScale: {Time.timeScale}");
+            GUI.Box(new Rect(10, 150, 270, 200), "--- PLAYER MOVEMENT DEBUG ---");
+            GUI.Label(new Rect(20, 170, 250, 20), $"Pos: {transform.position}");
+            GUI.Label(new Rect(20, 190, 250, 20), $"RB Pos: {(rb != null ? rb.position : Vector3.zero)}");
+            GUI.Label(new Rect(20, 210, 250, 20), $"Vel: {(rb != null ? rb.linearVelocity : Vector3.zero)}");
+            GUI.Label(new Rect(20, 230, 250, 20), $"Input: {moveInput}");
+            GUI.Label(new Rect(20, 250, 250, 20), $"TargetMoveDir: {debugTargetMoveDir}");
+            GUI.Label(new Rect(20, 270, 250, 20), $"Speed: {debugCurrentSpeed}");
+            GUI.Label(new Rect(20, 290, 250, 20), $"Kinematic: {(rb != null ? rb.isKinematic : false)}");
+            GUI.Label(new Rect(20, 310, 250, 20), $"Constraints: {(rb != null ? rb.constraints : RigidbodyConstraints.None)}");
+            GUI.Label(new Rect(20, 330, 250, 20), $"Cam: {(Camera.main != null ? Camera.main.name : "null")}");
         }
 
         private void OnDrawGizmosSelected()
