@@ -32,6 +32,7 @@ namespace SownInStone.Agriculture
         private Renderer stemRenderer;
         private Renderer leaf1Renderer;
         private Renderer leaf2Renderer;
+        private int currentVisual3DStage = -1;
 
         private void Create3DPlaceholder()
         {
@@ -84,6 +85,34 @@ namespace SownInStone.Agriculture
 
         private void UpdateVisual3D(int stageIndex)
         {
+            if (cropData.GrowthStagePrefabs != null && cropData.GrowthStagePrefabs.Length > 0)
+            {
+                int prefabIndex = Mathf.Clamp(stageIndex, 0, cropData.GrowthStagePrefabs.Length - 1);
+                GameObject targetPrefab = cropData.GrowthStagePrefabs[prefabIndex];
+                if (targetPrefab != null)
+                {
+                    if (visual3DObj == null || currentVisual3DStage != prefabIndex || stemTransform != null)
+                    {
+                        Cleanup3DVisual();
+                        visual3DObj = Instantiate(targetPrefab, this.transform, false);
+                        visual3DObj.name = "Visual3D";
+                        visual3DObj.transform.localPosition = Vector3.zero;
+                        visual3DObj.transform.localRotation = Quaternion.identity;
+                        currentVisual3DStage = prefabIndex;
+                        stemTransform = null;
+                    }
+
+                    Color overlayColor = Color.white;
+                    if (isWithered) overlayColor = new Color(0.5f, 0.4f, 0.3f, 1f);
+                    else if (isRotted) overlayColor = new Color(0.15f, 0.2f, 0.15f, 0.8f);
+                    foreach (var r in visual3DObj.GetComponentsInChildren<Renderer>())
+                    {
+                        r.material.color = overlayColor;
+                    }
+                    return;
+                }
+            }
+
             if (visual3DObj == null) Create3DPlaceholder();
 
             Color stemColor = Color.white;
@@ -207,6 +236,7 @@ namespace SownInStone.Agriculture
                 }
                 Destroy(visual3DObj);
                 visual3DObj = null;
+                currentVisual3DStage = -1;
             }
         }
 

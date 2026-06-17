@@ -25,6 +25,8 @@
 * **Environment**:
   * RoadSegment MeshColliders have been disabled to make roads walkable and resolve invisible movement blockers.
 
+* **O Thắm's Seed Shop & Economy Loop**: Fully implemented shop interface and trade loop, allowing players to spend coins to buy seeds and incense, and sell harvested fresh/preserved crop products with instant inventory updates and HUD feedback.
+
 ## In Progress
 
 * Polish characters and transition from prototype layout to low-poly stylized models.
@@ -37,13 +39,12 @@
 
 * Some invisible colliders/blockers still exist near parts of the environment.
 * Houses and village environment still need polishing.
-* O Thắm shop economy loop is not implemented.
 * Real crop art assets (sprites/models) are not implemented yet; currently `Crop_KhoaiLang` relies on placeholder UI sprites and triggers the 3D visual fallback.
 
 ---
 
 # PROJECT STATUS SNAPSHOT
 
-* **Current Playable Loop**: Player can walk/run around the map, inspect SoilCells, till rocks, plant potato seeds (with seeds consumed from storage), water the soil, use the F1 debug command to mature crops quickly for testing, harvest mature crops, receive visual HUD toast feedback, and view accumulated items in the Inventory (`Tab`/`I` keys).
+* **Current Playable Loop**: Player can walk/run around the map, inspect SoilCells, till rocks, plant potato seeds (with seeds consumed from storage), water the soil, use the F1 debug command to mature crops quickly for testing, harvest mature crops, receive visual HUD toast feedback, trade with NPC O Thắm to buy seeds/incense or sell harvested products, and view accumulated items/coins in the Inventory (`Tab`/`I` keys).
 * **Current Blockers**: None.
-* **Recommended Next Task**: Investigate and fix remaining invisible colliders/blockers near environment landmarks, then implement O Thắm's seed shop economy loop.
+* **Recommended Next Task**: Investigate and fix remaining invisible colliders/blockers near environment landmarks.

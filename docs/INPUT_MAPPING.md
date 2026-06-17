@@ -6,7 +6,7 @@ Mouse Right Hold = Rotate Camera
 
 E = Interact
 
-I = Inventory
+I / Tab = Inventory
 
 M = Weather Details
 

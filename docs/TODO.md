@@ -3,10 +3,8 @@
 ## High Priority
 
 1. Fix remaining invisible blockers/colliders near the environment.
-2. Implement O Thắm seed shop interface and economy interaction.
-3. Implement inventory feedback and purchasing flow.
-4. Replace placeholder crop visuals with real crop sprites/models.
-5. Improve village environment layout and replace primitive placeholders.
+2. Replace placeholder crop visuals with real crop sprites/models.
+3. Improve village environment layout and replace primitive placeholders.
 
 ## Medium Priority
 
@@ -25,6 +23,6 @@
 
 # PROJECT STATUS SNAPSHOT
 
-* **Current Playable Loop**: Player walks/runs, clears rocks from SoilCells, plants seeds, waters crops, debug-matures crops, harvests them, views HUD reward notifications, and manages storage.
+* **Current Playable Loop**: Player can walk/run around the map, inspect SoilCells, till rocks, plant potato seeds (with seeds consumed from storage), water the soil, use the F1 debug command to mature crops quickly for testing, harvest mature crops, receive visual HUD toast feedback, trade with NPC O Thắm to buy seeds/incense or sell harvested products, and view accumulated items/coins in the Inventory (`Tab`/`I` keys).
 * **Current Blockers**: None.
 * **Recommended Next Task**: Investigate and fix remaining invisible colliders/blockers near environment landmarks.

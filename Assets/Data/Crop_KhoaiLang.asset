@@ -25,3 +25,7 @@ MonoBehaviour:
   - {fileID: 10913, guid: 0000000000000000f000000000000000, type: 0}
   - {fileID: 10911, guid: 0000000000000000f000000000000000, type: 0}
   - {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
+  GrowthStagePrefabs:
+  - {fileID: 919132149155446097, guid: bc8f572944acbc04ba79641d3cf00f61, type: 3}
+  - {fileID: 919132149155446097, guid: 95ad5fcae82b91d429ba7a17b1da836e, type: 3}
+  - {fileID: 919132149155446097, guid: c08166daa8289124ba1b4090e116b91d, type: 3}
