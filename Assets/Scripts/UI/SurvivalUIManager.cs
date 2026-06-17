@@ -117,6 +117,7 @@ namespace SownInStone.UI
         [Header("--- CÀI ĐẶT CỬA HÀNG ---")]
         [SerializeField] private ItemData seedItem;
         [SerializeField] private ItemData incenseItem;
+        [SerializeField] private ItemData noodlesItem;
 
         private GameObject shopPanel;
         private TextMeshProUGUI shopCoinsText;
@@ -169,6 +170,10 @@ namespace SownInStone.UI
             if (incenseItem == null)
             {
                 incenseItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Incense.asset");
+            }
+            if (noodlesItem == null)
+            {
+                noodlesItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Noodles.asset");
             }
 #endif
 
@@ -1763,14 +1768,15 @@ namespace SownInStone.UI
             listRect.anchorMin = new Vector2(0.5f, 0.5f);
             listRect.anchorMax = new Vector2(0.5f, 0.5f);
             listRect.pivot = new Vector2(0.5f, 0.5f);
-            listRect.anchoredPosition = new Vector2(0f, -25f);
-            listRect.sizeDelta = new Vector2(460f, 260f);
+            listRect.anchoredPosition = new Vector2(0f, -40f);
+            listRect.sizeDelta = new Vector2(460f, 300f);
 
-            // Tạo các dòng vật phẩm (4 dòng)
+            // Tạo các dòng vật phẩm (5 dòng)
             CreateShopRow(listContainer.transform, 0, "Hạt giống Khoai", "Dùng gieo trồng khoai lang", true, () => GetSeedPrice(), seedItem, font);
             CreateShopRow(listContainer.transform, 1, "Nhang cúng", "Dùng thắp nhang ban thờ gia tiên", true, () => 15, incenseItem, font);
             CreateShopRow(listContainer.transform, 2, "Khoai lang tươi", "Nông sản tươi thu hoạch từ ruộng", false, () => 25, freshCropItem, font);
             CreateShopRow(listContainer.transform, 3, "Khoai gieo khô", "Đặc sản phơi khô tích lũy chống lũ", false, () => 40, preservedCropItem, font);
+            CreateShopRow(listContainer.transform, 4, "Mì Tôm Cứu Trợ", "Mì tôm ăn liền cứu trợ khẩn cấp", true, () => 15, noodlesItem, font);
 
             shopPanel.SetActive(false); // Ẩn mặc định
         }
@@ -1783,7 +1789,7 @@ namespace SownInStone.UI
 
         private void CreateShopRow(Transform parent, int index, string itemName, string desc, bool isBuy, System.Func<int> priceFunc, ItemData item, TMP_FontAsset font)
         {
-            float yPos = 100f - index * 60f; // Cách nhau 60 units chiều dọc
+            float yPos = 120f - index * 60f; // Cách nhau 60 units chiều dọc
 
             GameObject row = new GameObject($"Row_{index}", typeof(RectTransform), typeof(Image));
             row.transform.SetParent(parent, false);
@@ -1911,7 +1917,8 @@ namespace SownInStone.UI
                 new { name = "Hạt giống Khoai", desc = "Dùng gieo trồng khoai lang", isBuy = true, price = GetSeedPrice(), item = seedItem },
                 new { name = "Nhang cúng", desc = "Dùng thắp nhang ban thờ gia tiên", isBuy = true, price = 15, item = incenseItem },
                 new { name = "Khoai lang tươi", desc = "Nông sản tươi thu hoạch từ ruộng", isBuy = false, price = 25, item = freshCropItem },
-                new { name = "Khoai gieo khô", desc = "Đặc sản phơi khô tích lũy chống lũ", isBuy = false, price = 40, item = preservedCropItem }
+                new { name = "Khoai gieo khô", desc = "Đặc sản phơi khô tích lũy chống lũ", isBuy = false, price = 40, item = preservedCropItem },
+                new { name = "Mì Tôm Cứu Trợ", desc = "Mì tôm ăn liền cứu trợ khẩn cấp", isBuy = true, price = 15, item = noodlesItem }
             };
 
             // 3. Quét qua từng hàng để cập nhật văn bản và nút bấm
