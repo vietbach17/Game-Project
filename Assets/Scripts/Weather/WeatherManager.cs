@@ -47,6 +47,7 @@ namespace SownInStone.Weather
         private float targetHumidity = 75f;
         private float targetWindSpeed = 10f;
         private float targetRainIntensity = 0f;
+        private GameObject waterPlane3D;
 
         [Header("--- HIỆU ỨNG HẠT MƯA ---")]
         private ParticleSystem rainParticles;
@@ -76,6 +77,9 @@ namespace SownInStone.Weather
 
             // Thiết lập hạt mưa
             SetupRainParticles();
+
+            // Thiết lập mặt nước 3D
+            Setup3DWaterPlane();
         }
 
         private void OnDestroy()
@@ -101,6 +105,9 @@ namespace SownInStone.Weather
 
             // Cập nhật vị trí và cường độ hạt mưa
             UpdateRainParticles();
+
+            // Cập nhật vị trí mặt nước 3D
+            Update3DWaterPlane();
         }
 
         /// <summary>
@@ -195,6 +202,56 @@ namespace SownInStone.Weather
                 targetFloodLevel = Mathf.Max(0f, targetFloodLevel - 0.25f);
                 Debug.Log($"[WEATHER] Nước lũ rút mục tiêu: {targetFloodLevel:F2} mét.");
             }
+        }
+
+        /// <summary>
+        /// Đặt trực tiếp mực nước lũ cho mục đích gỡ lỗi/kiểm thử nhanh.
+        /// </summary>
+        public void DebugSetFloodLevel(float level)
+        {
+            targetFloodLevel = level;
+            FloodLevel = level; // Đặt cả hai để snap ngay lập tức
+            Debug.Log($"[WEATHER] Debug đặt mực nước lũ thành: {level} mét.");
+        }
+
+        private void Setup3DWaterPlane()
+        {
+            if (waterPlane3D != null) return;
+            
+            // Tạo một Plane 3D làm mặt nước
+            waterPlane3D = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            waterPlane3D.name = "3D_Water_Plane";
+            
+            // Xóa Collider để tránh va chạm vật lý cản trở Player
+            Collider col = waterPlane3D.GetComponent<Collider>();
+            if (col != null) Destroy(col);
+            
+            // Đặt kích thước bao phủ khu vực ruộng vườn (8f trên Plane tương ứng 80 đơn vị thế giới)
+            waterPlane3D.transform.localScale = new Vector3(8f, 1f, 8f);
+            
+            // Tạo material màu xanh nước biển trong suốt sử dụng shader Sprites/Default để tương thích mọi Render Pipeline
+            Shader spriteShader = Shader.Find("Sprites/Default");
+            if (spriteShader == null) spriteShader = Shader.Find("Legacy Shaders/Transparent/Diffuse");
+            if (spriteShader == null) spriteShader = Shader.Find("Standard");
+            
+            Material waterMat = new Material(spriteShader);
+            // Xanh lam trong suốt, độ mờ 0.65f để nhìn thấu xuống đáy ruộng vườn
+            waterMat.color = new Color(0.12f, 0.42f, 0.72f, 0.65f);
+            
+            waterPlane3D.GetComponent<MeshRenderer>().material = waterMat;
+            
+            // Đặt vị trí mặc định dưới mặt đất (Y = -1.0f)
+            waterPlane3D.transform.position = new Vector3(4.25f, -1.0f, -5.25f);
+        }
+
+        private void Update3DWaterPlane()
+        {
+            if (waterPlane3D == null) return;
+
+            // Nước dâng theo FloodLevel. Khi FloodLevel = 0, nước nằm ở Y = -1f (ẩn dưới đất)
+            // Khi nước dâng, Y = -0.05f + FloodLevel (bắt đầu ngập từ Y = 0f trở lên)
+            float waterY = (FloodLevel <= 0.01f) ? -1.0f : (-0.05f + FloodLevel);
+            waterPlane3D.transform.position = new Vector3(4.25f, waterY, -5.25f);
         }
 
         /// <summary>
