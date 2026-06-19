@@ -30,6 +30,8 @@ namespace SownInStone
         private string activeDialogue = "\"Về quê bám đất thờ cúng tổ tiên là o mừng lắm con, ráng lên Thành nghe con!\"";
         private string activeSpeakerName = "O Thắm";
 
+        private Vector2 scrollPos = Vector2.zero;
+
         [Header("--- THIẾT LẬP HIỂN THỊ ---")]
         [Tooltip("Bảng điều khiển có hiển thị hay không (sẽ được kích hoạt sau khi bấm bắt đầu ở Menu chính).")]
         public bool isUIVisible = false;
@@ -122,12 +124,23 @@ namespace SownInStone
             // Thiết lập phong cách hiển thị chung (Sử dụng bảng màu mộc mạc)
             GUI.backgroundColor = new Color(0.18f, 0.15f, 0.12f, 0.95f); // Tông nâu đất mộc mạc
             
+            // Bắt đầu vùng cuộn ngang cuộn dọc cho toàn bộ Debug Panel
+            float outerWidth = 560f;
+            float outerHeight = Mathf.Min(740f, Screen.height - 20f);
+            Rect outerRect = new Rect(10, 10, outerWidth, outerHeight);
+            Rect viewRect = new Rect(0, 0, 540, 740);
+
+            scrollPos = GUI.BeginScrollView(outerRect, scrollPos, viewRect, true, true);
+
+            // Vẽ một Box nền bao phủ toàn bộ vùng nội dung
+            GUI.Box(new Rect(0, 0, 540, 740), "");
+
             // 1. Khung tiêu đề chính
-            Rect headerRect = new Rect(10, 10, 520, 30);
+            Rect headerRect = new Rect(0, 0, 520, 30);
             GUI.Box(headerRect, "<b>BẢNG ĐIỀU KHIỂN SINH TỒN - ĐẤT CÀY LÊN SỎI ĐÁ</b>");
 
             // 2. Phân hệ THỜI GIAN & GIAI ĐOẠN GAME
-            Rect timeRect = new Rect(10, 45, 250, 130);
+            Rect timeRect = new Rect(0, 35, 250, 130);
             GUI.Box(timeRect, "<b>THỜI GIAN & GIAI ĐOẠN</b>");
             GUILayout.BeginArea(new Rect(timeRect.x + 10, timeRect.y + 20, timeRect.width - 20, timeRect.height - 30));
             if (GameManager.Instance != null)
@@ -143,7 +156,7 @@ namespace SownInStone
             GUILayout.EndArea();
 
             // 3. Phân hệ THỜI TIẾT KHẮC NGHIỆT
-            Rect weatherRect = new Rect(280, 45, 250, 130);
+            Rect weatherRect = new Rect(270, 35, 250, 130);
             GUI.Box(weatherRect, "<b>THỜI TIẾT MIỀN TRUNG</b>");
             GUILayout.BeginArea(new Rect(weatherRect.x + 10, weatherRect.y + 20, weatherRect.width - 20, weatherRect.height - 30));
             if (WeatherManager.Instance != null)
@@ -165,7 +178,7 @@ namespace SownInStone
             GUILayout.EndArea();
 
             // 4. Phân hệ CHỈ SỐ SINH TỒN NHÂN VẬT
-            Rect statsRect = new Rect(10, 185, 250, 195);
+            Rect statsRect = new Rect(0, 175, 250, 195);
             GUI.Box(statsRect, "<b>CHỈ SỐ SỨC KHỎE NHÂN VẬT</b>");
             GUILayout.BeginArea(new Rect(statsRect.x + 10, statsRect.y + 20, statsRect.width - 20, statsRect.height - 30));
             if (PlayerStats.Instance != null)
@@ -186,7 +199,7 @@ namespace SownInStone
             GUILayout.EndArea();
 
             // 5. PHÂN HỆ TÍCH CỐC PHÒNG CƠ (KHO ĐỒ & CHẾ BIẾN KHOAI GIEO)
-            Rect storageRect = new Rect(280, 185, 250, 160);
+            Rect storageRect = new Rect(270, 175, 250, 160);
             GUI.Box(storageRect, "<b>TÍCH CỐC PHÒNG CƠ (KHO)</b>");
             GUILayout.BeginArea(new Rect(storageRect.x + 10, storageRect.y + 20, storageRect.width - 20, storageRect.height - 30));
             if (StorageManager.Instance != null)
@@ -216,7 +229,7 @@ namespace SownInStone
             GUILayout.EndArea();
 
             // 6. PHÂN HỆ BAN THỜ TỔ TIÊN & ĐĂNG KÝ HÀNG XÓM
-            Rect altarRect = new Rect(10, 355, 520, 80);
+            Rect altarRect = new Rect(0, 345, 520, 80);
             GUI.Box(altarRect, "<b>TÍN NGƯỠNG & TƯƠNG TÁC TÂM LINH VÀN CÔNG</b>");
             GUILayout.BeginArea(new Rect(altarRect.x + 10, altarRect.y + 20, altarRect.width - 20, altarRect.height - 30));
             GUILayout.BeginHorizontal();
@@ -260,7 +273,7 @@ namespace SownInStone
             GUILayout.EndArea();
 
             // 6.5. PHÂN HỆ HỘI THOẠI CỐT TRUYỆN & TẶNG QUÀ NHÂN VẬT
-            Rect dialogueRect = new Rect(10, 440, 520, 115);
+            Rect dialogueRect = new Rect(0, 430, 520, 115);
             GUI.Box(dialogueRect, "<b>HỘI THOẠI CỐT TRUYỆN & NGHĨA TÌNH LÀNG XÓM</b>");
             GUILayout.BeginArea(new Rect(dialogueRect.x + 10, dialogueRect.y + 20, dialogueRect.width - 20, dialogueRect.height - 30));
             
@@ -324,7 +337,7 @@ namespace SownInStone
             GUILayout.EndArea();
 
             // 7. PHÂN HỆ GIẢ LẬP TRÌNH DIỄN THIÊN TAI (DEV CONTROL)
-            Rect devRect = new Rect(10, 560, 520, 165);
+            Rect devRect = new Rect(0, 550, 520, 165);
             GUI.Box(devRect, "<b>BÀN ĐIỀU PHỐI THIÊN TAI (DÀNH CHO ĐỘI NGŨ PHÁT TRIỂN)</b>");
             GUILayout.BeginArea(new Rect(devRect.x + 10, devRect.y + 20, devRect.width - 20, devRect.height - 30));
             GUILayout.BeginHorizontal();
@@ -338,6 +351,11 @@ namespace SownInStone
             {
                 GameManager.Instance?.TransitionToPhase(GamePhase.GioLao);
                 ShowAlert("Gió Lào tràn về bỏng rát nhiệt độ lên 42°C!");
+            }
+            if (GUILayout.Button("Giả lập: Chuẩn Bị Bão"))
+            {
+                GameManager.Instance?.TransitionToPhase(GamePhase.ChuanBiBao);
+                ShowAlert("Loa phóng thanh xã báo động bão! Hãy chằng chống nhà cửa vần công!");
             }
             if (GUILayout.Button("Giả lập Mùa 3: Bão Lũ"))
             {
@@ -446,6 +464,9 @@ namespace SownInStone
             GUI.color = Color.white;
 
             GUILayout.EndArea();
+
+            // Kết thúc scroll view
+            GUI.EndScrollView();
         }
 
         private void DrawProgressBar(Color color)
@@ -486,6 +507,7 @@ namespace SownInStone
             {
                 case GamePhase.LapNghiep: return "GĐ 1 - TIẾNG TRỐNG ĐÌNH LÀNG (Lập Nghiệp)";
                 case GamePhase.GioLao: return "GĐ 2 - NẮNG CHÁY GIÓ LÀO (Thử Thách)";
+                case GamePhase.ChuanBiBao: return "GĐ Trung Gian - CHUẨN BỊ BÃO LŨ (Loa Báo Bão)";
                 case GamePhase.MuaBao: return "GĐ 3 - TÌNH NGƯỜI TRONG BÃO LŨ (Sinh Tử)";
                 case GamePhase.PhuSa: return "GĐ 4 - PHÙ SA SAU CƠN LŨ (Cái Kết Viên Mãn)";
                 default: return phase.ToString();
@@ -498,6 +520,7 @@ namespace SownInStone
             {
                 case GamePhase.LapNghiep: return Color.green;
                 case GamePhase.GioLao: return new Color(1f, 0.5f, 0f); // Cam cháy
+                case GamePhase.ChuanBiBao: return Color.yellow;
                 case GamePhase.MuaBao: return Color.red;
                 case GamePhase.PhuSa: return Color.cyan;
                 default: return Color.white;

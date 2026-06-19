@@ -138,6 +138,13 @@ namespace SownInStone.Weather
                     baseWind = 30f + Mathf.PingPong(Time.time, 15f);
                     break;
 
+                case WeatherType.MuaGiong:
+                    // Mưa giông ẩm ướt nhiệt độ vừa phải, gió mát nhưng giật nhẹ chuẩn bị bão
+                    baseTemp = 26f + Mathf.Sin((hour - 8f) * Mathf.PI / 12f) * 2f; // 24°C - 28°C
+                    baseHum = 85f;
+                    baseWind = 20f + Mathf.PingPong(Time.time, 10f); // Gió giật nhẹ chuẩn bị bão
+                    break;
+
                 case WeatherType.BaoLu:
                     baseTemp = 22f + Mathf.PingPong(Time.time * 0.1f, 3f); // Mưa bão lạnh ẩm
                     baseHum = 95f;
@@ -158,32 +165,55 @@ namespace SownInStone.Weather
         /// </summary>
         private void HandleGamePhaseWeatherChange(GamePhase newPhase)
         {
+            bool isMenuOpen = (FrameworkMainMenuUI.Instance != null && FrameworkMainMenuUI.Instance.IsMenuOpen);
+
             switch (newPhase)
             {
                 case GamePhase.LapNghiep:
                     currentVisualWeather = WeatherType.OnDinh;
                     targetRainIntensity = 0f;
                     targetFloodLevel = 0f;
+                    if (!isMenuOpen) SownInStone.Audio.AudioManager.Instance?.PlayAmbient("ambient_rural", 0.4f);
                     break;
 
                 case GamePhase.GioLao:
                     currentVisualWeather = WeatherType.GioLao;
                     targetRainIntensity = 0f;
                     targetFloodLevel = 0f;
+                    if (!isMenuOpen) SownInStone.Audio.AudioManager.Instance?.PlayAmbient("ambient_wind_lao", 0.4f);
+                    break;
+
+                case GamePhase.ChuanBiBao:
+                    currentVisualWeather = WeatherType.MuaGiong;
+                    targetRainIntensity = 0.3f;
+                    targetFloodLevel = 0f;
+                    if (!isMenuOpen) SownInStone.Audio.AudioManager.Instance?.PlayAmbient("ambient_storm", 0.5f);
                     break;
 
                 case GamePhase.MuaBao:
                     currentVisualWeather = WeatherType.BaoLu;
                     targetRainIntensity = 0.9f;
+                    if (!isMenuOpen) SownInStone.Audio.AudioManager.Instance?.PlayAmbient("ambient_storm", 0.9f);
                     break;
 
                 case GamePhase.PhuSa:
                     currentVisualWeather = WeatherType.OnDinh;
                     targetRainIntensity = 0.05f;
-                    // Sau lũ nước rút từ từ
+                    if (!isMenuOpen) SownInStone.Audio.AudioManager.Instance?.PlayAmbient("ambient_rural", 0.4f);
                     break;
             }
             Debug.Log($"[WEATHER MANAGER] Đồng bộ thời tiết sang: {currentVisualWeather.ToString()}");
+        }
+
+        /// <summary>
+        /// Làm mới lại âm thanh môi trường dông bão theo phase hiện tại.
+        /// </summary>
+        public void RefreshWeatherAmbient()
+        {
+            if (GameManager.Instance != null)
+            {
+                HandleGamePhaseWeatherChange(GameManager.Instance.CurrentPhase);
+            }
         }
 
         private void OnHourTick(int currentHour)

@@ -22,6 +22,14 @@ namespace SownInStone.Core
     {
         public static PlayerController Instance { get; private set; }
 
+        [Header("--- TÙY BIẾN PHÍM BẤM ---")]
+        public KeyCode keyMoveUp = KeyCode.W;
+        public KeyCode keyMoveDown = KeyCode.S;
+        public KeyCode keyMoveLeft = KeyCode.A;
+        public KeyCode keyMoveRight = KeyCode.D;
+        public KeyCode keyInteract = KeyCode.E;
+        public KeyCode keyRun = KeyCode.LeftShift;
+
         [Header("--- THÔNG SỐ DI CHUYỂN ---")]
         [Tooltip("Tốc độ đi bộ của nhân vật.")]
         [SerializeField] private float walkSpeed = 3f;
@@ -95,6 +103,7 @@ namespace SownInStone.Core
             if (Instance == null)
             {
                 Instance = this;
+                LoadKeyBindings();
             }
             else
             {
@@ -145,6 +154,79 @@ namespace SownInStone.Core
             }
 #endif
         }
+
+        public void LoadKeyBindings()
+        {
+            keyMoveUp = (KeyCode)PlayerPrefs.GetInt("Key_MoveUp", (int)KeyCode.W);
+            keyMoveDown = (KeyCode)PlayerPrefs.GetInt("Key_MoveDown", (int)KeyCode.S);
+            keyMoveLeft = (KeyCode)PlayerPrefs.GetInt("Key_MoveLeft", (int)KeyCode.A);
+            keyMoveRight = (KeyCode)PlayerPrefs.GetInt("Key_MoveRight", (int)KeyCode.D);
+            keyInteract = (KeyCode)PlayerPrefs.GetInt("Key_Interact", (int)KeyCode.E);
+            keyRun = (KeyCode)PlayerPrefs.GetInt("Key_Run", (int)KeyCode.LeftShift);
+        }
+
+        public void SaveKeyBindings()
+        {
+            PlayerPrefs.SetInt("Key_MoveUp", (int)keyMoveUp);
+            PlayerPrefs.SetInt("Key_MoveDown", (int)keyMoveDown);
+            PlayerPrefs.SetInt("Key_MoveLeft", (int)keyMoveLeft);
+            PlayerPrefs.SetInt("Key_MoveRight", (int)keyMoveRight);
+            PlayerPrefs.SetInt("Key_Interact", (int)keyInteract);
+            PlayerPrefs.SetInt("Key_Run", (int)keyRun);
+            PlayerPrefs.Save();
+        }
+
+#if ENABLE_INPUT_SYSTEM
+        private bool IsKeyPressed(KeyCode keyCode)
+        {
+            if (Keyboard.current == null) return false;
+            
+            UnityEngine.InputSystem.Key key = ConvertKeyCodeToInputSystemKey(keyCode);
+            if (key != UnityEngine.InputSystem.Key.None)
+            {
+                return Keyboard.current[key].isPressed;
+            }
+            return false;
+        }
+
+        private bool IsKeyDown(KeyCode keyCode)
+        {
+            if (Keyboard.current == null) return false;
+            
+            UnityEngine.InputSystem.Key key = ConvertKeyCodeToInputSystemKey(keyCode);
+            if (key != UnityEngine.InputSystem.Key.None)
+            {
+                return Keyboard.current[key].wasPressedThisFrame;
+            }
+            return false;
+        }
+
+        private UnityEngine.InputSystem.Key ConvertKeyCodeToInputSystemKey(KeyCode keyCode)
+        {
+            switch (keyCode)
+            {
+                case KeyCode.W: return UnityEngine.InputSystem.Key.W;
+                case KeyCode.S: return UnityEngine.InputSystem.Key.S;
+                case KeyCode.A: return UnityEngine.InputSystem.Key.A;
+                case KeyCode.D: return UnityEngine.InputSystem.Key.D;
+                case KeyCode.E: return UnityEngine.InputSystem.Key.E;
+                case KeyCode.Space: return UnityEngine.InputSystem.Key.Space;
+                case KeyCode.LeftShift: return UnityEngine.InputSystem.Key.LeftShift;
+                case KeyCode.RightShift: return UnityEngine.InputSystem.Key.RightShift;
+                case KeyCode.UpArrow: return UnityEngine.InputSystem.Key.UpArrow;
+                case KeyCode.DownArrow: return UnityEngine.InputSystem.Key.DownArrow;
+                case KeyCode.LeftArrow: return UnityEngine.InputSystem.Key.LeftArrow;
+                case KeyCode.RightArrow: return UnityEngine.InputSystem.Key.RightArrow;
+                default:
+                    string name = keyCode.ToString();
+                    if (System.Enum.TryParse(name, true, out UnityEngine.InputSystem.Key result))
+                    {
+                        return result;
+                    }
+                    return UnityEngine.InputSystem.Key.None;
+            }
+        }
+#endif
 
         private void HandleFloodRoofSurvival()
         {
@@ -221,23 +303,38 @@ namespace SownInStone.Core
                 float moveX = 0f;
                 float moveY = 0f;
 
-                if (Keyboard.current.wKey.isPressed || Keyboard.current.upArrowKey.isPressed) moveY = 1f;
-                else if (Keyboard.current.sKey.isPressed || Keyboard.current.downArrowKey.isPressed) moveY = -1f;
+                if (IsKeyPressed(keyMoveUp) || Keyboard.current.upArrowKey.isPressed) moveY = 1f;
+                else if (IsKeyPressed(keyMoveDown) || Keyboard.current.downArrowKey.isPressed) moveY = -1f;
 
-                if (Keyboard.current.dKey.isPressed || Keyboard.current.rightArrowKey.isPressed) moveX = 1f;
-                else if (Keyboard.current.aKey.isPressed || Keyboard.current.leftArrowKey.isPressed) moveX = -1f;
+                if (IsKeyPressed(keyMoveRight) || Keyboard.current.rightArrowKey.isPressed) moveX = 1f;
+                else if (IsKeyPressed(keyMoveLeft) || Keyboard.current.leftArrowKey.isPressed) moveX = -1f;
 
                 moveInput = new Vector2(moveX, moveY);
 
-                // Nhận diện phím Shift để chạy nhanh
-                isRunning = Keyboard.current.leftShiftKey.isPressed || Keyboard.current.rightShiftKey.isPressed;
+                // Nhận diện phím chạy nhanh
+                isRunning = IsKeyPressed(keyRun) || Keyboard.current.leftShiftKey.isPressed || Keyboard.current.rightShiftKey.isPressed;
             }
 #else
-            moveInput.x = Input.GetAxisRaw("Horizontal");
-            moveInput.y = Input.GetAxisRaw("Vertical");
+            float moveX = 0f;
+            float moveY = 0f;
 
-            // Nhận diện phím Shift để chạy nhanh
-            isRunning = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+            if (Input.GetKey(keyMoveUp)) moveY = 1f;
+            else if (Input.GetKey(keyMoveDown)) moveY = -1f;
+
+            if (Input.GetKey(keyMoveRight)) moveX = 1f;
+            else if (Input.GetKey(keyMoveLeft)) moveX = -1f;
+
+            // Fallback to traditional axes if custom keys aren't pressed
+            if (Mathf.Approximately(moveX, 0f) && Mathf.Approximately(moveY, 0f))
+            {
+                moveX = Input.GetAxisRaw("Horizontal");
+                moveY = Input.GetAxisRaw("Vertical");
+            }
+
+            moveInput = new Vector2(moveX, moveY);
+
+            // Nhận diện phím chạy nhanh
+            isRunning = Input.GetKey(keyRun) || Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
 #endif
 
             // Bình thường hóa vector để tốc độ đi chéo không bị nhanh hơn đi thẳng
@@ -260,13 +357,13 @@ namespace SownInStone.Core
 #if ENABLE_INPUT_SYSTEM
             if (Keyboard.current != null)
             {
-                if (Keyboard.current.eKey.wasPressedThisFrame || Keyboard.current.spaceKey.wasPressedThisFrame)
+                if (IsKeyDown(keyInteract) || Keyboard.current.eKey.wasPressedThisFrame || Keyboard.current.spaceKey.wasPressedThisFrame)
                 {
                     TryPerformInteraction();
                 }
             }
 #else
-            if (Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.Space))
+            if (Input.GetKeyDown(keyInteract) || Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.Space))
             {
                 TryPerformInteraction();
             }
@@ -425,26 +522,34 @@ namespace SownInStone.Core
 
             Debug.Log("[PLAYER] Bấm phím tương tác [E]!");
 
-            // 0. Nếu đang ở trên nóc nhà và không có đối thoại nào đang mở
+            // Đóng nhanh bất kỳ đối thoại nào đang mở (nếu không có lựa chọn đang chờ)
+            if (SownInStone.UI.SurvivalUIManager.Instance != null && SownInStone.UI.SurvivalUIManager.Instance.IsDialogueActive)
+            {
+                if (!SownInStone.UI.SurvivalUIManager.Instance.IsChoiceActive)
+                {
+                    SownInStone.UI.SurvivalUIManager.Instance.CloseDialogue();
+                    SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
+                    // Khôi phục lại âm thanh thời tiết nền (đề phòng vừa tắt tiếng lửa nhà bác Năm)
+                    if (WeatherManager.Instance != null)
+                    {
+                        WeatherManager.Instance.RefreshWeatherAmbient();
+                    }
+                }
+                return;
+            }
+
+            // 0. Nếu đang ở trên nóc nhà
             if (isOnRoof)
             {
                 if (SownInStone.UI.SurvivalUIManager.Instance != null)
                 {
-                    if (SownInStone.UI.SurvivalUIManager.Instance.IsDialogueActive)
-                    {
-                        if (!SownInStone.UI.SurvivalUIManager.Instance.IsChoiceActive)
-                        {
-                            SownInStone.UI.SurvivalUIManager.Instance.CloseDialogue();
-                        }
-                        return;
-                    }
-
                     // Mở hội thoại lựa chọn nghỉ ngơi trên nóc nhà
                     SownInStone.UI.SurvivalUIManager.Instance.ShowDialogueWithChoices(
                         "Sinh tồn trên nóc nhà",
                         "Bạn có muốn nghỉ ngơi trên nóc nhà để chờ nước lũ rút không? (Trôi qua 1 giờ, hồi phục 15 Thể lực, giảm 10 nhiễm lạnh, hồi phục 5 tinh thần)",
                         "Nghỉ ngơi (1 giờ)",
                         () => {
+                            SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
                             // Thực hiện nghỉ ngơi
                             if (GameManager.Instance != null)
                             {
@@ -503,16 +608,6 @@ namespace SownInStone.Core
                 NPCCharacter npc = target.GetComponent<NPCCharacter>();
                 if (npc != null)
                 {
-                    // Nếu khung đối thoại mới đang mở và không có lựa chọn đang chờ, nhấn E sẽ đóng nó lại
-                    if (SownInStone.UI.SurvivalUIManager.Instance != null && SownInStone.UI.SurvivalUIManager.Instance.IsDialogueActive)
-                    {
-                        if (!SownInStone.UI.SurvivalUIManager.Instance.IsChoiceActive)
-                        {
-                            SownInStone.UI.SurvivalUIManager.Instance.CloseDialogue();
-                        }
-                        return;
-                    }
-
                     // Mở hội thoại tương ứng
                     if (SownInStone.UI.SurvivalUIManager.Instance != null)
                     {
@@ -533,6 +628,7 @@ namespace SownInStone.Core
                                 greeting,
                                 "Trò chuyện",
                                 () => {
+                                    SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
                                     string dialogue = npc.GetDialogue();
                                     SownInStone.UI.SurvivalUIManager.Instance.ShowDialogue(npc.NPCName, dialogue);
                                     PlayerStats.Instance?.ModifyMorale(2f);
@@ -540,12 +636,14 @@ namespace SownInStone.Core
                                 },
                                 "Giúp việc (Vần công)",
                                 () => {
+                                    SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
                                     float currentStamina = PlayerStats.Instance != null ? PlayerStats.Instance.CurrentStamina : 0f;
                                     if (currentStamina >= 20f)
                                     {
                                         PlayerStats.Instance.ModifyStamina(-20f);
                                         npc.ModifyVanCongCredits(1);
-                                        npc.ModifyAffection(5);
+                                        int affectionGain = (GameManager.Instance != null && GameManager.Instance.CurrentPhase == GamePhase.ChuanBiBao) ? 15 : 5;
+                                        npc.ModifyAffection(affectionGain);
                                         string workDialog = npc.GetWorkDialogue(true);
                                         SownInStone.UI.SurvivalUIManager.Instance.ShowDialogue(npc.NPCName, workDialog);
                                     }
@@ -557,6 +655,7 @@ namespace SownInStone.Core
                                 },
                                 "Giao dịch (Mua/Bán)",
                                 () => {
+                                    SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
                                     OpenTradeMenu(npc);
                                 }
                             );
@@ -568,6 +667,7 @@ namespace SownInStone.Core
                                 greeting,
                                 "Trò chuyện",
                                 () => {
+                                    SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
                                     string dialogue = npc.GetDialogue();
                                     SownInStone.UI.SurvivalUIManager.Instance.ShowDialogue(npc.NPCName, dialogue);
                                     PlayerStats.Instance?.ModifyMorale(2f);
@@ -575,12 +675,14 @@ namespace SownInStone.Core
                                 },
                                 "Giúp việc (Vần công)",
                                 () => {
+                                    SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
                                     float currentStamina = PlayerStats.Instance != null ? PlayerStats.Instance.CurrentStamina : 0f;
                                     if (currentStamina >= 20f)
                                     {
                                         PlayerStats.Instance.ModifyStamina(-20f);
                                         npc.ModifyVanCongCredits(1);
-                                        npc.ModifyAffection(5);
+                                        int affectionGain = (GameManager.Instance != null && GameManager.Instance.CurrentPhase == GamePhase.ChuanBiBao) ? 15 : 5;
+                                        npc.ModifyAffection(affectionGain);
                                         string workDialog = npc.GetWorkDialogue(true);
                                         SownInStone.UI.SurvivalUIManager.Instance.ShowDialogue(npc.NPCName, workDialog);
                                     }
@@ -651,6 +753,7 @@ namespace SownInStone.Core
                     SetAnimTrigger("Dig");
                     StartCoroutine(LockMovementForSeconds(digActionDuration));
                     activeSoil.ActionClearRocks(999f);
+                    SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_clear_rocks");
                     Debug.Log($"Cleared rocks on {cellsWithRocks} cell(s)");
                     PlayerStats.Instance.TriggerAlert($"Đã nhặt đá cải tạo {cellsWithRocks} ô ruộng!");
                 }
@@ -684,6 +787,7 @@ namespace SownInStone.Core
             {
                 SetAnimTrigger("Harvest");
                 StartCoroutine(LockMovementForSeconds(harvestActionDuration));
+                SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_harvest");
 
                 int totalYield = 0;
                 ItemData harvestItem = null;
@@ -776,6 +880,7 @@ namespace SownInStone.Core
 
                             SetAnimTrigger("Plant");
                             StartCoroutine(LockMovementForSeconds(plantActionDuration));
+                            SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_plant");
                             Debug.Log("Plant success: seed consumed");
                         }
                     }
@@ -816,6 +921,7 @@ namespace SownInStone.Core
                     SetAnimTrigger("Water");
                     StartCoroutine(LockMovementForSeconds(waterActionDuration));
                     activeSoil.ActionWaterSoil(50f);
+                    SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_water");
                     Debug.Log($"Watered {dryCells} cell(s)");
                     PlayerStats.Instance.TriggerAlert($"Đã tưới nước cho {dryCells} ô ruộng!");
                 }
@@ -885,9 +991,11 @@ namespace SownInStone.Core
         {
             if (SownInStone.UI.SurvivalUIManager.Instance == null) return;
 
+            string keyName = keyInteract.ToString();
+
             if (isOnRoof)
             {
-                SownInStone.UI.SurvivalUIManager.Instance.SetInteractionPrompt("[E] Nghỉ ngơi trên nóc nhà");
+                SownInStone.UI.SurvivalUIManager.Instance.SetInteractionPrompt($"[{keyName}] Nghỉ ngơi trên nóc nhà");
                 return;
             }
 
@@ -912,14 +1020,14 @@ namespace SownInStone.Core
                 NPCCharacter npc = closestCollider.GetComponent<NPCCharacter>();
                 if (npc != null)
                 {
-                    prompt = $"[E] Trò chuyện với {npc.NPCName}";
+                    prompt = $"[{keyName}] Trò chuyện với {npc.NPCName}";
                 }
                 else
                 {
                     AncestralAltar altar = closestCollider.GetComponent<AncestralAltar>();
                     if (altar != null)
                     {
-                        prompt = "[E] Thắp nhang bàn thờ";
+                        prompt = $"[{keyName}] Thắp nhang bàn thờ";
                     }
                     else
                     {
@@ -955,13 +1063,13 @@ namespace SownInStone.Core
                             }
 
                             if (cellsWithRocks > 0)
-                                prompt = "[E] Dọn đá cải tạo ruộng";
+                                prompt = $"[{keyName}] Dọn đá cải tạo ruộng";
                             else if (hasReadyCrops)
-                                prompt = "[E] Thu hoạch khoai tươi";
+                                prompt = $"[{keyName}] Thu hoạch khoai tươi";
                             else if (emptySlots > 0)
-                                prompt = "[E] Gieo hạt giống khoai";
+                                prompt = $"[{keyName}] Gieo hạt giống khoai";
                             else if (soil.Moisture < 40f)
-                                prompt = "[E] Tưới nước cho đất ẩm";
+                                prompt = $"[{keyName}] Tưới nước cho đất ẩm";
                             else
                                 prompt = "Đất đã được gieo hạt";
                         }
@@ -992,12 +1100,92 @@ namespace SownInStone.Core
             }
         }
 
+        /// <summary>
+        /// Kích hoạt chuỗi sự kiện cứu hộ khi người chơi kiệt sức hoàn toàn (Sức khỏe hoặc Tinh thần về 0).
+        /// Teleport người chơi về cạnh nhà Bác Năm, hồi phục chỉ số, trừ tiền và tăng Nghĩa tình.
+        /// </summary>
+        public void TriggerRescueSequence()
+        {
+            // Phát hiệu ứng ngất xỉu
+            SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_faint");
+
+            // Đưa người chơi về cạnh nhà Bác Năm (Y = 0.5f)
+            isOnRoof = false;
+            
+            if (rb != null)
+            {
+                rb.linearVelocity = Vector3.zero;
+            }
+            Vector3 rescuePosition = new Vector3(6.5f, 0.5f, 9.0f);
+            transform.position = rescuePosition;
+            if (rb != null)
+            {
+                rb.position = rescuePosition;
+            }
+
+            // Phạt tiền và hồi phục chỉ số sinh lý
+            if (PlayerStats.Instance != null)
+            {
+                PlayerStats.Instance.ModifyCoins(-15);
+
+                // Lấy giá trị tối đa để hồi phục 50%
+                float maxHealth = 100f;
+                var maxHealthField = typeof(PlayerStats).GetField("maxHealth", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (maxHealthField != null) maxHealth = (float)maxHealthField.GetValue(PlayerStats.Instance);
+
+                float maxMorale = 100f;
+                var maxMoraleField = typeof(PlayerStats).GetField("maxMorale", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (maxMoraleField != null) maxMorale = (float)maxMoraleField.GetValue(PlayerStats.Instance);
+
+                float maxStamina = 100f;
+                var maxStaminaField = typeof(PlayerStats).GetField("maxStamina", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                if (maxStaminaField != null) maxStamina = (float)maxStaminaField.GetValue(PlayerStats.Instance);
+
+                float healthToRestore = Mathf.Max(0f, maxHealth * 0.5f - PlayerStats.Instance.CurrentHealth);
+                if (healthToRestore > 0f) PlayerStats.Instance.ModifyHealth(healthToRestore);
+
+                float moraleToRestore = Mathf.Max(0f, maxMorale * 0.5f - PlayerStats.Instance.CurrentMorale);
+                if (moraleToRestore > 0f) PlayerStats.Instance.ModifyMorale(moraleToRestore);
+
+                float staminaToRestore = Mathf.Max(0f, maxStamina * 0.5f - PlayerStats.Instance.CurrentStamina);
+                if (staminaToRestore > 0f) PlayerStats.Instance.ModifyStamina(staminaToRestore);
+
+                PlayerStats.Instance.ApplyHeatStress(-100f);
+                PlayerStats.Instance.ApplyColdStress(-100f);
+
+                PlayerStats.Instance.TriggerAlert("Bạn kiệt sức và được bà con cứu! (-15 Xu, +15 Tình nghĩa)");
+            }
+
+            // Tăng 15 điểm Nghĩa Tình cho Bác Năm và O Thắm
+            NPCCharacter[] npcs = UnityEngine.Object.FindObjectsByType<NPCCharacter>();
+            foreach (var npc in npcs)
+            {
+                if (npc.characterType == NPCCharacter.StoryCharacterType.BacNam || 
+                    npc.characterType == NPCCharacter.StoryCharacterType.OTham)
+                {
+                    npc.ModifyAffection(15);
+                }
+            }
+
+            // Hiển thị Dialogue cốt truyện ấm áp
+            if (SownInStone.UI.SurvivalUIManager.Instance != null)
+            {
+                SownInStone.UI.SurvivalUIManager.Instance.ShowDialogue(
+                    "Bác Năm",
+                    "May mà o Thắm chèo xuồng phát hiện kịp, kéo con lên rồi bưng qua nhà bác sưởi ấm bên bếp lửa... Con kiệt sức rồi, cứ nghỉ ngơi đi. Ruộng vườn để đó bà con chòm xóm dọn giúp một tay!"
+                );
+                // Phát tiếng bếp lửa sưởi ấm nhà Bác Năm
+                SownInStone.Audio.AudioManager.Instance?.PlayAmbient("sfx_fire", 0.6f);
+            }
+        }
+
         private Vector3 debugTargetMoveDir;
         private float debugCurrentSpeed;
 
         private void OnGUI()
         {
             GUI.color = Color.red;
+            GUI.Box(new Rect(10, 150, 270, 220), "--- PLAYER MOVEMENT DEBUG ---");
             GUI.Box(new Rect(10, 150, 270, 220), "--- PLAYER MOVEMENT DEBUG ---");
             GUI.Label(new Rect(20, 170, 250, 20), $"Pos: {transform.position}");
             GUI.Label(new Rect(20, 190, 250, 20), $"RB Pos: {(rb != null ? rb.position : Vector3.zero)}");

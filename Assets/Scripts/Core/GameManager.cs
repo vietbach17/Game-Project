@@ -10,6 +10,7 @@ namespace SownInStone.Core
     {
         LapNghiep,  // Giai đoạn 1: Khởi đầu phục hồi bờ cõi, cải tạo đất
         GioLao,     // Giai đoạn 2: Nắng cháy, Gió Tây Nam cực độ hạn hán
+        ChuanBiBao, // Giai đoạn trung gian: Chuẩn bị bão, loa phát thanh báo bão
         MuaBao,     // Giai đoạn 3: Bão lũ cuồng phong, nước sông dâng cô lập
         PhuSa       // Giai đoạn 4: Phù sa sau lũ, tái thiết và mừng công
     }
@@ -38,13 +39,16 @@ namespace SownInStone.Core
 
         [Header("--- THIẾT LẬP MỐC CHUYỂN GIAI ĐOẠN ---")]
         [Tooltip("Số ngày bước vào để chuyển sang Gió Lào (Đầu ngày này sẽ chuyển).")]
-        [SerializeField] private int lapNghiepDaysLimit = 3;
+        [SerializeField] private int lapNghiepDaysLimit = 8;
         
+        [Tooltip("Số ngày bước vào để chuyển sang Chuẩn bị bão (Đầu ngày này sẽ chuyển).")]
+        [SerializeField] private int gioLaoDaysLimit = 15;
+
         [Tooltip("Số ngày bước vào để chuyển sang Mùa Bão (Đầu ngày này sẽ chuyển).")]
-        [SerializeField] private int gioLaoDaysLimit = 5;
+        [SerializeField] private int chuanBiBaoDaysLimit = 18;
         
         [Tooltip("Số ngày bước vào để chuyển sang Phù Sa (Đầu ngày này sẽ chuyển).")]
-        [SerializeField] private int muaBaoDaysLimit = 7;
+        [SerializeField] private int muaBaoDaysLimit = 23;
 
         // Sự kiện thông báo khi chuyển giai đoạn, đổi ngày mới, đổi giờ
         public event Action<GamePhase> OnPhaseChanged;
@@ -108,6 +112,10 @@ namespace SownInStone.Core
                 TransitionToPhase(GamePhase.GioLao);
             }
             else if (currentDay == gioLaoDaysLimit && currentPhase == GamePhase.GioLao)
+            {
+                TransitionToPhase(GamePhase.ChuanBiBao);
+            }
+            else if (currentDay == chuanBiBaoDaysLimit && currentPhase == GamePhase.ChuanBiBao)
             {
                 TransitionToPhase(GamePhase.MuaBao);
             }

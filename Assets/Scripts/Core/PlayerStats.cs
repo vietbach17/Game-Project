@@ -24,6 +24,8 @@ namespace SownInStone.Core
         [Tooltip("Tinh thần/Ý chí sinh tồn (0 - 100). Giảm do bão lũ, hoảng loạn. Tăng khi cúng bái, sinh hoạt xóm giềng.")]
         [SerializeField] private float maxMorale = 100f;
         private float currentMorale;
+        
+        private bool isRescuing = false;
 
         [Header("--- HIỆU ỨNG THỜI TIẾT ---")]
         [Tooltip("Mức độ mất nước / sốc nhiệt do Gió Lào (0 - 100).")]
@@ -126,6 +128,11 @@ namespace SownInStone.Core
         {
             currentMorale = Mathf.Clamp(currentMorale + amount, 0f, maxMorale);
             OnMoraleChanged?.Invoke(currentMorale, maxMorale);
+
+            if (currentMorale <= 0f)
+            {
+                HandlePlayerFaint();
+            }
         }
 
         /// <summary>
@@ -146,6 +153,10 @@ namespace SownInStone.Core
 
         public void ModifyCoins(int amount)
         {
+            if (amount != 0)
+            {
+                SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_coins");
+            }
             coins = Mathf.Max(0, coins + amount);
             OnCoinsChanged?.Invoke(coins);
         }
@@ -188,6 +199,7 @@ namespace SownInStone.Core
             {
                 if (StorageManager.Instance.RemoveItem(item, 1))
                 {
+                    SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_eat");
                     if (item.StaminaRestoreValue > 0f)
                     {
                         ModifyStamina(item.StaminaRestoreValue);
@@ -226,10 +238,17 @@ namespace SownInStone.Core
 
         private void HandlePlayerFaint()
         {
+            if (isRescuing) return;
+            isRescuing = true;
+
             OnPlayerAlert?.Invoke("Bạn đã kiệt sức hoàn toàn và ngất xỉu!");
-            // Đội ngũ lập trình viên trong nhóm sẽ viết tiếp logic cứu hộ ở đây
-            // (Ví dụ: Thức dậy trong nhà Bác Năm, bị trừ tiền/vật phẩm, phục hồi 20% máu).
-            Debug.LogWarning("Player fainted! Add rescue sequence here.");
+            
+            if (PlayerController.Instance != null)
+            {
+                PlayerController.Instance.TriggerRescueSequence();
+            }
+
+            isRescuing = false;
         }
 
         private void TriggerChangeEvents()

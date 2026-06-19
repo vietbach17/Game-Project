@@ -105,6 +105,23 @@ namespace SownInStone.UI
         private TextMeshProUGUI weatherDetailsText;
         private bool isWeatherDetailsOpen = false;
 
+        // --- HỆ THỐNG CÀI ĐẶT ---
+        private GameObject settingsPanel;
+        private bool isSettingsOpen = false;
+        private string rebindActionName = "";
+        private enum SettingsTab { Keybindings, Guides, NPCProfiles }
+        private SettingsTab currentSettingsTab = SettingsTab.Keybindings;
+        private GameObject tabKeybindingsPanel;
+        private GameObject tabGuidesPanel;
+        private GameObject tabNPCsPanel;
+        private TextMeshProUGUI npcDetailsText;
+        private TextMeshProUGUI txtMoveUpBtn;
+        private TextMeshProUGUI txtMoveDownBtn;
+        private TextMeshProUGUI txtMoveLeftBtn;
+        private TextMeshProUGUI txtMoveRightBtn;
+        private TextMeshProUGUI txtInteractBtn;
+        private TextMeshProUGUI txtRunBtn;
+
         private TextMeshProUGUI interactionPromptText;
         private TextMeshProUGUI coinsText; // Text Xu ở Top-Right
 
@@ -184,6 +201,7 @@ namespace SownInStone.UI
             CreateInteractionPromptUI();
             CreateToastNotificationUI();
             CreateShopPanel();
+            CreateSettingsPanel();
 
             // Mặc định ẩn hòm đồ và khung hội thoại lúc khởi động
             if (inventoryPanel != null) inventoryPanel.SetActive(false);
@@ -253,25 +271,75 @@ namespace SownInStone.UI
             if (isCommunityOpen) UpdateCommunityPanelData();
             if (isWeatherDetailsOpen) UpdateWeatherDetailsPanelData();
 
-            // 3. Lắng nghe phím bấm tương thích cả 2 Input System
 #if ENABLE_INPUT_SYSTEM
             if (Keyboard.current != null)
             {
+                // LẮNG NGHE PHÍM REBIND cho New Input System
+                if (!string.IsNullOrEmpty(rebindActionName))
+                {
+                    if (Keyboard.current.anyKey.wasPressedThisFrame)
+                    {
+                        foreach (var keyControl in Keyboard.current.allKeys)
+                        {
+                            if (keyControl.wasPressedThisFrame)
+                            {
+                                KeyCode k = ConvertInputSystemKeyToKeyCode(keyControl.keyCode);
+                                if (k != KeyCode.None)
+                                {
+                                    if (k == KeyCode.Escape)
+                                    {
+                                        rebindActionName = "";
+                                        RefreshKeybindingsUI();
+                                        SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
+                                    }
+                                    else
+                                    {
+                                        AssignNewKey(rebindActionName, k);
+                                        rebindActionName = "";
+                                        RefreshKeybindingsUI();
+                                        SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    return;
+                }
+
+                // Chốt mở/đóng Settings bằng phím ESC cho New Input System
+                if (Keyboard.current.escapeKey.wasPressedThisFrame)
+                {
+                    if (isSettingsOpen)
+                    {
+                        SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
+                        ToggleSettings(false);
+                    }
+                    else if (!isDialogueActive && !isInventoryOpen && !isCommunityOpen && !isWeatherDetailsOpen && !isShopOpen)
+                    {
+                        SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
+                        ToggleSettings(true);
+                    }
+                }
+
                 // Toggle Inventory (I / Tab)
                 if (Keyboard.current.tabKey.wasPressedThisFrame || Keyboard.current.iKey.wasPressedThisFrame)
                 {
+                    if (isSettingsOpen) ToggleSettings(false);
                     ToggleInventory();
                 }
 
                 // Toggle Community Panel (C)
                 if (Keyboard.current.cKey.wasPressedThisFrame)
                 {
+                    if (isSettingsOpen) ToggleSettings(false);
                     ToggleCommunityPanel();
                 }
 
                 // Toggle Weather Details Panel (M)
                 if (Keyboard.current.mKey.wasPressedThisFrame)
                 {
+                    if (isSettingsOpen) ToggleSettings(false);
                     ToggleWeatherDetailsPanel();
                 }
 
@@ -297,21 +365,68 @@ namespace SownInStone.UI
                 }
             }
 #else
+            // LẮNG NGHE PHÍM REBIND cho Legacy Input
+            if (!string.IsNullOrEmpty(rebindActionName))
+            {
+                if (Input.anyKeyDown)
+                {
+                    foreach (KeyCode k in System.Enum.GetValues(typeof(KeyCode)))
+                    {
+                        if (Input.GetKeyDown(k))
+                        {
+                            if (k == KeyCode.Escape)
+                            {
+                                rebindActionName = "";
+                                RefreshKeybindingsUI();
+                                SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
+                            }
+                            else
+                            {
+                                AssignNewKey(rebindActionName, k);
+                                rebindActionName = "";
+                                RefreshKeybindingsUI();
+                                SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
+                            }
+                            break;
+                        }
+                    }
+                }
+                return;
+            }
+
+            // Chốt mở/đóng Settings bằng phím ESC cho Legacy Input
+            if (Input.GetKeyDown(KeyCode.Escape))
+            {
+                if (isSettingsOpen)
+                {
+                    SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
+                    ToggleSettings(false);
+                }
+                else if (!isDialogueActive && !isInventoryOpen && !isCommunityOpen && !isWeatherDetailsOpen && !isShopOpen)
+                {
+                    SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
+                    ToggleSettings(true);
+                }
+            }
+
             // Toggle Inventory (I / Tab)
             if (Input.GetKeyDown(KeyCode.Tab) || Input.GetKeyDown(KeyCode.I))
             {
+                if (isSettingsOpen) ToggleSettings(false);
                 ToggleInventory();
             }
 
             // Toggle Community Panel (C)
             if (Input.GetKeyDown(KeyCode.C))
             {
+                if (isSettingsOpen) ToggleSettings(false);
                 ToggleCommunityPanel();
             }
 
             // Toggle Weather Details Panel (M)
             if (Input.GetKeyDown(KeyCode.M))
             {
+                if (isSettingsOpen) ToggleSettings(false);
                 ToggleWeatherDetailsPanel();
             }
 
@@ -432,6 +547,50 @@ namespace SownInStone.UI
             coinsText.fontSize = 14;
             coinsText.color = new Color(0.95f, 0.8f, 0.3f, 1f); // Vàng rơm
             if (font != null) coinsText.font = font;
+
+            // Thêm nút Cài đặt ở HUD hình bánh răng, góc dưới cùng bên phải màn hình
+            GameObject setHUDObj = new GameObject("Button_SettingsHUD", typeof(RectTransform), typeof(Image), typeof(Button));
+            setHUDObj.transform.SetParent(this.transform, false);
+            RectTransform setHUDCheckRect = setHUDObj.GetComponent<RectTransform>();
+            setHUDCheckRect.anchorMin = new Vector2(1f, 0f);
+            setHUDCheckRect.anchorMax = new Vector2(1f, 0f);
+            setHUDCheckRect.pivot = new Vector2(1f, 0f);
+            setHUDCheckRect.anchoredPosition = new Vector2(-25f, 25f);
+            setHUDCheckRect.sizeDelta = new Vector2(35f, 35f);
+
+            // Nền nút cài đặt màu nâu tối ấm áp
+            setHUDObj.GetComponent<Image>().color = new Color(0.15f, 0.12f, 0.1f, 0.9f);
+
+            Button setHUDButton = setHUDObj.GetComponent<Button>();
+            setHUDButton.onClick.AddListener(() => {
+                SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
+                ToggleSettings(!isSettingsOpen);
+            });
+
+            // Tạo đối tượng con chứa icon bánh răng vàng rơm
+            GameObject iconObj = new GameObject("Icon", typeof(RectTransform), typeof(Image));
+            iconObj.transform.SetParent(setHUDObj.transform, false);
+            RectTransform iconRect = iconObj.GetComponent<RectTransform>();
+            iconRect.anchorMin = new Vector2(0.5f, 0.5f);
+            iconRect.anchorMax = new Vector2(0.5f, 0.5f);
+            iconRect.pivot = new Vector2(0.5f, 0.5f);
+            iconRect.anchoredPosition = Vector2.zero;
+            iconRect.sizeDelta = new Vector2(22f, 22f); // Icon vừa vặn ở giữa nút
+
+            Image iconImg = iconObj.GetComponent<Image>();
+            iconImg.color = new Color(0.95f, 0.8f, 0.3f, 1f); // Màu vàng rơm
+
+            Texture2D gearTex = Resources.Load<Texture2D>("UI/gear_icon");
+            if (gearTex != null)
+            {
+                Sprite gearSprite = Sprite.Create(gearTex, new Rect(0f, 0f, gearTex.width, gearTex.height), new Vector2(0.5f, 0.5f));
+                iconImg.sprite = gearSprite;
+            }
+            else
+            {
+                // Fallback nếu thiếu file ảnh thì đổi màu nền icon để nhận diện
+                iconImg.color = new Color(0.95f, 0.8f, 0.3f, 0.5f);
+            }
 
             // 4. Nhóm Hòm đồ (Inventory)
             if (inventoryPanel != null)
@@ -666,6 +825,7 @@ namespace SownInStone.UI
                 if (isInventoryOpen)
                 {
                     // Đóng các panel khác
+                    if (isSettingsOpen) ToggleSettings(false);
                     CloseCommunityPanel();
                     CloseWeatherDetailsPanel();
 
@@ -1198,6 +1358,7 @@ namespace SownInStone.UI
             {
                 StopCoroutine(announcementCoroutine);
             }
+            SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_warning");
             announcementCoroutine = StartCoroutine(PhaseAnnouncementCoroutine(newPhase));
         }
 
@@ -1220,6 +1381,10 @@ namespace SownInStone.UI
                 case GamePhase.MuaBao:
                     phaseNumber = "GIAI ĐOẠN 3";
                     phaseName = "TÌNH NGƯỜI TRONG BÃO LŨ (SINH TỬ)";
+                    break;
+                case GamePhase.ChuanBiBao:
+                    phaseNumber = "GIAI ĐOẠN TRUNG GIAN";
+                    phaseName = "LOA PHÁT THANH BÁO BÃO (CHUẨN BỊ)";
                     break;
                 case GamePhase.PhuSa:
                     phaseNumber = "GIAI ĐOẠN 4";
@@ -1250,6 +1415,14 @@ namespace SownInStone.UI
             }
             phaseAnnouncementCanvasGroup.alpha = 0f;
             announcementCoroutine = null;
+
+            if (newPhase == GamePhase.ChuanBiBao)
+            {
+                ShowDialogue(
+                    "Loa Phát Thanh Xã",
+                    "Thông báo khẩn! Bão siêu mạnh đang hướng vào đất liền, yêu cầu bà con khẩn trương gặt khoai non chạy lũ sớm. Mau chóng tìm hàng xóm để vần công chằng chống nhà cửa!"
+                );
+            }
         }
 
         private void SetupInventoryCoinsText()
@@ -1490,6 +1663,7 @@ namespace SownInStone.UI
                 if (isCommunityOpen)
                 {
                     // Đóng các panel khác
+                    if (isSettingsOpen) ToggleSettings(false);
                     if (isInventoryOpen) ToggleInventory();
                     CloseWeatherDetailsPanel();
 
@@ -1607,6 +1781,7 @@ namespace SownInStone.UI
                 if (isWeatherDetailsOpen)
                 {
                     // Đóng các panel khác
+                    if (isSettingsOpen) ToggleSettings(false);
                     if (isInventoryOpen) ToggleInventory();
                     CloseCommunityPanel();
 
@@ -1662,6 +1837,7 @@ namespace SownInStone.UI
             {
                 case GamePhase.LapNghiep: return "Tiếng Trống Đình Làng (Lập Nghiệp)";
                 case GamePhase.GioLao: return "Nắng Cháy Gió Lào (Gió Tây Nam)";
+                case GamePhase.ChuanBiBao: return "Loa Phát Thanh Báo Bão (Chuẩn Bị)";
                 case GamePhase.MuaBao: return "Tình Người Trong Lũ (Mưa Bão)";
                 case GamePhase.PhuSa: return "Phù Sa Sau Lũ (Cải Tạo Tái Thiết)";
                 default: return phase.ToString();
@@ -1891,6 +2067,7 @@ namespace SownInStone.UI
             if (isShopOpen)
             {
                 RefreshShopUI();
+                if (isSettingsOpen) ToggleSettings(false);
                 // Tự động đóng các bảng UI khác để tránh đè giao diện
                 if (inventoryPanel != null) inventoryPanel.SetActive(false);
                 isInventoryOpen = false;
@@ -2010,6 +2187,578 @@ namespace SownInStone.UI
                 ShowHUDToast($"Không có {item.ItemName} để bán!");
             }
         }
+
+        // --- PHÂN HỆ CÀI ĐẶT & HƯỚNG DẪN ĐỘNG (DYNAMIC SETTINGS PANEL) ---
+        private void CreateSettingsPanel()
+        {
+            TMP_FontAsset font = speakerNameText != null ? speakerNameText.font : null;
+
+            settingsPanel = new GameObject("Panel_Settings", typeof(RectTransform), typeof(Image));
+            settingsPanel.transform.SetParent(this.transform, false);
+
+            RectTransform r = settingsPanel.GetComponent<RectTransform>();
+            r.anchorMin = new Vector2(0.5f, 0.5f);
+            r.anchorMax = new Vector2(0.5f, 0.5f);
+            r.pivot = new Vector2(0.5f, 0.5f);
+            r.anchoredPosition = new Vector2(0f, 0f);
+            r.sizeDelta = new Vector2(550f, 450f);
+
+            Image bg = settingsPanel.GetComponent<Image>();
+            bg.color = new Color(0.12f, 0.1f, 0.08f, 0.98f); // Nâu tối mộc mạc nâu rơm
+
+            // Tiêu đề
+            GameObject titleObj = new GameObject("TitleText", typeof(RectTransform), typeof(TextMeshProUGUI));
+            titleObj.transform.SetParent(settingsPanel.transform, false);
+            RectTransform titleRect = titleObj.GetComponent<RectTransform>();
+            titleRect.anchorMin = new Vector2(0.5f, 1f);
+            titleRect.anchorMax = new Vector2(0.5f, 1f);
+            titleRect.pivot = new Vector2(0.5f, 1f);
+            titleRect.anchoredPosition = new Vector2(0f, -15f);
+            titleRect.sizeDelta = new Vector2(500f, 30f);
+
+            TextMeshProUGUI title = titleObj.GetComponent<TextMeshProUGUI>();
+            title.text = "<b>CÀI ĐẶT & HƯỚNG DẪN SINH TỒN</b>";
+            title.alignment = TextAlignmentOptions.Center;
+            title.fontSize = 15;
+            title.color = new Color(0.95f, 0.8f, 0.3f, 1f);
+            if (font != null) title.font = font;
+
+            // Nút Close (X)
+            GameObject closeBtnObj = new GameObject("Button_Close", typeof(RectTransform), typeof(Image), typeof(Button));
+            closeBtnObj.transform.SetParent(settingsPanel.transform, false);
+            RectTransform closeRect = closeBtnObj.GetComponent<RectTransform>();
+            closeRect.anchorMin = new Vector2(1f, 1f);
+            closeRect.anchorMax = new Vector2(1f, 1f);
+            closeRect.pivot = new Vector2(1f, 1f);
+            closeRect.anchoredPosition = new Vector2(-15f, -15f);
+            closeRect.sizeDelta = new Vector2(25f, 25f);
+
+            closeBtnObj.GetComponent<Image>().color = new Color(0.8f, 0.2f, 0.2f, 0.8f);
+            Button closeBtn = closeBtnObj.GetComponent<Button>();
+            closeBtn.onClick.AddListener(() => {
+                SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
+                ToggleSettings(false);
+            });
+
+            GameObject closeTextObj = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
+            closeTextObj.transform.SetParent(closeBtnObj.transform, false);
+            RectTransform closeTextRect = closeTextObj.GetComponent<RectTransform>();
+            closeTextRect.anchorMin = Vector2.zero;
+            closeTextRect.anchorMax = Vector2.one;
+            closeTextRect.offsetMin = Vector2.zero;
+            closeTextRect.offsetMax = Vector2.zero;
+            TextMeshProUGUI closeText = closeTextObj.GetComponent<TextMeshProUGUI>();
+            closeText.text = "X";
+            closeText.alignment = TextAlignmentOptions.Center;
+            closeText.fontSize = 12;
+            closeText.color = Color.white;
+            if (font != null) closeText.font = font;
+
+            // Hàng chứa Tab Buttons
+            GameObject tabsContainer = new GameObject("TabsContainer", typeof(RectTransform), typeof(HorizontalLayoutGroup));
+            tabsContainer.transform.SetParent(settingsPanel.transform, false);
+            RectTransform tabsRect = tabsContainer.GetComponent<RectTransform>();
+            tabsRect.anchorMin = new Vector2(0.5f, 1f);
+            tabsRect.anchorMax = new Vector2(0.5f, 1f);
+            tabsRect.pivot = new Vector2(0.5f, 1f);
+            tabsRect.anchoredPosition = new Vector2(0f, -55f);
+            tabsRect.sizeDelta = new Vector2(500f, 35f);
+
+            HorizontalLayoutGroup layout = tabsContainer.GetComponent<HorizontalLayoutGroup>();
+            layout.spacing = 10f;
+            layout.childControlWidth = true;
+            layout.childControlHeight = true;
+            layout.childForceExpandWidth = true;
+            layout.childForceExpandHeight = true;
+
+            // Tab 1: Phím Bấm
+            CreateTabButton(tabsContainer.transform, "TÙY BIẾN PHÍM", () => SetSettingsTab(SettingsTab.Keybindings), font);
+            // Tab 2: Cẩm Nang
+            CreateTabButton(tabsContainer.transform, "HƯỚNG DẪN CHƠI", () => SetSettingsTab(SettingsTab.Guides), font);
+            // Tab 3: NPC
+            CreateTabButton(tabsContainer.transform, "THÔNG TIN NPC", () => SetSettingsTab(SettingsTab.NPCProfiles), font);
+
+            // Container cho các tiểu panel của Tab
+            GameObject contentContainer = new GameObject("TabContentArea", typeof(RectTransform));
+            contentContainer.transform.SetParent(settingsPanel.transform, false);
+            RectTransform contentRect = contentContainer.GetComponent<RectTransform>();
+            contentRect.anchorMin = Vector2.zero;
+            contentRect.anchorMax = Vector2.one;
+            contentRect.offsetMin = new Vector2(25f, 25f);
+            contentRect.offsetMax = new Vector2(-25f, -100f);
+
+            // ------------------ TAB 1: KEYBINDINGS ------------------
+            tabKeybindingsPanel = new GameObject("Tab_Keybindings", typeof(RectTransform), typeof(GridLayoutGroup));
+            tabKeybindingsPanel.transform.SetParent(contentContainer.transform, false);
+            RectTransform kbRect = tabKeybindingsPanel.GetComponent<RectTransform>();
+            kbRect.anchorMin = Vector2.zero;
+            kbRect.anchorMax = Vector2.one;
+            kbRect.offsetMin = Vector2.zero;
+            kbRect.offsetMax = Vector2.zero;
+
+            GridLayoutGroup kbGrid = tabKeybindingsPanel.GetComponent<GridLayoutGroup>();
+            kbGrid.cellSize = new Vector2(240f, 40f);
+            kbGrid.spacing = new Vector2(20f, 15f);
+            kbGrid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+            kbGrid.constraintCount = 2;
+
+            // Tạo các hàng phím bấm
+            CreateKeyRebindUI(tabKeybindingsPanel.transform, "Di chuyển lên", "MoveUp", font, out txtMoveUpBtn);
+            CreateKeyRebindUI(tabKeybindingsPanel.transform, "Di chuyển xuống", "MoveDown", font, out txtMoveDownBtn);
+            CreateKeyRebindUI(tabKeybindingsPanel.transform, "Di chuyển trái", "MoveLeft", font, out txtMoveLeftBtn);
+            CreateKeyRebindUI(tabKeybindingsPanel.transform, "Di chuyển phải", "MoveRight", font, out txtMoveRightBtn);
+            CreateKeyRebindUI(tabKeybindingsPanel.transform, "Hành động Tương tác", "Interact", font, out txtInteractBtn);
+            CreateKeyRebindUI(tabKeybindingsPanel.transform, "Chạy nhanh", "Run", font, out txtRunBtn);
+
+            // Thêm hướng dẫn rebind ở cuối Panel Keybindings
+            GameObject kbTipObj = new GameObject("TipText", typeof(RectTransform), typeof(TextMeshProUGUI));
+            kbTipObj.transform.SetParent(tabKeybindingsPanel.transform, false);
+            TextMeshProUGUI kbTip = kbTipObj.GetComponent<TextMeshProUGUI>();
+            kbTip.text = "<color=#F4D03F>Mẹo:</color> Click vào nút bất kỳ để đổi phím. Nhấn <color=#E74C3C>ESC</color> để hủy.";
+            kbTip.fontSize = 11;
+            kbTip.alignment = TextAlignmentOptions.Center;
+            if (font != null) kbTip.font = font;
+
+            // ------------------ TAB 2: GUIDES ------------------
+            tabGuidesPanel = new GameObject("Tab_Guides", typeof(RectTransform), typeof(Image), typeof(ScrollRect));
+            tabGuidesPanel.transform.SetParent(contentContainer.transform, false);
+            RectTransform guidesRect = tabGuidesPanel.GetComponent<RectTransform>();
+            guidesRect.anchorMin = Vector2.zero;
+            guidesRect.anchorMax = Vector2.one;
+            guidesRect.offsetMin = Vector2.zero;
+            guidesRect.offsetMax = Vector2.zero;
+            tabGuidesPanel.GetComponent<Image>().color = new Color(0.1f, 0.08f, 0.06f, 0.6f);
+
+            // Tạo viewport cho ScrollRect
+            GameObject guidesViewport = new GameObject("Viewport", typeof(RectTransform), typeof(RectMask2D));
+            guidesViewport.transform.SetParent(tabGuidesPanel.transform, false);
+            RectTransform viewportRect = guidesViewport.GetComponent<RectTransform>();
+            viewportRect.anchorMin = Vector2.zero;
+            viewportRect.anchorMax = Vector2.one;
+            viewportRect.offsetMin = new Vector2(10f, 10f);
+            viewportRect.offsetMax = new Vector2(-10f, -10f);
+
+            // Content text bên trong ScrollRect
+            GameObject guidesContent = new GameObject("ContentText", typeof(RectTransform), typeof(TextMeshProUGUI));
+            guidesContent.transform.SetParent(guidesViewport.transform, false);
+            RectTransform gContentRect = guidesContent.GetComponent<RectTransform>();
+            gContentRect.anchorMin = new Vector2(0f, 1f);
+            gContentRect.anchorMax = new Vector2(1f, 1f);
+            gContentRect.pivot = new Vector2(0.5f, 1f);
+            gContentRect.anchoredPosition = Vector2.zero;
+            gContentRect.sizeDelta = new Vector2(0f, 600f); // Kích thước dọc lớn để cuộn thoải mái
+
+            TextMeshProUGUI guidesText = guidesContent.GetComponent<TextMeshProUGUI>();
+            guidesText.alignment = TextAlignmentOptions.TopLeft;
+            guidesText.fontSize = 12;
+            guidesText.lineSpacing = 6f;
+            guidesText.color = new Color(0.95f, 0.9f, 0.85f, 1f);
+            if (font != null) guidesText.font = font;
+
+            // Nội dung cẩm nang nông nghiệp sinh tồn Việt Nam
+            guidesText.text = "<b>CẨM NANG SINH TỒN NÔNG NGHIỆP</b>\n\n" +
+                "<b>1. Cải tạo ruộng cát miền Trung:</b>\n" +
+                "Mảnh đất của bạn ban đầu lẫn rất nhiều đá sỏi cản trở canh tác. Hãy đến gần ô đất và nhấn phím tương tác để nhặt đá cải tạo đất. Khi đất sạch đá mới có thể bắt đầu gieo trồng.\n\n" +
+                "<b>2. Tích cốc phòng cơ (Khoai gieo):</b>\n" +
+                "Mùa mưa bão nước dâng ngập lụt, không thể trồng trọt. Hãy chăm chỉ thu hoạch khoai tươi trong mùa nắng, mang phơi khô để làm <i>Khoai gieo</i> - lương thực tích lũy khô ráo giúp gia đình chống đói suốt mùa bão.\n\n" +
+                "<b>3. Vần công chống thiên tai:</b>\n" +
+                "Trong xóm làng, việc vần công đổi công giúp đỡ lẫn nhau là nét đẹp tình nghĩa đồng bào. Trước khi bão đến, hãy nhờ Bác Năm hoặc bà con hỗ trợ chằng chống mái nhà lá lánh nạn.\n\n" +
+                "<b>4. Thắp nhang Bàn thờ gia tiên:</b>\n" +
+                "Thờ phụng tổ tiên là truyền thống văn hóa tốt đẹp. Hãy thắp nhang bàn thờ để giữ vững tinh thần và mong cầu phước lành vượt qua bão lũ thiên tai.\n\n" +
+                "<b>5. Quản lý Thể lực & Nhiệt độ:</b>\n" +
+                "Gió Lào mùa hè rất nóng làm cạn kiệt Thể lực và Tinh thần cực nhanh. Hãy uống nước và hạn chế di chuyển ngoài nắng gắt. Khi ngập lũ, cần sưởi ấm bên bếp lửa và ăn mì cứu trợ để hồi máu.";
+
+            ScrollRect scrollRect = tabGuidesPanel.GetComponent<ScrollRect>();
+            scrollRect.viewport = viewportRect;
+            scrollRect.content = gContentRect;
+            scrollRect.horizontal = false;
+            scrollRect.vertical = true;
+            scrollRect.movementType = ScrollRect.MovementType.Clamped;
+
+            // ------------------ TAB 3: NPC PROFILES ------------------
+            tabNPCsPanel = new GameObject("Tab_NPCs", typeof(RectTransform));
+            tabNPCsPanel.transform.SetParent(contentContainer.transform, false);
+            RectTransform npcsRect = tabNPCsPanel.GetComponent<RectTransform>();
+            npcsRect.anchorMin = Vector2.zero;
+            npcsRect.anchorMax = Vector2.one;
+            npcsRect.offsetMin = Vector2.zero;
+            npcsRect.offsetMax = Vector2.zero;
+
+            // Cột bên trái: Danh sách nút NPC (Bác Năm, O Thắm, Cụ Bảy, Bé Tí)
+            GameObject npcListContainer = new GameObject("NPCButtonsList", typeof(RectTransform), typeof(VerticalLayoutGroup));
+            npcListContainer.transform.SetParent(tabNPCsPanel.transform, false);
+            RectTransform npcListRect = npcListContainer.GetComponent<RectTransform>();
+            npcListRect.anchorMin = new Vector2(0f, 0f);
+            npcListRect.anchorMax = new Vector2(0.35f, 1f);
+            npcListRect.pivot = new Vector2(0f, 0.5f);
+            npcListRect.anchoredPosition = Vector2.zero;
+            npcListRect.sizeDelta = Vector2.zero;
+
+            VerticalLayoutGroup npcVertical = npcListContainer.GetComponent<VerticalLayoutGroup>();
+            npcVertical.spacing = 10f;
+            npcVertical.childControlWidth = true;
+            npcVertical.childControlHeight = true;
+            npcVertical.childForceExpandWidth = true;
+            npcVertical.childForceExpandHeight = true;
+
+            // Tạo các nút NPC
+            CreateNPCButton(npcListContainer.transform, "Bác Năm", () => ShowNPCDetails(0), font);
+            CreateNPCButton(npcListContainer.transform, "O Thắm", () => ShowNPCDetails(1), font);
+            CreateNPCButton(npcListContainer.transform, "Cụ Bảy", () => ShowNPCDetails(2), font);
+            CreateNPCButton(npcListContainer.transform, "Bé Tí", () => ShowNPCDetails(3), font);
+
+            // Cột bên phải: Hiển thị thông tin hồ sơ chi tiết
+            GameObject npcDetailsPanel = new GameObject("NPCDetailsBox", typeof(RectTransform), typeof(Image));
+            npcDetailsPanel.transform.SetParent(tabNPCsPanel.transform, false);
+            RectTransform detailsRect = npcDetailsPanel.GetComponent<RectTransform>();
+            detailsRect.anchorMin = new Vector2(0.38f, 0f);
+            detailsRect.anchorMax = new Vector2(1f, 1f);
+            detailsRect.pivot = new Vector2(0f, 0.5f);
+            detailsRect.anchoredPosition = Vector2.zero;
+            detailsRect.sizeDelta = Vector2.zero;
+            npcDetailsPanel.GetComponent<Image>().color = new Color(0.1f, 0.08f, 0.06f, 0.6f);
+
+            GameObject detailsTxtObj = new GameObject("DetailsText", typeof(RectTransform), typeof(TextMeshProUGUI));
+            detailsTxtObj.transform.SetParent(npcDetailsPanel.transform, false);
+            RectTransform detailsTxtRect = detailsTxtObj.GetComponent<RectTransform>();
+            detailsTxtRect.anchorMin = Vector2.zero;
+            detailsTxtRect.anchorMax = Vector2.one;
+            detailsTxtRect.offsetMin = new Vector2(15f, 15f);
+            detailsTxtRect.offsetMax = new Vector2(-15f, -15f);
+
+            npcDetailsText = detailsTxtObj.GetComponent<TextMeshProUGUI>();
+            npcDetailsText.alignment = TextAlignmentOptions.TopLeft;
+            npcDetailsText.fontSize = 12;
+            npcDetailsText.lineSpacing = 5f;
+            npcDetailsText.color = new Color(0.95f, 0.9f, 0.85f, 1f);
+            if (font != null) npcDetailsText.font = font;
+
+            // Mặc định hiển thị Bác Năm trước
+            ShowNPCDetails(0);
+
+            // Ẩn mặc định toàn bộ bảng cài đặt
+            settingsPanel.SetActive(false);
+        }
+
+        private GameObject CreateTabButton(Transform parent, string text, System.Action onClickAction, TMP_FontAsset font)
+        {
+            GameObject btnObj = new GameObject("TabBtn_" + text, typeof(RectTransform), typeof(Image), typeof(Button));
+            btnObj.transform.SetParent(parent, false);
+            btnObj.GetComponent<Image>().color = new Color(0.25f, 0.2f, 0.18f, 0.9f);
+
+            Button btn = btnObj.GetComponent<Button>();
+            btn.onClick.AddListener(() => {
+                SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
+                onClickAction?.Invoke();
+            });
+
+            GameObject txtObj = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
+            txtObj.transform.SetParent(btnObj.transform, false);
+            RectTransform txtRect = txtObj.GetComponent<RectTransform>();
+            txtRect.anchorMin = Vector2.zero;
+            txtRect.anchorMax = Vector2.one;
+            txtRect.offsetMin = Vector2.zero;
+            txtRect.offsetMax = Vector2.zero;
+
+            TextMeshProUGUI txt = txtObj.GetComponent<TextMeshProUGUI>();
+            txt.text = text;
+            txt.alignment = TextAlignmentOptions.Center;
+            txt.fontSize = 10;
+            txt.color = new Color(0.9f, 0.85f, 0.8f, 1f);
+            if (font != null) txt.font = font;
+
+            return btnObj;
+        }
+
+        private void CreateNPCButton(Transform parent, string text, System.Action onClickAction, TMP_FontAsset font)
+        {
+            GameObject btnObj = new GameObject("NPCBtn_" + text, typeof(RectTransform), typeof(Image), typeof(Button));
+            btnObj.transform.SetParent(parent, false);
+            btnObj.GetComponent<Image>().color = new Color(0.2f, 0.17f, 0.15f, 0.9f);
+
+            Button btn = btnObj.GetComponent<Button>();
+            btn.onClick.AddListener(() => {
+                SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
+                onClickAction?.Invoke();
+            });
+
+            GameObject txtObj = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
+            txtObj.transform.SetParent(btnObj.transform, false);
+            RectTransform txtRect = txtObj.GetComponent<RectTransform>();
+            txtRect.anchorMin = Vector2.zero;
+            txtRect.anchorMax = Vector2.one;
+            txtRect.offsetMin = Vector2.zero;
+            txtRect.offsetMax = Vector2.zero;
+
+            TextMeshProUGUI txt = txtObj.GetComponent<TextMeshProUGUI>();
+            txt.text = text;
+            txt.alignment = TextAlignmentOptions.Center;
+            txt.fontSize = 12;
+            txt.color = Color.white;
+            if (font != null) txt.font = font;
+        }
+
+        private void CreateKeyRebindUI(Transform parent, string actionLabel, string actionName, TMP_FontAsset font, out TextMeshProUGUI btnTextRef)
+        {
+            GameObject rowObj = new GameObject("RebindRow_" + actionName, typeof(RectTransform));
+            rowObj.transform.SetParent(parent, false);
+            rowObj.GetComponent<RectTransform>().sizeDelta = new Vector2(240f, 40f);
+
+            // Label ở trái
+            GameObject labelObj = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
+            labelObj.transform.SetParent(rowObj.transform, false);
+            RectTransform labelRect = labelObj.GetComponent<RectTransform>();
+            labelRect.anchorMin = new Vector2(0f, 0.5f);
+            labelRect.anchorMax = new Vector2(0.55f, 0.5f);
+            labelRect.pivot = new Vector2(0f, 0.5f);
+            labelRect.anchoredPosition = new Vector2(5f, 0f);
+            labelRect.sizeDelta = new Vector2(0f, 30f);
+
+            TextMeshProUGUI label = labelObj.GetComponent<TextMeshProUGUI>();
+            label.text = actionLabel + ":";
+            label.alignment = TextAlignmentOptions.Left;
+            label.fontSize = 12;
+            label.color = new Color(0.9f, 0.85f, 0.8f, 1f);
+            if (font != null) label.font = font;
+
+            // Nút bấm ở phải
+            GameObject btnObj = new GameObject("Button_Rebind", typeof(RectTransform), typeof(Image), typeof(Button));
+            btnObj.transform.SetParent(rowObj.transform, false);
+            RectTransform btnRect = btnObj.GetComponent<RectTransform>();
+            btnRect.anchorMin = new Vector2(0.6f, 0.5f);
+            btnRect.anchorMax = new Vector2(1f, 0.5f);
+            btnRect.pivot = new Vector2(1f, 0.5f);
+            btnRect.anchoredPosition = new Vector2(-5f, 0f);
+            btnRect.sizeDelta = new Vector2(0f, 30f);
+
+            btnObj.GetComponent<Image>().color = new Color(0.28f, 0.24f, 0.22f, 0.9f);
+            Button btn = btnObj.GetComponent<Button>();
+            btn.onClick.AddListener(() => {
+                SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
+                StartRebind(actionName);
+            });
+
+            GameObject btnTextObj = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
+            btnTextObj.transform.SetParent(btnObj.transform, false);
+            RectTransform btnTextRect = btnTextObj.GetComponent<RectTransform>();
+            btnTextRect.anchorMin = Vector2.zero;
+            btnTextRect.anchorMax = Vector2.one;
+            btnTextRect.offsetMin = Vector2.zero;
+            btnTextRect.offsetMax = Vector2.zero;
+
+            btnTextRef = btnTextObj.GetComponent<TextMeshProUGUI>();
+            btnTextRef.alignment = TextAlignmentOptions.Center;
+            btnTextRef.fontSize = 12;
+            btnTextRef.color = new Color(0.95f, 0.8f, 0.3f, 1f);
+            if (font != null) btnTextRef.font = font;
+        }
+
+        private void ShowNPCDetails(int index)
+        {
+            if (npcDetailsText == null) return;
+
+            string npcName = "";
+            string npcRole = "";
+            string npcBio = "";
+
+            switch (index)
+            {
+                case 0:
+                    npcName = "<b>BÁC NĂM (TRƯỞNG THÔN)</b>";
+                    npcRole = "Vần công, Hỗ trợ cứu trợ bão lũ";
+                    npcBio = "Là người uy tín hàng đầu trong thôn, có trách nhiệm cao với cộng đồng. Bác Năm luôn đi đầu trong các hoạt động cứu trợ bão lũ, tổ chức vần công lợp lại nhà lá và chia sẻ mì tôm cứu trợ khi gia đình bị cô lập trên nóc nhà.";
+                    break;
+                case 1:
+                    npcName = "<b>O THẮM (TIỆM TẠP HÓA)</b>";
+                    npcRole = "Giao thương hạt giống, Nhu yếu phẩm";
+                    npcBio = "Mở quán tạp hóa nhỏ giữa làng quê nghèo. Tính tình thẳng thắn, tốt bụng và quý người. O Thắm là nguồn cung cấp hạt giống khoai tươi ngon, nhang cúng linh thiêng và luôn sẵn lòng mua lại nông sản của bạn với giá hợp lý.";
+                    break;
+                case 2:
+                    npcName = "<b>CỤ BẢY (LÃO NIÊN)</b>";
+                    npcRole = "Cố vấn văn hóa tâm linh và nông nghiệp";
+                    npcBio = "Bậc bô lão đức cao vọng trọng trong làng. Cụ Bảy lưu giữ nhiều truyền thống văn hóa nông nghiệp bản địa, đồng thời là người răn dạy về đạo lý thờ kính tổ tiên thông qua thắp nhang trên bàn thờ gia tiên.";
+                    break;
+                case 3:
+                    npcName = "<b>BÉ TÍ (HIẾU THẢO)</b>";
+                    npcRole = "Bạn nhỏ của làng, Phụ việc lặt vặt";
+                    npcBio = "Cậu bé mồ côi cha nhưng tràn đầy nghị lực và vô cùng hiếu thảo với mẹ già. Bé Tí thường chăn bò gần cánh đồng và sẵn sàng giúp đỡ bạn dọn dẹp ruộng đất hoặc bầu bạn trò chuyện làm giảm bớt gánh nặng tinh thần.";
+                    break;
+            }
+
+            npcDetailsText.text = $"{npcName}\n<color=#F4D03F>Vai trò:</color> {npcRole}\n\n{npcBio}";
+        }
+
+        private void SetSettingsTab(SettingsTab tab)
+        {
+            currentSettingsTab = tab;
+            tabKeybindingsPanel.SetActive(tab == SettingsTab.Keybindings);
+            tabGuidesPanel.SetActive(tab == SettingsTab.Guides);
+            tabNPCsPanel.SetActive(tab == SettingsTab.NPCProfiles);
+            if (tab == SettingsTab.Keybindings)
+            {
+                RefreshKeybindingsUI();
+            }
+        }
+
+        private void StartRebind(string actionName)
+        {
+            rebindActionName = actionName;
+            
+            // Đặt tất cả các nút phím về trạng thái chờ
+            if (txtMoveUpBtn != null) txtMoveUpBtn.text = (actionName == "MoveUp") ? "[Nhấn phím...]" : (PlayerController.Instance != null ? PlayerController.Instance.keyMoveUp.ToString() : "W");
+            if (txtMoveDownBtn != null) txtMoveDownBtn.text = (actionName == "MoveDown") ? "[Nhấn phím...]" : (PlayerController.Instance != null ? PlayerController.Instance.keyMoveDown.ToString() : "S");
+            if (txtMoveLeftBtn != null) txtMoveLeftBtn.text = (actionName == "MoveLeft") ? "[Nhấn phím...]" : (PlayerController.Instance != null ? PlayerController.Instance.keyMoveLeft.ToString() : "A");
+            if (txtMoveRightBtn != null) txtMoveRightBtn.text = (actionName == "MoveRight") ? "[Nhấn phím...]" : (PlayerController.Instance != null ? PlayerController.Instance.keyMoveRight.ToString() : "D");
+            if (txtInteractBtn != null) txtInteractBtn.text = (actionName == "Interact") ? "[Nhấn phím...]" : (PlayerController.Instance != null ? PlayerController.Instance.keyInteract.ToString() : "E");
+            if (txtRunBtn != null) txtRunBtn.text = (actionName == "Run") ? "[Nhấn phím...]" : (PlayerController.Instance != null ? PlayerController.Instance.keyRun.ToString() : "LeftShift");
+        }
+
+        private void AssignNewKey(string actionName, KeyCode newKey)
+        {
+            if (PlayerController.Instance == null) return;
+
+            switch (actionName)
+            {
+                case "MoveUp":
+                    PlayerController.Instance.keyMoveUp = newKey;
+                    break;
+                case "MoveDown":
+                    PlayerController.Instance.keyMoveDown = newKey;
+                    break;
+                case "MoveLeft":
+                    PlayerController.Instance.keyMoveLeft = newKey;
+                    break;
+                case "MoveRight":
+                    PlayerController.Instance.keyMoveRight = newKey;
+                    break;
+                case "Interact":
+                    PlayerController.Instance.keyInteract = newKey;
+                    break;
+                case "Run":
+                    PlayerController.Instance.keyRun = newKey;
+                    break;
+            }
+
+            PlayerController.Instance.SaveKeyBindings();
+            ShowHUDToast($"Đã đổi phím hành động thành: {newKey.ToString()}");
+        }
+
+        public void RefreshKeybindingsUI()
+        {
+            if (PlayerController.Instance == null) return;
+
+            if (txtMoveUpBtn != null) txtMoveUpBtn.text = PlayerController.Instance.keyMoveUp.ToString();
+            if (txtMoveDownBtn != null) txtMoveDownBtn.text = PlayerController.Instance.keyMoveDown.ToString();
+            if (txtMoveLeftBtn != null) txtMoveLeftBtn.text = PlayerController.Instance.keyMoveLeft.ToString();
+            if (txtMoveRightBtn != null) txtMoveRightBtn.text = PlayerController.Instance.keyMoveRight.ToString();
+            if (txtInteractBtn != null) txtInteractBtn.text = PlayerController.Instance.keyInteract.ToString();
+            if (txtRunBtn != null) txtRunBtn.text = PlayerController.Instance.keyRun.ToString();
+        }
+
+        public void ToggleSettings(bool open)
+        {
+            isSettingsOpen = open;
+            if (settingsPanel != null)
+            {
+                settingsPanel.SetActive(isSettingsOpen);
+            }
+
+            if (isSettingsOpen)
+            {
+                SetSettingsTab(SettingsTab.Keybindings);
+                
+                // Tự động tạm dừng game khi mở cài đặt để người chơi thảnh thơi thiết lập
+                Time.timeScale = 0f;
+
+                // Tự động đóng các bảng UI khác để tránh đè giao diện
+                if (inventoryPanel != null) inventoryPanel.SetActive(false);
+                isInventoryOpen = false;
+                if (communityPanel != null) communityPanel.SetActive(false);
+                isCommunityOpen = false;
+                if (weatherDetailsPanel != null) weatherDetailsPanel.SetActive(false);
+                isWeatherDetailsOpen = false;
+                if (shopPanel != null) shopPanel.SetActive(false);
+                isShopOpen = false;
+            }
+            else
+            {
+                // Hủy rebinding đang chờ nếu đóng panel
+                rebindActionName = "";
+                // Trả lại time scale bình thường
+                Time.timeScale = 1f;
+            }
+        }
+
+#if ENABLE_INPUT_SYSTEM
+        private KeyCode ConvertInputSystemKeyToKeyCode(UnityEngine.InputSystem.Key key)
+        {
+            switch (key)
+            {
+                case UnityEngine.InputSystem.Key.Space: return KeyCode.Space;
+                case UnityEngine.InputSystem.Key.Enter: return KeyCode.Return;
+                case UnityEngine.InputSystem.Key.Tab: return KeyCode.Tab;
+                case UnityEngine.InputSystem.Key.Backquote: return KeyCode.BackQuote;
+                case UnityEngine.InputSystem.Key.Quote: return KeyCode.Quote;
+                case UnityEngine.InputSystem.Key.Semicolon: return KeyCode.Semicolon;
+                case UnityEngine.InputSystem.Key.Comma: return KeyCode.Comma;
+                case UnityEngine.InputSystem.Key.Period: return KeyCode.Period;
+                case UnityEngine.InputSystem.Key.Slash: return KeyCode.Slash;
+                case UnityEngine.InputSystem.Key.Backslash: return KeyCode.Backslash;
+                case UnityEngine.InputSystem.Key.LeftBracket: return KeyCode.LeftBracket;
+                case UnityEngine.InputSystem.Key.RightBracket: return KeyCode.RightBracket;
+                case UnityEngine.InputSystem.Key.Minus: return KeyCode.Minus;
+                case UnityEngine.InputSystem.Key.Equals: return KeyCode.Equals;
+                case UnityEngine.InputSystem.Key.A: return KeyCode.A;
+                case UnityEngine.InputSystem.Key.B: return KeyCode.B;
+                case UnityEngine.InputSystem.Key.C: return KeyCode.C;
+                case UnityEngine.InputSystem.Key.D: return KeyCode.D;
+                case UnityEngine.InputSystem.Key.E: return KeyCode.E;
+                case UnityEngine.InputSystem.Key.F: return KeyCode.F;
+                case UnityEngine.InputSystem.Key.G: return KeyCode.G;
+                case UnityEngine.InputSystem.Key.H: return KeyCode.H;
+                case UnityEngine.InputSystem.Key.I: return KeyCode.I;
+                case UnityEngine.InputSystem.Key.J: return KeyCode.J;
+                case UnityEngine.InputSystem.Key.K: return KeyCode.K;
+                case UnityEngine.InputSystem.Key.L: return KeyCode.L;
+                case UnityEngine.InputSystem.Key.M: return KeyCode.M;
+                case UnityEngine.InputSystem.Key.N: return KeyCode.N;
+                case UnityEngine.InputSystem.Key.O: return KeyCode.O;
+                case UnityEngine.InputSystem.Key.P: return KeyCode.P;
+                case UnityEngine.InputSystem.Key.Q: return KeyCode.Q;
+                case UnityEngine.InputSystem.Key.R: return KeyCode.R;
+                case UnityEngine.InputSystem.Key.S: return KeyCode.S;
+                case UnityEngine.InputSystem.Key.T: return KeyCode.T;
+                case UnityEngine.InputSystem.Key.U: return KeyCode.U;
+                case UnityEngine.InputSystem.Key.V: return KeyCode.V;
+                case UnityEngine.InputSystem.Key.W: return KeyCode.W;
+                case UnityEngine.InputSystem.Key.X: return KeyCode.X;
+                case UnityEngine.InputSystem.Key.Y: return KeyCode.Y;
+                case UnityEngine.InputSystem.Key.Z: return KeyCode.Z;
+                case UnityEngine.InputSystem.Key.Digit1: return KeyCode.Alpha1;
+                case UnityEngine.InputSystem.Key.Digit2: return KeyCode.Alpha2;
+                case UnityEngine.InputSystem.Key.Digit3: return KeyCode.Alpha3;
+                case UnityEngine.InputSystem.Key.Digit4: return KeyCode.Alpha4;
+                case UnityEngine.InputSystem.Key.Digit5: return KeyCode.Alpha5;
+                case UnityEngine.InputSystem.Key.Digit6: return KeyCode.Alpha6;
+                case UnityEngine.InputSystem.Key.Digit7: return KeyCode.Alpha7;
+                case UnityEngine.InputSystem.Key.Digit8: return KeyCode.Alpha8;
+                case UnityEngine.InputSystem.Key.Digit9: return KeyCode.Alpha9;
+                case UnityEngine.InputSystem.Key.Digit0: return KeyCode.Alpha0;
+                case UnityEngine.InputSystem.Key.LeftShift: return KeyCode.LeftShift;
+                case UnityEngine.InputSystem.Key.RightShift: return KeyCode.RightShift;
+                case UnityEngine.InputSystem.Key.LeftCtrl: return KeyCode.LeftControl;
+                case UnityEngine.InputSystem.Key.RightCtrl: return KeyCode.RightControl;
+                case UnityEngine.InputSystem.Key.LeftAlt: return KeyCode.LeftAlt;
+                case UnityEngine.InputSystem.Key.RightAlt: return KeyCode.RightAlt;
+                case UnityEngine.InputSystem.Key.Escape: return KeyCode.Escape;
+                case UnityEngine.InputSystem.Key.UpArrow: return KeyCode.UpArrow;
+                case UnityEngine.InputSystem.Key.DownArrow: return KeyCode.DownArrow;
+                case UnityEngine.InputSystem.Key.LeftArrow: return KeyCode.LeftArrow;
+                case UnityEngine.InputSystem.Key.RightArrow: return KeyCode.RightArrow;
+                default: return KeyCode.None;
+            }
+        }
+#endif
 
         #endregion
     }
