@@ -27,8 +27,10 @@ namespace SownInStone
             Main,
             KyUcMienTrung, // Hướng dẫn chơi & Luật cốt truyện
             DoiNgu,        // Đội ngũ sản xuất
+            Settings,      // Cài đặt phím bấm & cẩm nang
         }
         private MenuTab currentTab = MenuTab.Main;
+        private string rebindAction = "";
 
         // Hiệu ứng hạt bụi rơm vàng bay lãng mạn trên Menu
         private Vector2[] strawParticles;
@@ -55,6 +57,8 @@ namespace SownInStone
                 // Dừng thời gian game để người chơi trải nghiệm Menu điện ảnh
                 Time.timeScale = 0f;
                 if (ambientWindAudio != null) ambientWindAudio.Play();
+                SownInStone.Audio.AudioManager.Instance?.PlayMusic("bgm_menu");
+                SownInStone.Audio.AudioManager.Instance?.StopAmbient();
 
                 // Đảm bảo ẩn bảng điều khiển sinh tồn khi menu đang mở
 #if UNITY_2023_1_OR_NEWER
@@ -160,6 +164,9 @@ namespace SownInStone
                 case MenuTab.DoiNgu:
                     DrawDoiNgu();
                     break;
+                case MenuTab.Settings:
+                    DrawSettings();
+                    break;
             }
 
             GUILayout.EndArea();
@@ -175,30 +182,41 @@ namespace SownInStone
             buttonStyle.fontStyle = FontStyle.Bold;
             buttonStyle.fixedHeight = 45;
             
-            GUILayout.Space(10);
+            GUILayout.Space(5);
             GUI.color = new Color(0.15f, 0.85f, 0.15f, 1f); // Nút Bắt đầu nổi bật màu xanh lá trù phú
             if (GUILayout.Button("VỀ QUÊ BÁM ĐẤT (BẮT ĐẦU CHƠI)", buttonStyle))
             {
+                SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
                 StartJourney();
             }
             GUI.color = Color.white;
 
-            GUILayout.Space(15);
+            GUILayout.Space(10);
             if (GUILayout.Button("KÝ ỨC MIỀN TRUNG (HƯỚNG DẪN LUẬT)", buttonStyle))
             {
+                SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
                 currentTab = MenuTab.KyUcMienTrung;
             }
 
-            GUILayout.Space(15);
+            GUILayout.Space(10);
+            if (GUILayout.Button("CÀI ĐẶT & TÙY BIẾN PHÍM BẤM", buttonStyle))
+            {
+                SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
+                currentTab = MenuTab.Settings;
+            }
+
+            GUILayout.Space(10);
             if (GUILayout.Button("ĐỘI NGŨ SẢN XUẤT (CREDITS)", buttonStyle))
             {
+                SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
                 currentTab = MenuTab.DoiNgu;
             }
 
-            GUILayout.Space(15);
+            GUILayout.Space(10);
             GUI.color = new Color(0.85f, 0.15f, 0.15f, 1f); // Nút thoát màu đỏ rực
             if (GUILayout.Button("THOÁT GAME (EXIT)", buttonStyle))
             {
+                SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
                 Application.Quit();
 #if UNITY_EDITOR
                 UnityEditor.EditorApplication.isPlaying = false;
@@ -234,6 +252,7 @@ namespace SownInStone
             GUILayout.Space(20);
             if (GUILayout.Button("QUAY LẠI MENU CHÍNH"))
             {
+                SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
                 currentTab = MenuTab.Main;
             }
         }
@@ -259,6 +278,7 @@ namespace SownInStone
             GUILayout.Space(45);
             if (GUILayout.Button("QUAY LẠI MENU CHÍNH"))
             {
+                SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
                 currentTab = MenuTab.Main;
             }
         }
@@ -274,6 +294,15 @@ namespace SownInStone
             Time.timeScale = 1f; // Chạy lại thời gian trong game bình thường
             
             if (ambientWindAudio != null) ambientWindAudio.Stop();
+            SownInStone.Audio.AudioManager.Instance?.StopMusic();
+            SownInStone.Audio.AudioManager.Instance?.StopAmbient();
+            SownInStone.Audio.AudioManager.Instance?.PlayMusic("bgm_main");
+
+            // Kích hoạt phát âm thanh thời tiết thực tế sau khi vào game
+            if (SownInStone.Weather.WeatherManager.Instance != null)
+            {
+                SownInStone.Weather.WeatherManager.Instance.RefreshWeatherAmbient();
+            }
             
             // Kích hoạt hiển thị bảng điều khiển sinh tồn sau khi vào game
 #if UNITY_2023_1_OR_NEWER
@@ -294,6 +323,123 @@ namespace SownInStone
 
             Debug.Log("[MAIN MENU] Cuộc hành trình trở về bám đất Trường Sơn chính thức BẮT ĐẦU!");
             PlayerStats.Instance?.ModifyMorale(20f); // Tặng thêm 20 Morale làm động lực khởi nghiệp
+        }
+
+        // --- PHÂN HỆ CÀI ĐẶT & TÙY BIẾN PHÍM BẤM NGOÀI MENU (ONGUI SETTINGS TABS) ---
+        private KeyCode GetKeyBinding(string keyName, KeyCode defaultKey)
+        {
+            if (PlayerController.Instance != null)
+            {
+                switch (keyName)
+                {
+                    case "Key_MoveUp": return PlayerController.Instance.keyMoveUp;
+                    case "Key_MoveDown": return PlayerController.Instance.keyMoveDown;
+                    case "Key_MoveLeft": return PlayerController.Instance.keyMoveLeft;
+                    case "Key_MoveRight": return PlayerController.Instance.keyMoveRight;
+                    case "Key_Interact": return PlayerController.Instance.keyInteract;
+                    case "Key_Run": return PlayerController.Instance.keyRun;
+                }
+            }
+            return (KeyCode)PlayerPrefs.GetInt(keyName, (int)defaultKey);
+        }
+
+        private void SetKeyBinding(string keyName, KeyCode key)
+        {
+            PlayerPrefs.SetInt(keyName, (int)key);
+            PlayerPrefs.Save();
+            if (PlayerController.Instance != null)
+            {
+                PlayerController.Instance.LoadKeyBindings();
+            }
+        }
+
+        private void DrawSettings()
+        {
+            GUIStyle headerStyle = new GUIStyle();
+            headerStyle.fontStyle = FontStyle.Bold;
+            headerStyle.fontSize = 14;
+            headerStyle.normal.textColor = new Color(0.95f, 0.8f, 0.3f);
+            headerStyle.alignment = TextAnchor.MiddleLeft;
+
+            GUIStyle labelStyle = new GUIStyle();
+            labelStyle.fontSize = 12;
+            labelStyle.normal.textColor = new Color(0.9f, 0.85f, 0.8f);
+            labelStyle.alignment = TextAnchor.MiddleLeft;
+
+            GUIStyle buttonStyle = new GUIStyle(GUI.skin.button);
+            buttonStyle.fontSize = 12;
+            buttonStyle.fontStyle = FontStyle.Bold;
+
+            GUILayout.Label("<b>TÙY BIẾN PHÍM ĐIỀU KHIỂN</b>", headerStyle);
+            GUILayout.Space(5);
+
+            DrawRebindRow("Di chuyển lên", "Key_MoveUp", KeyCode.W, labelStyle, buttonStyle);
+            DrawRebindRow("Di chuyển xuống", "Key_MoveDown", KeyCode.S, labelStyle, buttonStyle);
+            DrawRebindRow("Di chuyển trái", "Key_MoveLeft", KeyCode.A, labelStyle, buttonStyle);
+            DrawRebindRow("Di chuyển phải", "Key_MoveRight", KeyCode.D, labelStyle, buttonStyle);
+            DrawRebindRow("Hành động Tương tác", "Key_Interact", KeyCode.E, labelStyle, buttonStyle);
+            DrawRebindRow("Chạy nhanh", "Key_Run", KeyCode.LeftShift, labelStyle, buttonStyle);
+
+            GUILayout.Space(10);
+            if (!string.IsNullOrEmpty(rebindAction))
+            {
+                GUIStyle promptStyle = new GUIStyle();
+                promptStyle.fontSize = 13;
+                promptStyle.fontStyle = FontStyle.Bold;
+                promptStyle.normal.textColor = new Color(0.9f, 0.3f, 0.3f);
+                promptStyle.alignment = TextAnchor.MiddleCenter;
+                GUILayout.Label("NHẤN PHÍM BẤT KỲ ĐỂ THAY ĐỔI... (ESC để hủy)", promptStyle);
+
+                // Lắng nghe sự kiện phím qua Event.current
+                Event e = Event.current;
+                if (e != null && e.isKey && e.keyCode != KeyCode.None)
+                {
+                    if (e.keyCode == KeyCode.Escape)
+                    {
+                        rebindAction = "";
+                    }
+                    else
+                    {
+                        SetKeyBinding(rebindAction, e.keyCode);
+                        rebindAction = "";
+                    }
+                    SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
+                    e.Use();
+                }
+            }
+            else
+            {
+                GUIStyle tipStyle = new GUIStyle();
+                tipStyle.fontSize = 11;
+                tipStyle.normal.textColor = new Color(0.7f, 0.7f, 0.7f);
+                tipStyle.alignment = TextAnchor.MiddleCenter;
+                GUILayout.Label("Mẹo: Click vào nút phím tương ứng để thiết lập phím mới.", tipStyle);
+            }
+
+            GUILayout.Space(15);
+            if (GUILayout.Button("QUAY LẠI MENU CHÍNH"))
+            {
+                SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
+                rebindAction = "";
+                currentTab = MenuTab.Main;
+            }
+        }
+
+        private void DrawRebindRow(string labelText, string keyName, KeyCode defaultKey, GUIStyle labelStyle, GUIStyle buttonStyle)
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(labelText, labelStyle, GUILayout.Width(200));
+
+            KeyCode currentKey = GetKeyBinding(keyName, defaultKey);
+            string btnText = (rebindAction == keyName) ? "[Nhấn phím...]" : currentKey.ToString();
+
+            if (GUILayout.Button(btnText, buttonStyle, GUILayout.Width(150)))
+            {
+                SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
+                rebindAction = keyName;
+            }
+            GUILayout.EndHorizontal();
+            GUILayout.Space(3);
         }
     }
 }

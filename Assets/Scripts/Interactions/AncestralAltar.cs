@@ -88,6 +88,7 @@ namespace SownInStone.Interactions
 
                     // Tăng nóng hổi 10 điểm tinh thần ngay lập tức khi thắp nhang
                     PlayerStats.Instance?.ModifyMorale(10f);
+                    SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_altar");
                     Debug.Log($"[{AltarName}] Bạn thắp nhang cúi đầu cầu nguyện bình an. Khói nhang tỏa hương ấm cúng, xua tan hoảng sợ bão giông.");
                     return true;
                 }
