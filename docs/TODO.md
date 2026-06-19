@@ -9,20 +9,28 @@
 ## Medium Priority
 
 1. Weather impact balancing (adjust evaporation speed and stress values).
-2. Save / Load system for player stats and farm grid status.
+2. Save / Load system for player stats and farm grid status (Control settings rebinds are already completed & saved).
 3. NPC daily routines and pathfinding.
 4. Community progression and Altars vần công credits system.
 
 ## Low Priority
 
 1. Visual polish (particle effects, lighting post-processing).
-2. Sound effects and background music.
-3. Advanced farming content (more crop variants and soil quality upgrades).
+2. Advanced farming content (more crop variants and soil quality upgrades).
+
+---
+
+## Recently Completed
+
+* **Audio System**: Implemented `AudioManager` supporting BGMs, weather-reactive ambient loops (rural, Lao wind, storm), and contextual SFX (dig, water, plant, harvest, coin, click, faint, altar).
+* **Settings & Controls Customization**: Added interactive Settings Panel in HUD (via bottom-right Gear Button or Esc) and Main Menu (OnGUI) with tabs for key customization, survival guide, and NPC profiles.
+* **Dual Input backend wrapper**: Solved legacy and New Input backend crash issues for key queries.
+* **Faint & Rescue Loop**: Collapsing from exhaustion or stress triggers rescue at Bác Năm's house with partial resource deductions.
 
 ---
 
 # PROJECT STATUS SNAPSHOT
 
-* **Current Playable Loop**: Player can walk/run around the map, inspect SoilCells, till rocks, plant potato seeds (with seeds consumed from storage), water the soil, use the F1 debug command to mature crops quickly for testing, harvest mature crops, receive visual HUD toast feedback, trade with NPC O Thắm to buy seeds/incense or sell harvested products, and view accumulated items/coins in the Inventory (`Tab`/`I` keys).
+* **Current Playable Loop**: Player can walk/run around the map (customizable keys), inspect SoilCells, till rocks, plant potato seeds (with seeds consumed from storage), water the soil, use the F1 debug command to mature crops quickly for testing, harvest mature crops, receive visual HUD toast feedback, trade with NPC O Thắm to buy seeds/incense or sell harvested products, view accumulated items/coins in the Inventory (`Tab`/`I` keys), adjust setting options & binds, hear ambient/SFX audio, and pass out to trigger Bac Nam's rescue loop.
 * **Current Blockers**: None.
 * **Recommended Next Task**: Investigate and fix remaining invisible colliders/blockers near environment landmarks.
