@@ -215,6 +215,11 @@ namespace SownInStone.Community
                         if (Affection > 70) return "\"Giếng nhà con cạn rồi đúng không? Qua bưng khạp nước ngọt cuối vườn nhà bác về xài tạm, nhớ tiết kiệm tưới ớt con nghe.\"";
                         return "\"Đêm nay gió mát hơn, xóm mình ra bóng cây đa uống chè xanh om đặc, ăn miếng kẹo cu đơ hò ví dặm xua đi cái nóng rát.\"";
 
+                    case GamePhase.ChuanBiBao:
+                        if (Affection < 30) return "\"Bão sắp vô rồi Thành ơi! Bác nghe loa phóng thanh giục giã dữ lắm. Lo dọn ruộng gặt non lẹ đi con!\"";
+                        if (Affection > 70) return "\"Mái tôn hay mái lá nhà con chưa gia cố thì qua bác lấy thừng với bao cát bác cho mượn chèn lên mái!\"";
+                        return "\"Loa phóng thanh xã đang báo bão cấp 11 hướng thẳng vô quê mình. Tranh thủ vần công cùng bà con chằng chống nhà nghe con.\"";
+
                     case GamePhase.MuaBao:
                         if (Affection < 30) return "\"Mưa gió trắng trời! Mau dồn đàn gà lên gác xép đi Thành! Bão siêu mạnh đổ bộ xã mình tới nơi rồi!\"";
                         if (Affection > 70) return "\"[TIẾNG KÊU CỨU TRONG BÃO LŨ] Thành ơi! Mái nhà bác sập rồi, nước sông dâng ngập quá cửa sổ gác xép rồi! Cứu bác với con ơi!\"";
@@ -239,6 +244,11 @@ namespace SownInStone.Community
                         if (Affection > 70) return "\"Mệt quá thì vào đây o om ấm chè xanh đặc nóng, o Thắm phát kẹo cu đơ cho ăn đỡ mệt, cả xóm đang hò ví dặm vui lắm!\"";
                         return "\"Gió Lào Trường Sơn khô bỏng da, o bán bớt phân đạm đắt tiền, lấy phân hữu cơ ủ phân chuồng phân xanh giữ ẩm đất nha.\"";
 
+                    case GamePhase.ChuanBiBao:
+                        if (Affection < 30) return "\"Thành ơi, lo chằng nhà lẹ đi! Bão to lắm đó, o Thắm đang bận bán mấy bao cát cứu hộ đầu làng nè!\"";
+                        if (Affection > 70) return "\"Nhà con lá đơn sơ quá, qua o cho mượn thừng với mấy bao cát chèn mái, có thiếu tiền o cho ghi nợ luôn!\"";
+                        return "\"O mới nhập thêm mì tôm với dầu gió dự trữ bão lụt, con có mua thì ghé tiệm o lấy sớm nha.\"";
+
                     case GamePhase.MuaBao:
                         if (Affection < 30) return "\"Nghe loa phát thanh xã báo động lụt chưa con? O Thắm đóng cửa đại lý rồi, mang bao cát về chèn mái tôn lẹ đi!\"";
                         if (Affection > 70) return "\"Thành ơi, o bớt mấy thùng mì tôm sống với nước khạp ngọt o quăng lên ghe chở qua cho con trữ sinh tồn cắm trại nóc nhà nè!\"";
@@ -258,14 +268,23 @@ namespace SownInStone.Community
         /// </summary>
         public string GetWorkDialogue(bool hasStamina)
         {
+            GamePhase currentPhase = GameManager.Instance != null ? GameManager.Instance.CurrentPhase : GamePhase.LapNghiep;
             if (characterType == StoryCharacterType.BacNam)
             {
                 if (hasStamina)
                 {
+                    if (currentPhase == GamePhase.ChuanBiBao)
+                    {
+                        return "\"Tốt quá con ơi! Mau bê giùm bác mấy bao cát chất lên mái tôn, rồi lấy thừng buộc chặt chân cột lại. Bão vô thổi bay mái nhà bác mất! Cảm ơn con nhiều, bác ghi nhận 1 ngày công chằng chống nhà nghe!\"";
+                    }
                     return "\"Được quá con ơi! Bác già cả đau lưng cuốc đất không nổi, có con phụ bác cuốc giùm luống cát này đỡ biết bao. Bác ghi nợ con 1 ngày công vần công nhé!\"";
                 }
                 else
                 {
+                    if (currentPhase == GamePhase.ChuanBiBao)
+                    {
+                        return "\"Thôi con ơi, thở không ra hơi thế kia bê bao cát sao nổi! Vô nghỉ uống bát nước chè xanh đi, để bác tự ráng chèn dây thép cũng được.\"";
+                    }
                     return "\"Thôi thôi con ơi! Nhìn mặt mày tái mét kìa, vô mát nghỉ ngơi uống bát chè xanh đi, kẻo cảm nắng ngất xỉu ra đó bác không kham nổi đâu!\"";
                 }
             }
@@ -273,10 +292,18 @@ namespace SownInStone.Community
             {
                 if (hasStamina)
                 {
+                    if (currentPhase == GamePhase.ChuanBiBao)
+                    {
+                        return "\"Trời đất, Thành ngoan quá hà! Phụ o Thắm xếp mấy bao cát chèn mái đại lý tạp hóa lẹ đi con. Bão giật dữ dằn lắm đó. Bác Năm ghi chép công nợ vần công cho con đợt chống bão này nha!\"";
+                    }
                     return "\"Trời đất, Thành ngoan quá hà! Phụ o Thắm bê mấy bao lúa giống xếp lên kệ sạp đi con. Bữa sau bão lụt o Thắm chở mì tôm sang cứu trợ trả nợ công nha con!\"";
                 }
                 else
                 {
+                    if (currentPhase == GamePhase.ChuanBiBao)
+                    {
+                        return "\"Loa báo bão giục ghê quá nhưng con mệt lử rồi đừng ráng! Cứ vô hiên đại lý nghỉ ngơi ăn cái kẹo cu đơ, để o nhờ mấy đứa thanh niên trong xóm phụ sau.\"";
+                    }
                     return "\"Thôi, o Thắm bộc trực chứ không ác độc nha! Người mệt lả thế kia bê vác cái gì, vô uống miếng nước lọc ăn cái kẹo cu đơ nghỉ đi con!\"";
                 }
             }

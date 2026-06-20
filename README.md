@@ -71,6 +71,28 @@ Tái thiết sau lũ (Tận dụng phù sa màu mỡ để tái sản xuất, kh
 * Các ô đất ruộng bị ngập sâu (>0.5m) trong mùa bão lũ sẽ tự động được bồi đắp một lớp phù sa màu mỡ (Silt Soil) khi nước rút.
 * Đất phù sa tự động dọn sạch 30% sỏi đá cũ, hồi phục dinh dưỡng lên 100% và nhân đôi sản lượng thu hoạch cây trồng cho vụ mùa tái thiết (nhận về 5 củ khoai thay vì 2).
 
+### ⚙️ 6. Bảng Cài Đặt (Settings Menu) & Tùy Biến Phím Bấm Linh Hoạt
+* **Nút bánh răng HUD**: Một nút hình bánh răng nằm ở góc dưới cùng bên phải màn hình khi chơi game để mở bảng Settings nhanh, hoặc có thể nhấn phím **`Esc`** để bật/tắt Settings.
+* **Tích hợp Menu chính**: Cho phép tùy biến phím bấm trực tiếp từ Menu gỗ ban đầu thông qua giao diện OnGUI.
+* **3 Tab chức năng chính**:
+  1. **Tùy Biến Phím (Key Customization)**: Thiết lập các phím di chuyển (Lên, Xuống, Trái, Phải), Tương Tác (`Interact`), và Chạy nhanh (`Run`). Lưu trữ tự động vào `PlayerPrefs`. Hệ thống tương thích hoàn hảo cả với Legacy Input và New Input System của Unity, tự động cập nhật văn bản hiển thị trên các gợi ý tương tác của người chơi dựa trên phím bấm thực tế đã cài đặt.
+  2. **Cẩm Nang Sinh Tồn (Survival Guide)**: Hướng dẫn chi tiết bằng văn bản về cơ chế Trồng trọt, Ứng phó thời tiết (Lũ lụt, Gió Lào), Cúng bàn thờ tổ tiên và cơ chế Ngất xỉu & Cứu hộ.
+  3. **Hồ Sơ Nhân Vật (NPC Profiles)**: Xem thông tin lý lịch của các NPC trong làng (Bác Năm, O Thắm) cùng với chỉ số mức độ tình cảm (Affection Level) hiện tại của họ đối với bạn.
+* **Tự động Pause**: Game sẽ tự động tạm dừng (`Time.timeScale = 0`) khi mở Settings Menu để đảm bảo người chơi không bị ảnh hưởng bởi thời tiết hoặc mất thể lực khi đang điều chỉnh.
+
+### 🎵 7. Hệ Thống Âm Thanh Động (Audio System & AudioManager)
+* Quản lý nhạc nền (BGM) và hiệu ứng âm thanh (SFX) tập trung thông qua `AudioManager.cs`.
+* **Nhạc nền & Ambient**:
+  * `bgm_menu` tại Main Menu và `bgm_main` khi vào game.
+  * Ambient động thay đổi theo thời tiết và giai đoạn: gió xào xạc vùng quê thanh bình (`ambient_rural`), gió hú hanh khô (`ambient_wind_lao`), mưa bão ầm ầm sấm chớp (`ambient_storm`).
+* **Hiệu ứng SFX tương tác**:
+  * SFX phát ra theo từng hành động thực tế: Nhặt đá/cuốc đất (`sfx_dig`/`sfx_clear_rocks`), gieo hạt (`sfx_plant`), tưới nước (`sfx_water`), thu hoạch (`sfx_harvest`), thắp hương cúng bái (`sfx_altar`), giao dịch tiền xu (`sfx_coin`), bấm nút GUI (`sfx_click`), kiệt sức ngất xỉu (`sfx_faint`), hoặc âm thanh cảnh báo stress cực độ (`sfx_warning`).
+
+### 💤 8. Cơ Chế Sinh Tồn & Cứu Hộ (Faint & Rescue)
+* Người chơi cần quản lý 3 chỉ số sinh lý quan trọng: Máu (Health), Thể Lực (Stamina) và Tinh Thần (Morale) cùng với chỉ số Stress Nhiệt (Heat Stress) và Stress Lạnh (Cold Stress).
+* Nếu Máu giảm về 0, hoặc Stress đạt đỉnh 100% khi hoạt động quá sức dưới trời nắng gắt (Gió Lào) hoặc bão lũ lạnh giá, nhân vật Thành sẽ ngất xỉu ngay tại chỗ (phát hoạt ảnh ngất và âm thanh `sfx_faint`).
+* Sau đó, Thành sẽ được Bác Năm cứu hộ đưa về nhà. Người chơi sẽ tỉnh dậy vào sáng hôm sau tại nhà Bác Năm với các chỉ số được hồi phục một phần nhưng bị khấu trừ một lượng nhỏ tiền xu hoặc nông sản coi như chi phí thuốc men, cứu trợ.
+
 ---
 
 ## 6. Game Phases (Chu Kỳ Thiên Tai)
@@ -125,11 +147,46 @@ Do dự án Git chỉ lưu trữ mã nguồn và tài nguyên cấu hình tĩnh,
    * Tạo Empty GameObject tên là `SoilCell`, gắn script **`SoilCell`**.
    * Thêm component **`Box Collider`** (3D) và **tích chọn `Is Trigger`** để nhân vật có thể đi xuyên qua.
 2. **Bàn thờ tổ tiên (`AncestralAltar`):**
-   * Tạo Empty GameObject tên là `AncestralAltar`, gắn script **`AncestralAltar`** (Kéo tệp `Item_Incense` vào trường *Incense Item*).
-   * Thêm **`Box Collider`** (3D) và **tích chọn `Is Trigger`**.
-3. **Dân làng (NPCs):**
-   * Tạo Empty GameObject tên là `NPC_BacNam`, gắn script **`NPCCharacter`** (chọn Character Type = *Bac Nam*). Thêm **`Box Collider`** (3D), tích **`Is Trigger`**.
-   * Tạo Empty GameObject tên là `NPC_OTham`, gắn script **`NPCCharacter`** (chọn Character Type = *O Tham*). Thêm **`Box Collider`** (3D), tích **`Is Trigger`**.
+   * Dự án hỗ trợ một công cụ Editor tự động hóa việc thiết lập này.
+   * Trên thanh menu của Unity Editor, chọn **`Sown In Stone -> Setup Altar`**.
+   * Script sẽ tự động:
+     * Tải mô hình 3D từ FBX bàn thờ mới của bạn (`Meshy_AI_tôi_muốn_làm_mộ_0613091059_texture.fbx`).
+     * Tự gán Material tương ứng (`Mat_Altar`).
+     * Căn chỉnh chân bàn thờ sát mặt đất phẳng (`Y = 0`), scale chiều cao hợp lý (cao 1.8m).
+     * Đặt bàn thờ ở vị trí chuẩn (`X: 7.5, Z: -13.0`) tại góc dưới (phía trước bên trái) nhà của Thành.
+     * Cấu hình trigger BoxCollider kích thước `(2.5, 1.8, 2.5)` bao quanh bàn thờ thuận tiện cho việc thắp nhang tăng Morale.
+3. **Thiết lập Sạp Hàng O Thắm & NPC O Thắm (`OTham_Shop`):**
+   * Dự án hỗ trợ một công cụ Editor tự động hóa việc thiết lập này.
+   * Trên thanh menu của Unity Editor, chọn **`Sown In Stone -> Setup O Tham Shop`**.
+   * Script sẽ tự động:
+     * Tải mô hình 3D từ các FBX mới của nhà (`Meshy_AI_Low_poly_stylized_3D__0620062116_texture.fbx`) và sạp hàng (`Meshy_AI_Low_poly_stylized_3D__0620065520_texture.fbx`).
+     * Tự sinh và gán Material tương ứng (`Mat_OTham_House` và `Mat_OTham_Stall`).
+     * Căn chỉnh pivot của cả nhà và sạp hàng sát mặt đất phẳng (`Y = 0`), tự động tỉ lệ hóa chiều cao (nhà cao 4.5m, sạp hàng cao 1.2m).
+     * Đặt sạp hàng tại vùng trống bên trái nhà Thành (`X: 4.5, Z: -10.0`).
+     * Đặt NPC O Thắm (`NPC_OTham`) đứng sau sạp hàng đối mặt với người chơi (`X: 4.5, Y: 0.5, Z: -11.2`), tự động scale chiều cao NPC đạt 1.7m.
+     * Cấu hình BoxCollider bao bọc nhà để ngăn người chơi đi xuyên tường, và cấu hình vùng Trigger của O Thắm bao phủ mặt trước sạp hàng thuận tiện cho việc nhấn phím `[E]` tương tác mua bán.
+4. **Thiết lập Nhà Bác Năm & Chõng tre (`BacNam_House`):**
+   * Dự án hỗ trợ một công cụ Editor tự động hóa việc thiết lập này.
+   * Trên thanh menu của Unity Editor, chọn **`Sown In Stone -> Setup Bac Nam House`**.
+   * Script sẽ tự động:
+     * Tải mô hình 3D từ các FBX mới của nhà (`BacNam_House_Model.fbx`) và chõng tre (`BacNam_Daybed_Model.fbx`).
+     * Tự gán các Material tương ứng (`Mat_BacNam_House` và `Mat_BacNam_Daybed`).
+     * Căn chỉnh chân nhà và chõng tre sát mặt đất phẳng (`Y = 0`), scale chiều cao hợp lý (nhà cao 4.5m, chõng tre cao 1.2m).
+     * Đặt nhà ở vị trí chuẩn (`X: 8.0, Z: 12.0`) xoay 180 độ đón người chơi, đặt chõng tre ở trước hiên (`X: 8.5, Z: 7.5`).
+     * Định vị lại NPC Bác Năm đứng cạnh chõng tre (`X: 7.0, Y: 0.5, Z: 7.5`), tự động scale chiều cao NPC đạt 1.7m.
+     * Cấu hình BoxCollider bảo vệ cho nhà để tránh đi xuyên tường, và cấu hình vùng Trigger của Bác Năm bao trùm chõng tre thuận tiện cho việc đối thoại.
+5. **Thiết lập Nhà Nhân Vật Thành (`Thanh_House`):**
+   * Dự án hỗ trợ một công cụ Editor tự động hóa việc thiết lập này.
+   * Trên thanh menu của Unity Editor, chọn **`Sown In Stone -> Setup Thanh House`**.
+   * Script sẽ tự động:
+     * Tải mô hình 3D của nhà Thành (`Meshy_AI_Stylized_low_poly_3D__0620084846_texture.fbx`).
+     * Tự gán Material tương ứng (`Mat_Thanh_House`).
+     * Căn chỉnh chân nhà sát mặt đất phẳng (`Y = 0`), scale chiều cao hợp lý (nhà cao 4.5m).
+     * Đặt nhà ở vị trí chuẩn (`X: 10.66, Z: -10.0`) xoay 180 độ đón người chơi (quay mặt về phía Nam giống sạp O Thắm).
+     * Cấu hình BoxCollider bao bọc nhà để ngăn người chơi đi xuyên tường.
+6. **Dân làng (NPCs):**
+   * Đối với Bác Năm: Nếu không chạy Script tự động ở trên, bạn tự tạo Empty GameObject tên là `NPC_BacNam`, gắn script **`NPCCharacter`** (chọn Character Type = *Bac Nam*). Thêm **`Box Collider`** (3D), tích **`Is Trigger`**.
+   * Đối với O Thắm: Nếu không chạy Script tự động ở trên, bạn tự tạo Empty GameObject tên là `NPC_OTham`, gắn script **`NPCCharacter`** (chọn Character Type = *O Tham*). Thêm **`Box Collider`** (3D), tích **`Is Trigger`**.
 
 ### Bước 6: Tạo Giao Diện & Bộ Kiểm Thử (UI & Tester)
 1. Tạo Empty GameObject tên là `_UI_Tester`.
