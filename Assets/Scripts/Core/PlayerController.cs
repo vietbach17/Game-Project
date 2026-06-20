@@ -706,6 +706,14 @@ namespace SownInStone.Core
                     return;
                 }
 
+                // 2.5. Tương tác với Thuyền thúng
+                Coracle boat = target.GetComponent<Coracle>();
+                if (boat != null)
+                {
+                    boat.Interact(this);
+                    return;
+                }
+
                 // 3. Tương tác với Ô đất ruộng vườn (Tưới nước, nhặt đá, gieo hạt, thu hoạch)
                 SoilCell soil = target.GetComponent<SoilCell>();
                 if (soil != null)
@@ -1031,7 +1039,14 @@ namespace SownInStone.Core
                     }
                     else
                     {
-                        SoilCell soil = closestCollider.GetComponent<SoilCell>();
+                        Coracle boat = closestCollider.GetComponent<Coracle>();
+                        if (boat != null)
+                        {
+                            prompt = $"[{keyName}] Lên thuyền thúng";
+                        }
+                        else
+                        {
+                            SoilCell soil = closestCollider.GetComponent<SoilCell>();
                         if (soil != null)
                         {
                             SoilCell activeSoil = soil.parentField != null ? soil.parentField : soil;
@@ -1075,6 +1090,7 @@ namespace SownInStone.Core
                         }
                     }
                 }
+            }
 
                 SownInStone.UI.SurvivalUIManager.Instance.SetInteractionPrompt(prompt);
             }
