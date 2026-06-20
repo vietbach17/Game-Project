@@ -54,6 +54,13 @@
 * **Interactive Alignment**: Serves as the starting point and visual representation of the player's home. A physical BoxCollider is configured around the house walls to prevent clipping.
 * **Automated Setup Tool**: A custom Editor script `SetupThanhHouse.cs` is accessible via the Unity Editor menu (`Sown In Stone -> Setup Thanh House`) to automatically recreate materials from textures, align the pivot flat to the ground (Y=0), scale the height to 4.5m, rotate Y by 180, and add the BoxCollider.
 
+## Ancestral Altar Setup
+
+* **Role**: The place where the player can offer incense to restore Morale.
+* **Altar Environment Layout**: The altar consists of a custom low-poly stone altar model (scaled to 1.8m) located at world `(-3.5, 0.0, -9.5)`.
+* **Interactive Alignment**: Configured with a BoxCollider trigger covering the altar area (`center: (0f, 0.9f, 0f)`, `size: (2.5f, 1.8f, 2.5f)`) so players can easily approach and press `[E]` to interact.
+* **Automated Setup Tool**: A custom Editor script `SetupAltar.cs` is accessible via the Unity Editor menu (`Sown In Stone -> Setup Altar`) to recreate materials, instantiate under `AncestralAltar`, scale to 1.8m, place flat on the ground (Y=0), and configure the trigger.
+
 ## Sound & Ambiance (Audio)
 
 * **Atmospheric Ambiance**: Automatic fading between ambient soundscapes (calm wind for normal weather, howling dry wind for Gió Lào, thunderstorms for Storm/Flood phases).

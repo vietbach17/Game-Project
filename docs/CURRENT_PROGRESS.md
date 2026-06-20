@@ -70,6 +70,14 @@
   * Auto-scales the house to a height of `4.5` meters.
   * Positions the house at world `(10.66, 0.0, -10.0)` rotated 180 degrees to face the road/player (south).
   * Configures a physical BoxCollider covering the house structure to prevent player clipping.
+* **Ancestral Altar Setup**:
+  * Integrated custom low-poly stone altar model (`Meshy_AI_tôi_muốn_làm_mộ_0613091059_texture.fbx`).
+  * Created a custom Editor script `SetupAltar.cs` (`Sown In Stone -> Setup Altar` menu item) to automate scene setup.
+  * The script generates materials and assigns textures (`Meshy_AI_tôi_muốn_làm_mộ_0613091059_texture.png`) automatically.
+  * Corrects pivot offsets to place the bottom of the altar model flat on the ground (`Y = 0`).
+  * Auto-scales the altar to a height of `1.8` meters.
+  * Positions the altar at world `(-3.5, 0.0, -9.5)`.
+  * Configures a trigger BoxCollider covering the altar interaction zone for easy incense offering.
 * **Environment Polish & Collision Alignment**:
   * Mesh scaling for Village Well, Thanh's House, and Bác Năm's House matching physical sizes.
   * Rock and modular FenceSegment visual scaling, positioning, and upright rotations fixed.
