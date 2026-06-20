@@ -58,10 +58,18 @@
   * Created a custom Editor script `SetupBacNamHouse.cs` (`Sown In Stone -> Setup Bac Nam House` menu item) to automate scene setup.
   * The script generates materials and assigns textures (`BacNam_House_Texture.png` and `BacNam_Daybed_Texture.png`) automatically.
   * Corrects pivot offsets to place the bottom of both models flat on the ground (`Y = 0`).
-  * Auto-scales the house to a height of `4.5` meters and the bamboo daybed to `0.6` meters.
-  * Positions the house at world `(8.0, 0.0, 12.0)` and the daybed in front of the house at `(7.0, 0.0, 9.8)`.
-  * Repositions NPC Bác Năm next to the daybed at `(7.0, 0.5, 8.8)` facing the player, auto-scaling his visual to `1.7` meters.
+  * Auto-scales the house to a height of `4.5` meters and the bamboo daybed to `1.2` meters.
+  * Positions the house at world `(8.0, 0.0, 12.0)` rotated 180 degrees to face south, and the daybed next to Bác Năm at `(8.5, 0.0, 7.5)`.
+  * Repositions NPC Bác Năm next to the daybed at `(7.0, 0.5, 7.5)` facing the player, auto-scaling his visual to `1.7` meters.
   * Configures a physical BoxCollider covering the house structure to prevent player clipping and extends Bác Năm's interaction trigger to cover the daybed area.
+* **Player's House (Thành's House) Setup**:
+  * Integrated custom low-poly 3D model for Thành's house (`Meshy_AI_Stylized_low_poly_3D__0620084846_texture.fbx`).
+  * Created a custom Editor script `SetupThanhHouse.cs` (`Sown In Stone -> Setup Thanh House` menu item) to automate scene setup.
+  * The script generates materials and assigns textures (`Meshy_AI_Stylized_low_poly_3D__0620084846_texture.png`) automatically.
+  * Corrects pivot offsets to place the bottom of the house model flat on the ground (`Y = 0`).
+  * Auto-scales the house to a height of `4.5` meters.
+  * Positions the house at world `(10.66, 0.0, -10.0)` rotated 180 degrees to face the road/player (south).
+  * Configures a physical BoxCollider covering the house structure to prevent player clipping.
 * **Environment Polish & Collision Alignment**:
   * Mesh scaling for Village Well, Thanh's House, and Bác Năm's House matching physical sizes.
   * Rock and modular FenceSegment visual scaling, positioning, and upright rotations fixed.
