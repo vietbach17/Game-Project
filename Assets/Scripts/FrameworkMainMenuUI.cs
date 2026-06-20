@@ -22,12 +22,14 @@ namespace SownInStone
         // Trạng thái hiển thị menu
         private bool isMenuOpen = true;
         public bool IsMenuOpen => isMenuOpen;
+        private bool hasStartedJourney = false;
         private enum MenuTab
         {
             Main,
             KyUcMienTrung, // Hướng dẫn chơi & Luật cốt truyện
             DoiNgu,        // Đội ngũ sản xuất
             Settings,      // Cài đặt phím bấm & cẩm nang
+            WarningDialog, // Cảnh báo trước khi chơi
         }
         private MenuTab currentTab = MenuTab.Main;
         private string rebindAction = "";
@@ -35,6 +37,9 @@ namespace SownInStone
         // Hiệu ứng hạt bụi rơm vàng bay lãng mạn trên Menu
         private Vector2[] strawParticles;
         private int particleCount = 20;
+        
+        private Texture2D bgImage;
+        private Texture2D transparentTex;
 
         private void Awake()
         {
@@ -78,10 +83,36 @@ namespace SownInStone
             {
                 strawParticles[i] = new Vector2(Random.Range(0, Screen.width), Random.Range(0, Screen.height));
             }
+
+            // Load ảnh nền mới
+            bgImage = Resources.Load<Texture2D>("UI/bg_home_2");
+
+            // Tạo texture trong suốt để bắt sự kiện hover chuột
+            transparentTex = new Texture2D(1, 1);
+            transparentTex.SetPixel(0, 0, Color.clear);
+            transparentTex.Apply();
         }
 
         private void Update()
         {
+            // Xử lý bật/tắt Menu khi nhấn ESC
+            if (Input.GetKeyDown(KeyCode.Escape) && hasStartedJourney)
+            {
+                if (isMenuOpen)
+                {
+                    // Đang ở trong Menu (tạm dừng) -> Nếu không phải đang gán phím thì tiếp tục game
+                    if (string.IsNullOrEmpty(rebindAction))
+                    {
+                        StartJourney();
+                    }
+                }
+                else
+                {
+                    // Đang chơi game -> Mở Menu (tạm dừng)
+                    PauseGame();
+                }
+            }
+
             if (isMenuOpen)
             {
                 // Mô phỏng bụi rơm bay chậm rãi trong gió Lào ở màn hình Menu
@@ -103,55 +134,38 @@ namespace SownInStone
         {
             if (!isMenuOpen) return;
 
-            // 1. VẼ NỀN HOÀNG HÔN CÁT CHÁY MIỀN TRUNG (Bán trong suốt)
-            GUI.color = new Color(0.12f, 0.08f, 0.05f, 0.96f); // Tông cam đất đậm cực đẹp
-            GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), Texture2D.whiteTexture);
-            GUI.color = Color.white;
+            // VẼ ẢNH NỀN HOME
+            if (bgImage != null)
+            {
+                GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), bgImage, ScaleMode.ScaleAndCrop);
+            }
 
-            // 2. VẼ HẠT BỤI RƠM VÀNG LÃNG MẠN
-            GUI.color = new Color(0.95f, 0.75f, 0.15f, 0.35f); // Màu rơm vàng óng
+            // 1. VẼ HẠT BỤI RƠM VÀNG LÃNG MẠN (Xóa nền đen để thấy cảnh phía sau)
+            GUI.color = new Color(0.95f, 0.75f, 0.15f, 0.35f); 
             foreach (var particle in strawParticles)
             {
                 GUI.DrawTexture(new Rect(particle.x, particle.y, 4, 4), Texture2D.whiteTexture);
             }
             GUI.color = Color.white;
 
-            // Thiết lập màu sắc khung gỗ Menu
-            GUI.backgroundColor = new Color(0.25f, 0.18f, 0.12f, 1f); // Màu nâu gỗ lim đậm
+            // Tọa độ menu nằm bên trái màn hình
+            float menuWidth = 500f;
+            float menuX = 50f; // Căn lề trái
 
-            // Tọa độ trung tâm màn hình
-            float menuWidth = 550f;
-            float menuHeight = 480f;
-            float menuX = (Screen.width - menuWidth) / 2f;
-            float menuY = (Screen.height - menuHeight) / 2f;
-
-            // Khung Gỗ Menu Trung Tâm
-            Rect menuRect = new Rect(menuX, menuY, menuWidth, menuHeight);
-            GUI.Box(menuRect, "");
-
-            // 3. TIÊU ĐỀ GAME NGHỆ THUẬT
-            Rect titleRect = new Rect(menuX + 20, menuY + 25, menuWidth - 40, 80);
-            GUI.Box(titleRect, "");
-            
-            // Vẽ Logo chữ nghệ thuật
+            // 2. TIÊU ĐỀ GAME
+            Rect titleRect = new Rect(menuX, 80f, menuWidth, 150f);
             GUIStyle titleStyle = new GUIStyle();
-            titleStyle.alignment = TextAnchor.MiddleCenter;
-            titleStyle.normal.textColor = new Color(0.96f, 0.64f, 0.15f); // Màu vàng cam lúa chín
-            titleStyle.fontSize = 28;
+            titleStyle.alignment = TextAnchor.MiddleLeft;
+            titleStyle.normal.textColor = new Color(0.96f, 0.85f, 0.6f);
+            titleStyle.fontSize = 72;
             titleStyle.fontStyle = FontStyle.Bold;
-            GUI.Label(titleRect, "<b>ĐẤT CÀY LÊN SỎI ĐÁ</b>", titleStyle);
-
-            Rect subTitleRect = new Rect(menuX + 20, menuY + 80, menuWidth - 40, 20);
-            GUIStyle subTitleStyle = new GUIStyle();
-            subTitleStyle.alignment = TextAnchor.MiddleCenter;
-            subTitleStyle.normal.textColor = new Color(0.85f, 0.8f, 0.75f, 0.8f);
-            subTitleStyle.fontSize = 12;
-            subTitleStyle.fontStyle = FontStyle.Italic;
-            GUI.Label(subTitleRect, "— SOWN IN STONE —", subTitleStyle);
+            GUI.Label(titleRect, "ĐẤT CÀY\nLÊN SỎI ĐÁ", titleStyle);
 
             // Bắt đầu vẽ nội dung các Tab
-            GUILayout.BeginArea(new Rect(menuX + 30, menuY + 115, menuWidth - 60, menuHeight - 135));
-            GUILayout.Space(15);
+            float contentStartY = Screen.height - 400f;
+            if (contentStartY < 250f) contentStartY = 250f;
+            
+            GUILayout.BeginArea(new Rect(menuX, contentStartY, menuWidth, 350f));
 
             switch (currentTab)
             {
@@ -170,51 +184,69 @@ namespace SownInStone
             }
 
             GUILayout.EndArea();
+            
+            // Version Text ở góc dưới cùng bên trái
+            GUIStyle versionStyle = new GUIStyle();
+            versionStyle.normal.textColor = new Color(1f, 1f, 1f, 0.8f);
+            versionStyle.fontSize = 12;
+            GUI.Label(new Rect(10f, Screen.height - 25f, 200f, 20f), "Version 1.0 (Alpha)", versionStyle);
+
+            // Vẽ bảng cảnh báo đè lên trên cùng nếu đang mở
+            if (currentTab == MenuTab.WarningDialog)
+            {
+                DrawWarningDialog();
+            }
         }
 
         #region VẼ CÁC TRANG MENU CHÍNH
         
         private void DrawMainMenu()
         {
-            // Thiết lập kích thước chữ nút bấm gỗ to rõ ràng
-            GUIStyle buttonStyle = new GUIStyle(GUI.skin.button);
-            buttonStyle.fontSize = 16;
-            buttonStyle.fontStyle = FontStyle.Bold;
-            buttonStyle.fixedHeight = 45;
+            // Thiết lập nút bấm KHÔNG CÓ NỀN, CHỈ CÓ CHỮ (Raft Style)
+            GUIStyle clearBtnStyle = new GUIStyle();
+            clearBtnStyle.normal.background = transparentTex;
+            clearBtnStyle.hover.background = transparentTex;
+            clearBtnStyle.active.background = transparentTex;
+            clearBtnStyle.normal.textColor = new Color(0.9f, 0.85f, 0.7f);
+            clearBtnStyle.hover.textColor = new Color(1f, 0.85f, 0.3f);
+            clearBtnStyle.fontSize = 32;
+            clearBtnStyle.fontStyle = FontStyle.Bold;
+            clearBtnStyle.alignment = TextAnchor.MiddleLeft;
             
             GUILayout.Space(5);
-            GUI.color = new Color(0.15f, 0.85f, 0.15f, 1f); // Nút Bắt đầu nổi bật màu xanh lá trù phú
-            if (GUILayout.Button("VỀ QUÊ BÁM ĐẤT (BẮT ĐẦU CHƠI)", buttonStyle))
+            string startBtnText = hasStartedJourney ? "TIẾP TỤC CUỐC" : "BẮT ĐẦU CUỐC";
+            if (GUILayout.Button(startBtnText, clearBtnStyle))
             {
                 SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
-                StartJourney();
+                if (hasStartedJourney)
+                {
+                    StartJourney(); // Đã bắt đầu rồi thì tiếp tục luôn
+                }
+                else
+                {
+                    currentTab = MenuTab.WarningDialog;
+                }
             }
-            GUI.color = Color.white;
-
-            GUILayout.Space(10);
-            if (GUILayout.Button("KÝ ỨC MIỀN TRUNG (HƯỚNG DẪN LUẬT)", buttonStyle))
+            GUILayout.Space(5);
+            if (GUILayout.Button("HƯỚNG DẪN CUỐC", clearBtnStyle))
             {
                 SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
                 currentTab = MenuTab.KyUcMienTrung;
             }
-
-            GUILayout.Space(10);
-            if (GUILayout.Button("CÀI ĐẶT & TÙY BIẾN PHÍM BẤM", buttonStyle))
+            GUILayout.Space(5);
+            if (GUILayout.Button("CÀI ĐẶT & TÙY BIẾN", clearBtnStyle))
             {
                 SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
                 currentTab = MenuTab.Settings;
             }
-
-            GUILayout.Space(10);
-            if (GUILayout.Button("ĐỘI NGŨ SẢN XUẤT (CREDITS)", buttonStyle))
+            GUILayout.Space(5);
+            if (GUILayout.Button("ĐỘI NGŨ SẢN XUẤT", clearBtnStyle))
             {
                 SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
                 currentTab = MenuTab.DoiNgu;
             }
-
-            GUILayout.Space(10);
-            GUI.color = new Color(0.85f, 0.15f, 0.15f, 1f); // Nút thoát màu đỏ rực
-            if (GUILayout.Button("THOÁT GAME (EXIT)", buttonStyle))
+            GUILayout.Space(5);
+            if (GUILayout.Button("THOÁT GAME", clearBtnStyle))
             {
                 SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
                 Application.Quit();
@@ -222,35 +254,120 @@ namespace SownInStone
                 UnityEditor.EditorApplication.isPlaying = false;
 #endif
             }
+        }
+
+        private void DrawWarningDialog()
+        {
+            // Làm tối nền phía sau (Overlay mờ)
+            GUI.color = new Color(0, 0, 0, 0.8f);
+            GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), Texture2D.whiteTexture);
             GUI.color = Color.white;
 
-            // Dòng trích dẫn danh ngôn dân gian miền Trung ý nghĩa dưới đáy Menu
-            GUILayout.Space(45);
-            GUIStyle quoteStyle = new GUIStyle();
-            quoteStyle.alignment = TextAnchor.MiddleCenter;
-            quoteStyle.normal.textColor = new Color(0.75f, 0.7f, 0.65f);
-            quoteStyle.fontSize = 12;
-            quoteStyle.fontStyle = FontStyle.Italic;
-            GUILayout.Label("\"Tháng bảy kiến bò, chỉ lo lại lụt...\nĐất cày dẫu lên sỏi đá, lòng người không ngã sỏi đá cũng hóa cơm bùi.\"", quoteStyle);
+            // Kích thước bảng cảnh báo
+            float dialogWidth = 650f;
+            float dialogHeight = 350f;
+            float dialogX = (Screen.width - dialogWidth) / 2f;
+            float dialogY = (Screen.height - dialogHeight) / 2f;
+
+            // Vẽ nền đen xám cho bảng
+            GUI.color = new Color(0.12f, 0.12f, 0.12f, 0.98f);
+            GUI.DrawTexture(new Rect(dialogX, dialogY, dialogWidth, dialogHeight), Texture2D.whiteTexture);
+            
+            // Vẽ viền xám nhạt
+            GUI.color = new Color(0.4f, 0.4f, 0.4f, 1f);
+            GUI.DrawTexture(new Rect(dialogX, dialogY, dialogWidth, 2), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(dialogX, dialogY + dialogHeight - 2, dialogWidth, 2), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(dialogX, dialogY, 2, dialogHeight), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(dialogX + dialogWidth - 2, dialogY, 2, dialogHeight), Texture2D.whiteTexture);
+            GUI.color = Color.white;
+
+            GUILayout.BeginArea(new Rect(dialogX + 30, dialogY + 30, dialogWidth - 60, dialogHeight - 60));
+
+            GUIStyle warningTitleStyle = new GUIStyle();
+            warningTitleStyle.normal.textColor = new Color(1f, 0.3f, 0.3f);
+            warningTitleStyle.fontSize = 24;
+            warningTitleStyle.fontStyle = FontStyle.Bold;
+            warningTitleStyle.alignment = TextAnchor.MiddleCenter;
+
+            GUIStyle warningBodyStyle = new GUIStyle();
+            warningBodyStyle.normal.textColor = new Color(0.9f, 0.9f, 0.9f);
+            warningBodyStyle.fontSize = 15;
+            warningBodyStyle.wordWrap = true;
+            warningBodyStyle.alignment = TextAnchor.MiddleCenter;
+
+            GUILayout.Label("CẢNH BÁO NỘI DUNG", warningTitleStyle);
+            GUILayout.Space(20);
+            GUILayout.Label("- Game có chứa nội dung và chủ đề nhạy cảm, có thể gây khó chịu cho người chơi.", warningBodyStyle);
+            GUILayout.Space(8);
+            GUILayout.Label("- Game được lấy bối cảnh miền Trung Việt Nam và được hư cấu hóa vì mục đích giải trí.", warningBodyStyle);
+            GUILayout.Space(8);
+            GUILayout.Label("- Game không miệt thị, không cổ vũ cho bất kì cá nhân, tổ chức nào, tất cả cốt truyện là do ngẫu nhiên và hư cấu. Mục đích cuối cùng là tạo sự giải trí cho người chơi.", warningBodyStyle);
+            
+            GUILayout.FlexibleSpace();
+
+            GUILayout.BeginHorizontal();
+            
+            // Style cho nút bấm
+            GUIStyle btnStyle = new GUIStyle(GUI.skin.button);
+            btnStyle.fontSize = 15;
+            btnStyle.fontStyle = FontStyle.Bold;
+            btnStyle.fixedHeight = 45;
+
+            // Nút Đồng ý
+            GUI.backgroundColor = new Color(0.8f, 0.2f, 0.2f);
+            if (GUILayout.Button("Nói vậy rồi thì ok thoi", btnStyle))
+            {
+                SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
+                StartJourney();
+            }
+
+            GUILayout.Space(20);
+
+            // Nút Hủy
+            GUI.backgroundColor = new Color(0.3f, 0.3f, 0.3f);
+            if (GUILayout.Button("Không chơi nữa", btnStyle))
+            {
+                SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
+                currentTab = MenuTab.Main;
+            }
+            GUI.backgroundColor = Color.white;
+
+            GUILayout.EndHorizontal();
+
+            GUILayout.EndArea();
         }
 
         private void DrawKyUcMienTrung()
         {
-            // Trang hướng dẫn chơi mộc mạc dân dã
             GUIStyle bodyStyle = new GUIStyle();
-            bodyStyle.normal.textColor = new Color(0.9f, 0.85f, 0.8f);
-            bodyStyle.fontSize = 13;
+            bodyStyle.normal.textColor = new Color(0.9f, 0.9f, 0.9f);
+            bodyStyle.fontSize = 14;
             bodyStyle.wordWrap = true;
+            bodyStyle.alignment = TextAnchor.MiddleLeft;
 
-            GUILayout.Label("<b>HƯỚNG DẪN LÀM NÔNG SINH TỒN MIỀN TRUNG:</b>", bodyStyle);
+            GUILayout.Label("<b>HƯỚNG DẪN LÀM NÔNG SINH TỒN:</b>", bodyStyle);
             GUILayout.Space(8);
-            GUILayout.Label("1. <b>Cải tạo đất sỏi:</b> Đất ruộng ban đầu toàn sỏi đá. Thành phải tiêu hao Thể lực (Stamina) nhặt đá, ra giếng gánh nước tưới ẩm và ủ phân chuồng/phân xanh cải tạo đất bạc màu.", bodyStyle);
-            GUILayout.Label("2. <b>Tích Cốc Phòng Cơ:</b> Độ ẩm mùa lũ lụt cực kỳ cao gây mốc nông sản tươi. Bạn bắt buộc phải chế biến khoai tươi thành <b>Khoai gieo phơi khô</b> hoặc làm <b>Dưa muối dưa nhút</b> để trữ cắm trại sinh tồn trên mái nhà mùa lũ lụt.", bodyStyle);
-            GUILayout.Label("3. <b>Tục Vần Công (Đổi Công):</b> Hãy sang phụ hàng xóm (Bác Năm, O Thắm) việc đồng áng để tích lũy ngày công. Khi siêu bão đổ bộ, cả xóm sẽ tự động sang chằng chống mái nhà và lùa đàn gà hộ bạn vượt qua hoạn nạn!", bodyStyle);
-            GUILayout.Label("4. <b>Thắp nhang Bàn thờ:</b> Thắp nhang khói cúng bái Tổ tiên/Thổ địa giúp Thành hồi phục Morale (Tinh thần), xua tan hoảng loạn khi bão lũ cuồng phong rít qua khe vách.", bodyStyle);
+            GUILayout.Label("1. <b>Cải tạo đất sỏi:</b> Đất ruộng ban đầu toàn sỏi đá. Thành phải nhặt đá, tưới nước và ủ phân.", bodyStyle);
+            GUILayout.Space(5);
+            GUILayout.Label("2. <b>Tích Cốc Phòng Cơ:</b> Độ ẩm mùa lũ lụt cực kỳ cao gây mốc. Chế biến khoai gieo phơi khô để sinh tồn.", bodyStyle);
+            GUILayout.Space(5);
+            GUILayout.Label("3. <b>Tục Vần Công:</b> Phụ hàng xóm để được giúp đỡ chằng chống nhà cửa khi bão.", bodyStyle);
+            GUILayout.Space(5);
+            GUILayout.Label("4. <b>Thắp nhang:</b> Khói cúng bái Tổ tiên giúp phục hồi Tinh thần.", bodyStyle);
 
             GUILayout.Space(20);
-            if (GUILayout.Button("QUAY LẠI MENU CHÍNH"))
+            
+            GUIStyle clearBtnStyle = new GUIStyle();
+            clearBtnStyle.normal.background = transparentTex;
+            clearBtnStyle.hover.background = transparentTex;
+            clearBtnStyle.active.background = transparentTex;
+            clearBtnStyle.normal.textColor = new Color(0.9f, 0.85f, 0.7f);
+            clearBtnStyle.hover.textColor = new Color(1f, 0.85f, 0.3f);
+            clearBtnStyle.fontSize = 24;
+            clearBtnStyle.fontStyle = FontStyle.Bold;
+            clearBtnStyle.alignment = TextAnchor.MiddleLeft;
+            
+            if (GUILayout.Button("< QUAY LẠI", clearBtnStyle))
             {
                 SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
                 currentTab = MenuTab.Main;
@@ -259,24 +376,33 @@ namespace SownInStone
 
         private void DrawDoiNgu()
         {
-            // Màn hình giới thiệu team sản xuất
             GUIStyle bodyStyle = new GUIStyle();
-            bodyStyle.normal.textColor = new Color(0.9f, 0.85f, 0.8f);
-            bodyStyle.fontSize = 14;
-            bodyStyle.alignment = TextAnchor.MiddleCenter;
+            bodyStyle.normal.textColor = new Color(0.9f, 0.9f, 0.9f);
+            bodyStyle.fontSize = 16;
+            bodyStyle.alignment = TextAnchor.MiddleLeft;
 
-            GUILayout.Space(30);
             GUILayout.Label("<b>DỰ ÁN GAME: ĐẤT CÀY LÊN SỎI ĐÁ</b>", bodyStyle);
-            GUILayout.Label("<i>Nghị lực phi thường và nghĩa tình đồng bào miền Trung trước thiên tai</i>", bodyStyle);
+            GUILayout.Label("<i>Nghị lực phi thường trước thiên tai</i>", bodyStyle);
             GUILayout.Space(25);
             
-            GUILayout.Label("<b>Đội Ngũ Phát Triển (Credits):</b>", bodyStyle);
-            GUILayout.Label("• <b>Trưởng Nhóm / Thiết Kế:</b> Bạn và Đội Ngũ Lập Trình", bodyStyle);
-            GUILayout.Label("• <b>Đồng Hành Lập Trình:</b> Antigravity AI Assistant", bodyStyle);
-            GUILayout.Label("• <b>Mỹ Thuật / Âm Thanh:</b> Nhóm Bạn Lập Nghiệp Làng Xóm", bodyStyle);
+            GUILayout.Label("<b>Đội Ngũ Phát Triển:</b>", bodyStyle);
+            GUILayout.Label("• <b>Thiết Kế:</b> Bạn và Đội Ngũ", bodyStyle);
+            GUILayout.Label("• <b>Lập Trình:</b> Antigravity AI", bodyStyle);
+            GUILayout.Label("• <b>Mỹ Thuật:</b> Nhóm Bạn Lập Nghiệp", bodyStyle);
 
             GUILayout.Space(45);
-            if (GUILayout.Button("QUAY LẠI MENU CHÍNH"))
+            
+            GUIStyle clearBtnStyle = new GUIStyle();
+            clearBtnStyle.normal.background = transparentTex;
+            clearBtnStyle.hover.background = transparentTex;
+            clearBtnStyle.active.background = transparentTex;
+            clearBtnStyle.normal.textColor = new Color(0.9f, 0.85f, 0.7f);
+            clearBtnStyle.hover.textColor = new Color(1f, 0.85f, 0.3f);
+            clearBtnStyle.fontSize = 24;
+            clearBtnStyle.fontStyle = FontStyle.Bold;
+            clearBtnStyle.alignment = TextAnchor.MiddleLeft;
+            
+            if (GUILayout.Button("< QUAY LẠI", clearBtnStyle))
             {
                 SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
                 currentTab = MenuTab.Main;
@@ -321,8 +447,30 @@ namespace SownInStone
                 SownInStone.UI.SurvivalUIManager.Instance.SetUIVisibility(true);
             }
 
-            Debug.Log("[MAIN MENU] Cuộc hành trình trở về bám đất Trường Sơn chính thức BẮT ĐẦU!");
-            PlayerStats.Instance?.ModifyMorale(20f); // Tặng thêm 20 Morale làm động lực khởi nghiệp
+            if (!hasStartedJourney)
+            {
+                Debug.Log("[MAIN MENU] Cuộc hành trình trở về bám đất Trường Sơn chính thức BẮT ĐẦU!");
+                PlayerStats.Instance?.ModifyMorale(20f); // Tặng thêm 20 Morale làm động lực khởi nghiệp
+                hasStartedJourney = true;
+            }
+        }
+
+        private void PauseGame()
+        {
+            isMenuOpen = true;
+            currentTab = MenuTab.Main;
+            Time.timeScale = 0f; // Dừng thời gian
+            
+            SownInStone.Audio.AudioManager.Instance?.StopMusic();
+            SownInStone.Audio.AudioManager.Instance?.StopAmbient();
+            SownInStone.Audio.AudioManager.Instance?.PlayMusic("bgm_menu");
+            if (ambientWindAudio != null) ambientWindAudio.Play();
+
+            // Ẩn UI sinh tồn để không bị đè lên Menu
+            if (SownInStone.UI.SurvivalUIManager.Instance != null)
+            {
+                SownInStone.UI.SurvivalUIManager.Instance.SetUIVisibility(false);
+            }
         }
 
         // --- PHÂN HỆ CÀI ĐẶT & TÙY BIẾN PHÍM BẤM NGOÀI MENU (ONGUI SETTINGS TABS) ---
@@ -357,40 +505,39 @@ namespace SownInStone
         {
             GUIStyle headerStyle = new GUIStyle();
             headerStyle.fontStyle = FontStyle.Bold;
-            headerStyle.fontSize = 14;
-            headerStyle.normal.textColor = new Color(0.95f, 0.8f, 0.3f);
+            headerStyle.fontSize = 18;
+            headerStyle.normal.textColor = new Color(0.95f, 0.85f, 0.6f);
             headerStyle.alignment = TextAnchor.MiddleLeft;
 
             GUIStyle labelStyle = new GUIStyle();
-            labelStyle.fontSize = 12;
-            labelStyle.normal.textColor = new Color(0.9f, 0.85f, 0.8f);
+            labelStyle.fontSize = 14;
+            labelStyle.normal.textColor = new Color(0.9f, 0.9f, 0.9f);
             labelStyle.alignment = TextAnchor.MiddleLeft;
 
             GUIStyle buttonStyle = new GUIStyle(GUI.skin.button);
             buttonStyle.fontSize = 12;
             buttonStyle.fontStyle = FontStyle.Bold;
 
-            GUILayout.Label("<b>TÙY BIẾN PHÍM ĐIỀU KHIỂN</b>", headerStyle);
-            GUILayout.Space(5);
+            GUILayout.Label("<b>TÙY BIẾN PHÍM BẤM</b>", headerStyle);
+            GUILayout.Space(10);
 
             DrawRebindRow("Di chuyển lên", "Key_MoveUp", KeyCode.W, labelStyle, buttonStyle);
             DrawRebindRow("Di chuyển xuống", "Key_MoveDown", KeyCode.S, labelStyle, buttonStyle);
             DrawRebindRow("Di chuyển trái", "Key_MoveLeft", KeyCode.A, labelStyle, buttonStyle);
             DrawRebindRow("Di chuyển phải", "Key_MoveRight", KeyCode.D, labelStyle, buttonStyle);
-            DrawRebindRow("Hành động Tương tác", "Key_Interact", KeyCode.E, labelStyle, buttonStyle);
+            DrawRebindRow("Hành động", "Key_Interact", KeyCode.E, labelStyle, buttonStyle);
             DrawRebindRow("Chạy nhanh", "Key_Run", KeyCode.LeftShift, labelStyle, buttonStyle);
 
             GUILayout.Space(10);
             if (!string.IsNullOrEmpty(rebindAction))
             {
                 GUIStyle promptStyle = new GUIStyle();
-                promptStyle.fontSize = 13;
+                promptStyle.fontSize = 14;
                 promptStyle.fontStyle = FontStyle.Bold;
-                promptStyle.normal.textColor = new Color(0.9f, 0.3f, 0.3f);
-                promptStyle.alignment = TextAnchor.MiddleCenter;
-                GUILayout.Label("NHẤN PHÍM BẤT KỲ ĐỂ THAY ĐỔI... (ESC để hủy)", promptStyle);
+                promptStyle.normal.textColor = new Color(1f, 0.4f, 0.4f);
+                promptStyle.alignment = TextAnchor.MiddleLeft;
+                GUILayout.Label("NHẤN PHÍM BẤT KỲ... (ESC để hủy)", promptStyle);
 
-                // Lắng nghe sự kiện phím qua Event.current
                 Event e = Event.current;
                 if (e != null && e.isKey && e.keyCode != KeyCode.None)
                 {
@@ -407,17 +554,20 @@ namespace SownInStone
                     e.Use();
                 }
             }
-            else
-            {
-                GUIStyle tipStyle = new GUIStyle();
-                tipStyle.fontSize = 11;
-                tipStyle.normal.textColor = new Color(0.7f, 0.7f, 0.7f);
-                tipStyle.alignment = TextAnchor.MiddleCenter;
-                GUILayout.Label("Mẹo: Click vào nút phím tương ứng để thiết lập phím mới.", tipStyle);
-            }
 
             GUILayout.Space(15);
-            if (GUILayout.Button("QUAY LẠI MENU CHÍNH"))
+            
+            GUIStyle clearBtnStyle = new GUIStyle();
+            clearBtnStyle.normal.background = transparentTex;
+            clearBtnStyle.hover.background = transparentTex;
+            clearBtnStyle.active.background = transparentTex;
+            clearBtnStyle.normal.textColor = new Color(0.9f, 0.85f, 0.7f);
+            clearBtnStyle.hover.textColor = new Color(1f, 0.85f, 0.3f);
+            clearBtnStyle.fontSize = 24;
+            clearBtnStyle.fontStyle = FontStyle.Bold;
+            clearBtnStyle.alignment = TextAnchor.MiddleLeft;
+
+            if (GUILayout.Button("< QUAY LẠI", clearBtnStyle))
             {
                 SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
                 rebindAction = "";
