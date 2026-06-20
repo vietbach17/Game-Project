@@ -76,7 +76,7 @@
   * The script generates materials and assigns textures (`Meshy_AI_tôi_muốn_làm_mộ_0613091059_texture.png`) automatically.
   * Corrects pivot offsets to place the bottom of the altar model flat on the ground (`Y = 0`).
   * Auto-scales the altar to a height of `1.8` meters.
-  * Positions the altar at world `(-3.5, 0.0, -9.5)`.
+  * Positions the altar at world `(7.5, 0.0, -13.0)` (bottom corner of Thành's house).
   * Configures a trigger BoxCollider covering the altar interaction zone for easy incense offering.
 * **Environment Polish & Collision Alignment**:
   * Mesh scaling for Village Well, Thanh's House, and Bác Năm's House matching physical sizes.

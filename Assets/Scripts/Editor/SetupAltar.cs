@@ -48,8 +48,8 @@ namespace SownInStone.Editor
                 Undo.RegisterCompleteObjectUndo(altarContainer, "Update AncestralAltar");
             }
 
-            // Move container to world (-3.5, 0.0, -9.5) so it sits on the ground
-            altarContainer.transform.position = new Vector3(-3.5f, 0.0f, -9.5f);
+            // Move container to the bottom-left corner of Thành's house (X: 7.5, Y: 0.0, Z: -13.0)
+            altarContainer.transform.position = new Vector3(7.5f, 0.0f, -13.0f);
             altarContainer.transform.rotation = Quaternion.identity;
 
             // Destroy any existing child visual objects to avoid duplication

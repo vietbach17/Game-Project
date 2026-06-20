@@ -57,7 +57,7 @@
 ## Ancestral Altar Setup
 
 * **Role**: The place where the player can offer incense to restore Morale.
-* **Altar Environment Layout**: The altar consists of a custom low-poly stone altar model (scaled to 1.8m) located at world `(-3.5, 0.0, -9.5)`.
+* **Altar Environment Layout**: The altar consists of a custom low-poly stone altar model (scaled to 1.8m) located at world `(7.5, 0.0, -13.0)` (bottom corner of Thành's house).
 * **Interactive Alignment**: Configured with a BoxCollider trigger covering the altar area (`center: (0f, 0.9f, 0f)`, `size: (2.5f, 1.8f, 2.5f)`) so players can easily approach and press `[E]` to interact.
 * **Automated Setup Tool**: A custom Editor script `SetupAltar.cs` is accessible via the Unity Editor menu (`Sown In Stone -> Setup Altar`) to recreate materials, instantiate under `AncestralAltar`, scale to 1.8m, place flat on the ground (Y=0), and configure the trigger.
 
