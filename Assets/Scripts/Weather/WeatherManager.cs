@@ -240,17 +240,17 @@ namespace SownInStone.Weather
             
             waterPlane3D.GetComponent<MeshRenderer>().material = waterMat;
             
-            // Đặt vị trí mặc định dưới mặt đất (Y = -1.0f)
-            waterPlane3D.transform.position = new Vector3(4.25f, -1.0f, -5.25f);
+            // Đặt vị trí mặc định dưới mặt đất (Y = -1.5f)
+            waterPlane3D.transform.position = new Vector3(4.25f, -1.5f, -5.25f);
         }
 
         private void Update3DWaterPlane()
         {
             if (waterPlane3D == null) return;
 
-            // Nước dâng theo FloodLevel. Khi FloodLevel = 0, nước nằm ở Y = -1f (ẩn dưới đất)
+            // Nước dâng theo FloodLevel. Khi FloodLevel = 0, nước nằm ở Y = -1.5f (ẩn dưới đất)
             // Khi nước dâng, Y = -0.05f + FloodLevel (bắt đầu ngập từ Y = 0f trở lên)
-            float waterY = (FloodLevel <= 0.01f) ? -1.0f : (-0.05f + FloodLevel);
+            float waterY = (FloodLevel <= 0.01f) ? -1.5f : (-0.05f + FloodLevel);
             waterPlane3D.transform.position = new Vector3(4.25f, waterY, -5.25f);
         }
 

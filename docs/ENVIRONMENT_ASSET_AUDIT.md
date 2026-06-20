@@ -1,64 +1,117 @@
-# Environment Asset Audit
+# Environment Asset Audit: Đất Cày Lên Sỏi Đá
 
-This audit evaluates the current environment assets in the project, catalogs the newly imported stylized 3D prefabs, and provides a replacement plan to transition the game from primitive geometry to detailed Stylized Low Poly models.
-
----
-
-## 1. Existing Ground Textures & Characters
-
-The following base assets exist in the project:
-*   **Player Character Model:** `indonesian_farmer_pak_tani.glb` - A stylized Southeast Asian farmer model. Matches a **Stylized Low Poly** art style.
-*   **Ground Textures:** (Under `Assets/Textures/`)
-    *   `grass_ground.png` (Grass terrain texture)
-    *   `dry_soil.png` (Dry tilled soil texture)
-    *   `wet_soil.png` (Wet tilled soil texture)
-    *   `silt_soil.png` (Alluvium/silt texture)
-    *   `water_waves.png` (Floodwater overlay texture)
+Tài liệu này kiểm kê và phân loại toàn bộ tài nguyên môi trường (3D models, textures, prefabs) hiện có hoặc cần bổ sung trong dự án, đảm bảo tối ưu hóa dung lượng và tập trung hoàn toàn vào bối cảnh làng quê miền Trung Việt Nam.
 
 ---
 
-## 2. Imported Prefab Catalog
-
-The newly imported assets under `Assets/Prefabs/` have been audited and cataloged below:
-
-### A. Village Architecture (`Assets/Prefabs/`)
-*   **`HoiAnHouse_M2.fbx` (1.3 MB):** A highly detailed model representing the traditional architectural style of Hoi An in Central Vietnam. Features classic sloped tiling and rustic wooden structures.
-*   **`asian_house.glb` (690 KB):** A stylized Oriental/Asian traditional dwelling, ideal for a merchant, residential home, or village shop.
-*   **`FBX-Village/FBX/`:** A set of 10 stylized low-poly medieval-style town buildings:
-    *   `House_1.fbx` to `House_4.fbx` (Various sizes of village homes)
-    *   `Inn.fbx`, `Blacksmith.fbx`, `Bell_Tower.fbx`, `Mill.fbx`, `Sawmill.fbx`, `Stable.fbx`
-
-### B. Vegetation & Farming Props (`Assets/Prefabs/`)
-*   **`Banana Tree/BananaTree.obj`:** Dedicated banana plant model with wide, drooping leaves, complete with `BananaTree_BaseColor.png` texture.
-*   **`Bamboo/PUSHILIN_bamboo.obj`:** Detailed bamboo stalk model with `PUSHILIN_bamboo.png` texture.
-*   **`Fence/Fence.fbx` & `Fence2.fbx`:** Modular low-poly wooden fence segments.
-*   **`Well/Well.fbx`:** Dedicated low-poly village stone well model.
-
-### C. Nature Pack (`Assets/Prefabs/FBX-Ultimate-Nature-Pack/FBX/`)
-Contains 150 low-poly nature assets, including:
-*   **Rocks:** `Rock_1.fbx` to `Rock_7.fbx` (Standard gray rocks), `Rock_Moss_1.fbx` to `Rock_Moss_7.fbx` (Mossy green variants), and `Rock_Snow_1.fbx` to `Rock_Snow_7.fbx` (Snow covered).
-*   **Trees:** Birch, Pine, Palm, and Willow trees (including autumn, dead, and snow variants).
-*   **Plants & Grass:** Cactus, Flowers, Lilypad, Grass, short grass, Wheat, and Corn crops.
-*   **Debris:** `WoodLog.fbx` (Standard, mossy, and snow logs), `TreeStump.fbx`.
+## 1. Phân Loại Tài Nguyên Theo Độ Ưu Tiên
 
 ---
 
-## 3. Replacement Recommendations
+### Nhóm 1: Thiết Yếu Cho Gameplay (Essential for Gameplay)
+Các asset trực tiếp vận hành vòng lặp canh tác sinh tồn và di chuyển:
 
-To replace the primitive placeholder geometry currently in `SampleScene.unity` with the newly imported assets, apply the following mappings:
-
-| Target Placeholder | Recommended Imported Model | Rationale |
-| :--- | :--- | :--- |
-| **Thành's House** | `Assets/Prefabs/HoiAnHouse_M2.fbx` | Matches the Central Vietnam/Hoi An aesthetic perfectly, giving the game a localized, culturally rich appearance. |
-| **O Thắm's Shop** | `Assets/Prefabs/asian_house.glb` | An oriental-style house that fits O Thắm's character as a local dealer of seeds and agricultural supplies. |
-| **Village Well** | `Assets/Prefabs/Well/Well.fbx` | A dedicated 3D stone well mesh to replace the primitive cylinder well. |
-| **Banana Tree** | `Assets/Prefabs/Banana Tree/BananaTree.obj` | Dedicated banana plant model, instantly transforming the tropical village look. |
-| **Rock Cluster** | `Assets/Prefabs/FBX-Ultimate-Nature-Pack/FBX/Rock_1.fbx` to `Rock_7.fbx` | Provides natural, irregular low-poly rock shapes to replace primitive gray scale cubes. |
+*   **1. Soil Cell (Ô đất trồng)**
+    *   *Trạng thái hiện tại:* Đã cấu hình prefab `SoilCell.prefab` kèm trigger collider và script tương tác.
+    *   *Đề xuất sử dụng:* Đặt 4 ô đất làm ruộng canh tác chính của Thành.
+    *   *Độ ưu tiên:* Cao nhất (Priority 0).
+    *   *Lưu ý kỹ thuật:* Cần đảm bảo trigger BoxCollider căn chỉnh đúng kích thước hiển thị để nhân vật tiếp cận nhấn `[E]` dễ dàng.
+*   **2. Ground Textures (Đất khô, đất ướt, cát trắng)**
+    *   *Trạng thái hiện tại:* Đã có tệp `dry_soil.png` và `wet_soil.png`.
+    *   *Đề xuất sử dụng:* Thay đổi vật liệu đất trồng tương ứng theo độ ẩm thực tế khi tưới tiêu hoặc nắng hạn.
+    *   *Độ ưu tiên:* Cao (Priority 0).
+*   **3. Flood Water Plane (Mặt nước lũ)**
+    *   *Trạng thái hiện tại:* Đã có tệp `water_waves.png` làm texture phủ nước.
+    *   *Đề xuất sử dụng:* Tấm phẳng 3D nước lũ nâng hạ độ cao theo biến `waterLevel` ở Phase 3.
+    *   *Độ ưu tiên:* Cao (Priority 0).
+    *   *Lưu ý kỹ thuật:* Bỏ MeshCollider trên water plane để nhân vật lội nước bình thường mà không bị chặn, chỉ kích hoạt hiệu ứng sinh lý lạnh.
+*   **4. Potato Crop 3D Models (Model Khoai Lang)**
+    *   *Trạng thái hiện tại:* Đã gán `Plant_1`, `Plant_3`, `Plant_5` từ Nature Pack cho các giai đoạn mầm, phát triển, chín.
+    *   *Đề xuất sử dụng:* Sinh tự động tại tọa độ con của SoilCell tương ứng với mức lớn của cây.
+    *   *Độ ưu tiên:* Cao (Priority 0).
 
 ---
 
-## 4. Environment Upgrade Roadmap
+### Nhóm 2: Thiết Yếu Cho Bản Sắc Văn Hóa (Essential for Vietnamese Cultural Identity)
+Các asset trực tiếp truyền tải linh hồn làng quê miền Trung Việt Nam:
 
-*   **Phase 1 (Landmarks & Foliage):** Swap primitive well, banana trees, and rocks with `Well.fbx`, `BananaTree.obj`, and `Rock_1..7.fbx` models. Use `PUSHILIN_bamboo.obj` to create village hedges.
-*   **Phase 2 (Buildings):** Swap the primitive player house and O Thắm's shop with `HoiAnHouse_M2.fbx` and `asian_house.glb`. Set up the fence using `Fence.fbx`.
-*   **Phase 3 (Polishing & Background):** Replace primitive boundary cubes with modular rocky hills and palm/willow trees from the Ultimate Nature Pack. Add wood logs (`WoodLog.fbx`) as ground details.
+*   **1. Hoi An House (`HoiAnHouse_M2.fbx`)**
+    *   *Trạng thái hiện tại:* Đã import tệp fbx vào `Assets/Prefabs/`.
+    *   *Đề xuất sử dụng:* Làm nhà ở chính ba gian của Thành.
+    *   *Độ ưu tiên:* Cao (Priority 0).
+    *   *Lưu ý kỹ thuật:* Khớp tỷ lệ scale của Mesh và căn BoxCollider bọc ngoài chân tường để nhân vật không đi xuyên tường.
+*   **2. Asian House (`asian_house.glb`)**
+    *   *Trạng thái hiện tại:* Đã import vào `Assets/Prefabs/`.
+    *   *Đề xuất sử dụng:* Làm nhà và cửa hàng đại lý tương trợ của O Thắm.
+    *   *Độ ưu tiên:* Cao (Priority 0).
+*   **3. Village Well (`Well.fbx`)**
+    *   *Trạng thái hiện tại:* Đã có prefab đá cổ.
+    *   *Đề xuất sử dụng:* Giếng nước trung tâm làng cạnh nhà Thành để lấy nước tưới.
+    *   *Độ ưu tiên:* Cao (Priority 0).
+*   **4. Village Speaker Pole (Cột loa phát thanh)**
+    *   *Trạng thái hiện tại:* Đã import model cột loa.
+    *   *Đề xuất sử dụng:* Đặt ở ngã ba làng, phát âm thanh rè rè thông báo chuyển Phase vào mỗi sáng.
+    *   *Độ ưu tiên:* Cao (Priority 0).
+*   **5. Ancestral Altar (Bàn thờ/Miếu thờ đầu làng)**
+    *   *Trạng thái hiện tại:* Đã gán script `AncestralAltar` hỗ trợ thắp nhang.
+    *   *Đề xuất sử dụng:* Đặt dưới gốc cây đa cổ thụ đầu làng làm điểm hồi tinh thần.
+    *   *Độ ưu tiên:* Trung bình (Priority 1).
+
+---
+
+### Nhóm 3: Hỗ Trợ Làm Đẹp Môi Trường (Useful for Visual Polish)
+Tăng chiều sâu thẩm mỹ sương gió của ngôi làng ven biển:
+
+*   **1. Banana Tree (`BananaTree.obj`)**
+    *   *Trạng thái hiện tại:* Đã import kèm tệp base color texture.
+    *   *Đề xuất sử dụng:* Đặt sau vườn nhà Thành và dọc các lối đi nhỏ.
+    *   *Độ ưu tiên:* Trung bình (Priority 1).
+*   **2. Bamboo Stalks (`PUSHILIN_bamboo.obj`)**
+    *   *Trạng thái hiện tại:* Đã import.
+    *   *Đề xuất sử dụng:* Ghép cụm làm bụi tre làng rợp bóng mát đầu ngõ.
+    *   *Độ ưu tiên:* Trung bình (Priority 1).
+*   **3. Silt Soil Texture (Đất phù sa bồi đắp)**
+    *   *Trạng thái hiện tại:* Có tệp `silt_soil.png`.
+    *   *Đề xuất sử dụng:* Tự động đổi vật liệu đất trồng sang màu phù sa xám ẩm khi chuyển sang Phase 4 sau khi rút lũ.
+    *   *Độ ưu tiên:* Trung bình (Priority 1).
+*   **4. Wood Logs & Rocks (`WoodLog.fbx` / `Rock_1..7.fbx`)**
+    *   *Trạng thái hiện tại:* Sẵn có trong Ultimate Nature Pack.
+    *   *Đề xuất sử dụng:* Rải rác quanh ruộng để làm chướng ngại vật đá cằn dọn dẹp hoặc củi gỗ chuẩn bị lũ.
+    *   *Độ ưu tiên:* Trung bình (Priority 1).
+
+---
+
+### Nhóm 4: Ít Ưu Tiên / Tùy Chọn (Optional / Low Priority)
+Có thể thêm hoặc lược bỏ không ảnh hưởng chất lượng Demo:
+
+*   **1. Town Buildings (`House_1.fbx` đến `House_4.fbx`)**
+    *   *Trạng thái hiện tại:* Sẵn có trong thư mục `FBX-Village/`.
+    *   *Đề xuất sử dụng:* Làm hậu cảnh xa xa cho ngôi làng nếu cần thêm mật độ nhà.
+    *   *Độ ưu tiên:* Thấp (Priority 2).
+*   **2. Palm & Willow Trees (Cây cọ, cây liễu)**
+    *   *Trạng thái hiện tại:* Sẵn có trong Nature Pack.
+    *   *Đề xuất sử dụng:* Trang trí ngoài rìa bản đồ.
+    *   *Độ ưu tiên:* Thấp (Priority 2).
+
+---
+
+### Nhóm 5: Loại Bỏ Hoặc Bỏ Qua (Remove or Ignore for Now)
+Không phù hợp văn hóa Việt Nam hoặc làm loãng phạm vi Demo:
+
+*   **1. Blacksmith, Inn, Sawmill, Stable (`Blacksmith.fbx`...)**
+    *   *Trạng thái hiện tại:* Sẵn có trong thư mục `FBX-Village/`.
+    *   *Lý do bỏ qua:* Đây là các mô hình mang phong cách thị trấn thời Trung cổ châu Âu (Medieval), hoàn toàn phá vỡ không khí làng quê Việt Nam. Không đưa vào Scene.
+*   **2. Cây phủ tuyết (`Rock_Snow`, `Tree_Snow`)**
+    *   *Lý do bỏ qua:* Miền Trung Việt Nam chịu hạn hán bão lũ, không có tuyết rơi.
+*   **3. Đồ trang trí chợ phương Tây (Market stalls)**
+    *   *Lý do bỏ qua:* Tránh làm loãng kinh tế tương trợ bằng các sạp trao đổi kiểu RPG phương Tây.
+
+---
+
+## 2. Thiết Kế Bản Đồ Thu Gọn (Compact Playable Area)
+* Không mở rộng địa hình lớn. Thiết kế khu vực chơi bó hẹp trong diện tích khoảng **50m x 50m**:
+  * **Trung tâm:** Mảnh vườn nhà Thành (gồm 4 ô đất SoilCell, giếng nước, nhà ngói ba gian).
+  * **Phía Tây:** Cửa hàng nhỏ của O Thắm và bụi chuối hàng rào tre.
+  * **Phía Đông:** Ngôi nhà tranh đơn sơ của Bác Năm.
+  * **Phía Bắc:** Đình làng cổ kính có Cột loa phát thanh xã và Bàn thờ cổ.
+  * **Rìa ngoài:** Bờ bụi tre dày đặc và các ngọn đồi sỏi đá làm biên giới chặn di chuyển tự nhiên của nhân vật, giải phóng bộ nhớ và tránh lỗi camera đi ra ngoài phạm vi thiết kế.

@@ -306,5 +306,46 @@ namespace SownInStone.Agriculture
                 soilSpriteRenderer.color = Color.white;
             }
         }
+
+        private GameObject highlightObj;
+
+        public void SetHighlight(bool active)
+        {
+            if (active)
+            {
+                if (highlightObj == null)
+                {
+                    highlightObj = new GameObject("SoilHighlight");
+                    highlightObj.transform.SetParent(this.transform, false);
+                    highlightObj.transform.localPosition = new Vector3(0f, 0f, -0.05f);
+                    highlightObj.transform.localRotation = Quaternion.identity;
+                    highlightObj.transform.localScale = Vector3.one;
+
+                    SpriteRenderer hr = highlightObj.AddComponent<SpriteRenderer>();
+                    if (soilSpriteRenderer != null)
+                    {
+                        hr.sprite = soilSpriteRenderer.sprite;
+                        hr.size = soilSpriteRenderer.size;
+                    }
+                    hr.color = new Color(0.95f, 0.85f, 0.1f, 0.35f); // Màu vàng bán trong suốt
+                }
+                else
+                {
+                    highlightObj.SetActive(true);
+                    SpriteRenderer hr = highlightObj.GetComponent<SpriteRenderer>();
+                    if (hr != null && soilSpriteRenderer != null)
+                    {
+                        hr.sprite = soilSpriteRenderer.sprite;
+                    }
+                }
+            }
+            else
+            {
+                if (highlightObj != null && highlightObj.activeSelf)
+                {
+                    highlightObj.SetActive(false);
+                }
+            }
+        }
     }
 }

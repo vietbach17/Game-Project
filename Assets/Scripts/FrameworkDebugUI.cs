@@ -34,6 +34,13 @@ namespace SownInStone
         [Tooltip("Bảng điều khiển có hiển thị hay không (sẽ được kích hoạt sau khi bấm bắt đầu ở Menu chính).")]
         public bool isUIVisible = false;
 
+        public static FrameworkDebugUI Instance { get; private set; }
+
+        private void Awake()
+        {
+            Instance = this;
+        }
+
         private void Start()
         {
             // Kiểm tra xem có Main Menu đang hiển thị hay không để ẩn bảng điều khiển
@@ -324,96 +331,37 @@ namespace SownInStone
             GUILayout.EndArea();
 
             // 7. PHÂN HỆ GIẢ LẬP TRÌNH DIỄN THIÊN TAI (DEV CONTROL)
-            Rect devRect = new Rect(10, 560, 520, 165);
-            GUI.Box(devRect, "<b>BÀN ĐIỀU PHỐI THIÊN TAI (DÀNH CHO ĐỘI NGŨ PHÁT TRIỂN)</b>");
+            Rect devRect = new Rect(10, 560, 520, 185);
+            GUI.Box(devRect, "<b>PRESENTATION DEMO CONTROLS</b>");
             GUILayout.BeginArea(new Rect(devRect.x + 10, devRect.y + 20, devRect.width - 20, devRect.height - 30));
+            
+            // Row 1: Phase Jumps
             GUILayout.BeginHorizontal();
-
-            if (GUILayout.Button("Giả lập Mùa 1: Lập Nghiệp"))
+            if (GUILayout.Button("Jump to Phase 1"))
             {
                 GameManager.Instance?.TransitionToPhase(GamePhase.LapNghiep);
                 ShowAlert("Bắt đầu lập nghiệp, khai phá bờ cõi dọn dẹp sỏi đá.");
             }
-            if (GUILayout.Button("Giả lập Mùa 2: Gió Lào"))
+            if (GUILayout.Button("Jump to Phase 2"))
             {
                 GameManager.Instance?.TransitionToPhase(GamePhase.GioLao);
                 ShowAlert("Gió Lào tràn về bỏng rát nhiệt độ lên 42°C!");
             }
-            if (GUILayout.Button("Giả lập Mùa 3: Bão Lũ"))
+            if (GUILayout.Button("Jump to Phase 3"))
             {
                 GameManager.Instance?.TransitionToPhase(GamePhase.MuaBao);
-                CommunityManager.Instance?.TriggerStormHelpSequence();
                 ShowAlert("Bão siêu cấp đổ bộ! Kêu gọi xóm giềng sang đổi công chống bão!");
             }
-            if (GUILayout.Button("Giả lập Mùa 4: Phù Sa"))
+            if (GUILayout.Button("Jump to Phase 4"))
             {
                 GameManager.Instance?.TransitionToPhase(GamePhase.PhuSa);
                 ShowAlert("Bão tan nước rút bồi đắp lớp đất phù sa vàng màu mỡ!");
             }
-
-            GUILayout.EndHorizontal();
-            
-            // Dòng nút phụ để test nhanh chỉ số Stress Nhiệt / Lạnh
-            GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Thêm +35% Stress Nhiệt"))
-            {
-                PlayerStats.Instance?.ApplyHeatStress(35f);
-                ShowAlert("Đã tăng +35% Stress Nhiệt cho Thành!");
-            }
-            if (GUILayout.Button("Thêm +35% Stress Lạnh"))
-            {
-                PlayerStats.Instance?.ApplyColdStress(35f);
-                ShowAlert("Đã tăng +35% Stress Lạnh cho Thành!");
-            }
-            if (GUILayout.Button("Reset Toàn Bộ Stress"))
-            {
-                PlayerStats.Instance?.ApplyHeatStress(-100f);
-                PlayerStats.Instance?.ApplyColdStress(-100f);
-                ShowAlert("Đã reset chỉ số Stress về 0%!");
-            }
             GUILayout.EndHorizontal();
 
-            // Dòng nút kiểm thử Lũ lụt dâng cao / rút nước
+            // Row 2: Resources
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Dâng lũ khẩn cấp (1.6m)"))
-            {
-                if (WeatherManager.Instance != null)
-                {
-                    WeatherManager.Instance.DebugSetFloodLevel(1.6f);
-                    ShowAlert("Lũ dâng lên 1.6m! Nước ngập lút đồng ruộng!");
-                }
-            }
-            if (GUILayout.Button("Tua nhanh nước rút (0m)"))
-            {
-                if (WeatherManager.Instance != null)
-                {
-                    WeatherManager.Instance.DebugSetFloodLevel(0f);
-                    ShowAlert("Nước rút hoàn toàn về 0m!");
-                }
-            }
-            GUILayout.EndHorizontal();
-
-            // Dòng nút kiểm thử Tài chính và Vật phẩm
-            GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Tặng +50 Xu"))
-            {
-                PlayerStats.Instance?.ModifyCoins(50);
-                ShowAlert("Đã cộng thêm 50 Xu tài sản!");
-            }
-            if (GUILayout.Button("Trừ -50 Xu"))
-            {
-                PlayerStats.Instance?.ModifyCoins(-50);
-                ShowAlert("Đã khấu trừ 50 Xu!");
-            }
-            if (GUILayout.Button("Tặng +5 Khoai Tươi"))
-            {
-                if (StorageManager.Instance != null && testFreshCrop != null)
-                {
-                    StorageManager.Instance.AddItem(testFreshCrop, 5);
-                    ShowAlert("Đã thêm 5 Khoai lang tươi vào kho đồ!");
-                }
-            }
-            if (GUILayout.Button("Tặng +5 Hạt Giống"))
+            if (GUILayout.Button("Add +5 Seeds"))
             {
                 if (StorageManager.Instance != null && testSeedItem != null)
                 {
@@ -421,22 +369,59 @@ namespace SownInStone
                     ShowAlert("Đã thêm 5 Hạt giống Khoai vào kho đồ!");
                 }
             }
+            if (GUILayout.Button("Add +5 Food"))
+            {
+                if (StorageManager.Instance != null && testPreservedCrop != null)
+                {
+                    StorageManager.Instance.AddItem(testPreservedCrop, 5);
+                    ShowAlert("Đã thêm 5 Khoai Gieo (lương thực khô) vào kho đồ!");
+                }
+            }
             GUILayout.EndHorizontal();
 
-            // Dòng nút kiểm thử nông nghiệp
+            // Row 3: Nghĩa Tình (Karma)
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Debug: Mature Crops"))
+            if (GUILayout.Button("Set Nghĩa Tình = 20"))
             {
-#if UNITY_2023_1_OR_NEWER
-                var crops = FindObjectsByType<SownInStone.Agriculture.CropInstance>(FindObjectsInactive.Include);
-#else
-                var crops = FindObjectsOfType<SownInStone.Agriculture.CropInstance>();
-#endif
-                foreach (var crop in crops)
+                if (CommunityManager.Instance != null)
                 {
-                    crop.DebugMature();
+                    int diff = 20 - CommunityManager.Instance.GlobalKarma;
+                    CommunityManager.Instance.ModifyGlobalKarma(diff);
+                    ShowAlert($"Đã đặt Nghĩa Tình = 20 (Đất sỏi đá cằn)");
                 }
-                ShowAlert("Đã ép tất cả cây trồng chín ngay lập tức!");
+            }
+            if (GUILayout.Button("Set Nghĩa Tình = 50"))
+            {
+                if (CommunityManager.Instance != null)
+                {
+                    int diff = 50 - CommunityManager.Instance.GlobalKarma;
+                    CommunityManager.Instance.ModifyGlobalKarma(diff);
+                    ShowAlert($"Đã đặt Nghĩa Tình = 50 (Lá lành đùm lá rách)");
+                }
+            }
+            if (GUILayout.Button("Set Nghĩa Tình = 80"))
+            {
+                if (CommunityManager.Instance != null)
+                {
+                    int diff = 80 - CommunityManager.Instance.GlobalKarma;
+                    CommunityManager.Instance.ModifyGlobalKarma(diff);
+                    ShowAlert($"Đã đặt Nghĩa Tình = 80 (Đất cày nở hoa)");
+                }
+            }
+            GUILayout.EndHorizontal();
+
+            // Row 4: Ending
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("Show Ending"))
+            {
+                if (SownInStone.UI.EndingManager.Instance != null)
+                {
+                    SownInStone.UI.EndingManager.Instance.ShowEnding();
+                }
+                else
+                {
+                    ShowAlert("Không tìm thấy EndingManager trong Scene!");
+                }
             }
             GUILayout.EndHorizontal();
 

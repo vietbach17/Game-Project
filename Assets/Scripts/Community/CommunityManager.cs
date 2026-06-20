@@ -15,6 +15,11 @@ namespace SownInStone.Community
         [Tooltip("Điểm nghĩa tình chung của người chơi trong cả làng (0 - 100). Đạt càng cao càng có nhiều đặc quyền xã hội.")]
         [SerializeField] private int globalKarmaPoints = 20;
 
+        [Header("--- SỰ KIỆN CỘNG ĐỒNG (PHASE-BASED EVENTS) ---")]
+        public bool eventOThamFoodCompleted = false;
+        public bool eventBacNamStormCompleted = false;
+        public bool eventVillageRecoveryCompleted = false;
+
         [Header("--- HÀNG XÓM LÁNG GIỀNG ---")]
         [Tooltip("Danh sách toàn bộ người dân làng trong hệ thống.")]
         [SerializeField] private List<NPCCharacter> villagerNPCs = new List<NPCCharacter>();

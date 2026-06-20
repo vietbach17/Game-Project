@@ -35,8 +35,24 @@ namespace SownInStone.Community
         [Tooltip("Số ngày công tích lũy đổi công (Tục Vần Công) với người chơi.")]
         [SerializeField] private int vanCongCredits = 0;
 
+        private bool hasTalkedThisSession = false;
+
+        public bool CanReceiveTalkReward()
+        {
+            return !hasTalkedThisSession;
+        }
+
+        public void MarkTalkedToday()
+        {
+            hasTalkedThisSession = true;
+        }
+
+        private Quaternion defaultRotation;
+
         private void Start()
         {
+            defaultRotation = transform.rotation;
+
             // Tự động đặt tên GameObject tương ứng trong Hierarchy để Designer dễ quản lý
             if (characterType == StoryCharacterType.BacNam)
             {
@@ -99,9 +115,23 @@ namespace SownInStone.Community
                 modelObj.name = "Visual";
                 
                 // Căn chỉnh vị trí, góc xoay và tỉ lệ giống như thiết lập chuẩn
-                modelObj.transform.localPosition = new Vector3(0f, -0.5f, 0f);
                 modelObj.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
-                modelObj.transform.localScale = Vector3.one;
+                
+                float scaleVal = 1.0f;
+                float localY = -0.5f;
+                if (characterType == StoryCharacterType.BacNam)
+                {
+                    scaleVal = 1.22f;
+                    localY = 0.54f;
+                }
+                else if (characterType == StoryCharacterType.OTham)
+                {
+                    scaleVal = 1.30f;
+                    localY = 0.61f;
+                }
+                
+                modelObj.transform.localPosition = new Vector3(0f, localY, 0f);
+                modelObj.transform.localScale = new Vector3(scaleVal, scaleVal, scaleVal);
 
                 // Cập nhật lại BoxCollider nếu cần thiết
                 BoxCollider boxCol = GetComponent<BoxCollider>();
@@ -291,6 +321,76 @@ namespace SownInStone.Community
             }
 
             return true;
+        }
+
+        private Coroutine lookAtCoroutine;
+
+        public void LookAtPlayer(Transform player)
+        {
+            if (player == null) return;
+            if (lookAtCoroutine != null)
+            {
+                StopCoroutine(lookAtCoroutine);
+            }
+            lookAtCoroutine = StartCoroutine(LookAtCoroutine(player));
+        }
+
+        private System.Collections.IEnumerator LookAtCoroutine(Transform player)
+        {
+            float duration = 0.15f;
+            float elapsed = 0f;
+            Quaternion startRot = transform.rotation;
+            
+            Vector3 dir = player.position - transform.position;
+            dir.y = 0;
+            if (dir.sqrMagnitude > 0.01f)
+            {
+                Quaternion targetRot = Quaternion.LookRotation(dir);
+                while (elapsed < duration)
+                {
+                    elapsed += Time.deltaTime;
+                    transform.rotation = Quaternion.Slerp(startRot, targetRot, elapsed / duration);
+                    yield return null;
+                }
+                transform.rotation = targetRot;
+            }
+            lookAtCoroutine = null;
+        }
+
+        public void ReturnToDefaultRotation()
+        {
+            if (SownInStone.UI.SurvivalUIManager.Instance != null && SownInStone.UI.SurvivalUIManager.Instance.IsDialogueActive)
+            {
+                return;
+            }
+
+            if (lookAtCoroutine != null)
+            {
+                StopCoroutine(lookAtCoroutine);
+            }
+            lookAtCoroutine = StartCoroutine(ReturnToDefaultCoroutine());
+        }
+
+        private System.Collections.IEnumerator ReturnToDefaultCoroutine()
+        {
+            float duration = 0.35f;
+            float elapsed = 0f;
+            Quaternion startRot = transform.rotation;
+
+            while (elapsed < duration)
+            {
+                if (SownInStone.UI.SurvivalUIManager.Instance != null && SownInStone.UI.SurvivalUIManager.Instance.IsDialogueActive)
+                {
+                    lookAtCoroutine = null;
+                    yield break;
+                }
+
+                elapsed += Time.deltaTime;
+                transform.rotation = Quaternion.Slerp(startRot, defaultRotation, elapsed / duration);
+                yield return null;
+            }
+            transform.rotation = defaultRotation;
+            lookAtCoroutine = null;
         }
     }
 }

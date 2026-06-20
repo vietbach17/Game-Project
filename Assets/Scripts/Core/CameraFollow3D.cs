@@ -7,51 +7,52 @@ using UnityEngine.InputSystem;
 namespace SownInStone.Core
 {
     /// <summary>
-    /// Điều khiển Camera theo góc nhìn thứ 3 (Third Person) bám theo Player.
-    /// Camera di chuyển mượt mà theo vị trí Player và chỉ xoay hướng khi người chơi
-    /// nhấn giữ chuột phải (Right Mouse Button) và di chuyển chuột.
+    /// Roblox-like third-person camera that follows the player, supports right mouse rotation,
+    /// scroll wheel zoom, and simple collision safety.
     /// </summary>
     public class CameraFollow3D : MonoBehaviour
     {
-        [Header("--- THEO DÕI PLAYER ---")]
-        [Tooltip("Đối tượng Camera sẽ đi theo. Nếu trống, script tự tìm Player trong scene.")]
+        [Header("--- TARGETS ---")]
+        [Tooltip("The target the camera will follow.")]
         [SerializeField] private Transform target;
 
-        [Tooltip("Độ trễ mượt mà khi di chuyển vị trí (giá trị càng lớn di chuyển càng nhanh/khớp).")]
-        [SerializeField] private float smoothSpeed = 5f;
+        [Header("--- ZOOM SETTINGS ---")]
+        [Tooltip("Default distance from target.")]
+        [SerializeField] private float distance = 7f;
+        [SerializeField] private float minDistance = 3f;
+        [SerializeField] private float maxDistance = 10f;
+        [SerializeField] private float zoomSpeed = 2f;
 
-        [Header("--- THÔNG SỐ GÓC NHÌN THỨ 3 ---")]
-        [Tooltip("Khoảng cách từ camera đến Player (4.5m - 6m).")]
-        [SerializeField] private float distance = 5f;
-
-        [Tooltip("Chiều cao của camera so với Player (2.5m - 3.5m).")]
-        [SerializeField] private float height = 3f;
-
-        [Tooltip("Góc nghiêng nhìn xuống Player hiện tại (khoảng 20° - 35°).")]
-        [SerializeField] private float pitch = 25f;
-
-        [Header("--- ĐIỀU KHIỂN XOAY XOAY ---")]
-        [Tooltip("Có cho phép xoay camera thủ công bằng chuột không.")]
-        [SerializeField] private bool enableManualRotation = true;
-
-        [Tooltip("Nút chuột để giữ xoay camera (1 = Chuột phải).")]
-        [SerializeField] private int rotateMouseButton = 1; 
-
-        [Tooltip("Độ nhạy khi di chuyển chuột để xoay camera.")]
-        [SerializeField] private float mouseSensitivity = 2.0f;
-
-        [Tooltip("Góc nhìn nghiêng xuống tối thiểu (độ).")]
+        [Header("--- HEIGHT & ANGLE ---")]
+        [Tooltip("Vertical height offset relative to target.")]
+        [SerializeField] private float height = 3.5f;
         [SerializeField] private float minPitch = 15f;
+        [SerializeField] private float maxPitch = 65f;
+        [SerializeField] private float defaultPitch = 30f;
 
-        [Tooltip("Góc nhìn nghiêng xuống tối đa (độ).")]
-        [SerializeField] private float maxPitch = 45f;
+        [Header("--- ROTATION SENSITIVITY ---")]
+        [SerializeField] private float yawSensitivity = 2f;
+        [SerializeField] private float pitchSensitivity = 2f;
 
+        [Header("--- SMOOTHING ---")]
+        [Tooltip("Time to smooth camera movement.")]
+        [SerializeField] private float smoothTime = 0.1f;
+
+        [Header("--- COLLISION SAFETY ---")]
+        [SerializeField] private LayerMask collisionLayers = ~0;
+        [SerializeField] private float cameraRadius = 0.2f;
+
+        // Current rotation state
         private float currentYaw = 0f;
+        private float currentPitch = 30f;
+        
+        // Target values for smoothing zoom
+        private float targetDistance;
+        private Vector3 currentVelocity;
         private Camera targetCamera;
 
         private void Start()
         {
-            // Tự động tìm target là Player nếu chưa gán
             if (target == null && PlayerController.Instance != null)
             {
                 target = PlayerController.Instance.transform;
@@ -60,13 +61,13 @@ namespace SownInStone.Core
             targetCamera = GetComponent<Camera>();
             if (targetCamera != null)
             {
-                // Thiết lập camera sang chế độ Perspective cho chuẩn góc nhìn 3D Third Person
                 targetCamera.orthographic = false;
                 targetCamera.fieldOfView = 60f;
             }
 
-            // Khởi tạo góc quay ngang hiện tại khớp với hướng camera trong editor
             currentYaw = transform.eulerAngles.y;
+            currentPitch = defaultPitch;
+            targetDistance = distance;
         }
 
         private void LateUpdate()
@@ -80,51 +81,75 @@ namespace SownInStone.Core
                 return;
             }
 
-            // Xử lý xoay camera thủ công bằng chuột phải
-            if (enableManualRotation)
+            // 1. Mouse wheel zoom
+            float scroll = 0f;
+#if ENABLE_INPUT_SYSTEM
+            if (Mouse.current != null)
             {
-                float mouseX = 0f;
-                float mouseY = 0f;
-                bool isRMBHeld = false;
+                scroll = Mouse.current.scroll.ReadValue().y * 0.01f;
+            }
+#else
+            scroll = Input.GetAxis("Mouse ScrollWheel") * 10f;
+#endif
+            if (Mathf.Abs(scroll) > 0.01f)
+            {
+                targetDistance = Mathf.Clamp(targetDistance - scroll * zoomSpeed, minDistance, maxDistance);
+            }
+            distance = Mathf.Lerp(distance, targetDistance, Time.deltaTime * 10f);
+
+            // 2. Right mouse camera rotation
+            float mouseX = 0f;
+            float mouseY = 0f;
+            bool isRMBHeld = false;
 
 #if ENABLE_INPUT_SYSTEM
-                if (Mouse.current != null)
-                {
-                    isRMBHeld = Mouse.current.rightButton.isPressed;
-                    if (isRMBHeld)
-                    {
-                        // Delta của Input System trả về pixel delta nên cần chia tỷ lệ nhỏ lại
-                        Vector2 delta = Mouse.current.delta.ReadValue();
-                        mouseX = delta.x * 0.1f; 
-                        mouseY = delta.y * 0.1f;
-                    }
-                }
-#else
-                isRMBHeld = Input.GetMouseButton(rotateMouseButton);
+            if (Mouse.current != null)
+            {
+                isRMBHeld = Mouse.current.rightButton.isPressed;
                 if (isRMBHeld)
                 {
-                    mouseX = Input.GetAxis("Mouse X");
-                    mouseY = Input.GetAxis("Mouse Y");
-                }
-#endif
-
-                if (isRMBHeld)
-                {
-                    currentYaw += mouseX * mouseSensitivity;
-                    pitch -= mouseY * mouseSensitivity;
-                    pitch = Mathf.Clamp(pitch, minPitch, maxPitch);
+                    Vector2 delta = Mouse.current.delta.ReadValue();
+                    mouseX = delta.x * 0.1f;
+                    mouseY = delta.y * 0.1f;
                 }
             }
+#else
+            isRMBHeld = Input.GetMouseButton(1);
+            if (isRMBHeld)
+            {
+                mouseX = Input.GetAxis("Mouse X");
+                mouseY = Input.GetAxis("Mouse Y");
+            }
+#endif
 
-            // Tính toán vị trí mục tiêu của camera dựa trên Yaw và Pitch hiện tại
-            Quaternion rotation = Quaternion.Euler(pitch, currentYaw, 0f);
-            Vector3 negDistance = new Vector3(0f, 0f, -distance);
-            Vector3 targetPosition = target.position + new Vector3(0f, height, 0f) + (rotation * negDistance);
+            if (isRMBHeld)
+            {
+                currentYaw += mouseX * yawSensitivity;
+                currentPitch -= mouseY * pitchSensitivity;
+                currentPitch = Mathf.Clamp(currentPitch, minPitch, maxPitch);
+            }
 
-            // Di chuyển vị trí camera mượt mà bằng Lerp
-            transform.position = Vector3.Lerp(transform.position, targetPosition, smoothSpeed * Time.deltaTime);
+            // 3. Calculate desired camera rotation and position
+            Quaternion rotation = Quaternion.Euler(currentPitch, currentYaw, 0f);
+            Vector3 targetCenter = target.position + Vector3.up * height;
+            Vector3 desiredDirection = rotation * Vector3.back;
 
-            // Cập nhật hướng xoay của camera
+            // 4. Collision Safety (SphereCast from target center to desired camera position)
+            float checkDistance = distance;
+            RaycastHit[] hits = Physics.SphereCastAll(targetCenter, cameraRadius, desiredDirection, distance, collisionLayers, QueryTriggerInteraction.Ignore);
+            System.Array.Sort(hits, (x, y) => x.distance.CompareTo(y.distance));
+            foreach (var hitInfo in hits)
+            {
+                if (hitInfo.collider.transform == target || hitInfo.collider.transform.IsChildOf(target))
+                    continue;
+                
+                checkDistance = Mathf.Clamp(hitInfo.distance, minDistance, distance);
+                break;
+            }
+            Vector3 finalTargetPos = targetCenter + desiredDirection * checkDistance;
+
+            // 5. Smooth camera movement
+            transform.position = Vector3.SmoothDamp(transform.position, finalTargetPos, ref currentVelocity, smoothTime);
             transform.rotation = rotation;
         }
     }

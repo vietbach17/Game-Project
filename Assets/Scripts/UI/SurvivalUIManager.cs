@@ -25,6 +25,7 @@ namespace SownInStone.UI
         [Header("--- CANVAS GROUP ---")]
         [Tooltip("Kéo CanvasGroup chính của cụm UI này vào để ẩn/hiển thị đồng bộ.")]
         [SerializeField] private CanvasGroup mainUICanvasGroup;
+        [SerializeField] private VillageSpeakerBanner villageSpeakerBanner;
 
         [Header("--- CHỈ SỐ SINH TỒN ---")]
         [SerializeField] private Slider healthSlider;
@@ -105,7 +106,7 @@ namespace SownInStone.UI
         private TextMeshProUGUI weatherDetailsText;
         private bool isWeatherDetailsOpen = false;
 
-        private TextMeshProUGUI interactionPromptText;
+        public TextMeshProUGUI interactionPromptText;
         private TextMeshProUGUI coinsText; // Text Xu ở Top-Right
 
         private GameObject toastPanel;
@@ -126,6 +127,7 @@ namespace SownInStone.UI
 
         public bool IsDialogueActive => isDialogueActive;
         public bool IsChoiceActive => isChoiceActive;
+        public bool IsShopOpen => isShopOpen;
 
         private void Awake()
         {
@@ -138,6 +140,8 @@ namespace SownInStone.UI
                 Destroy(gameObject);
                 return;
             }
+            gameObject.AddComponent<NPCProximityOptionsUI>();
+            gameObject.AddComponent<NPCQuestMarkerUI>();
         }
 
         private void Start()
@@ -183,6 +187,7 @@ namespace SownInStone.UI
             CreateWeatherDetailsPanel();
             CreateInteractionPromptUI();
             CreateToastNotificationUI();
+            CreateControlsLegendUI();
             CreateShopPanel();
 
             // Mặc định ẩn hòm đồ và khung hội thoại lúc khởi động
@@ -275,6 +280,12 @@ namespace SownInStone.UI
                     ToggleWeatherDetailsPanel();
                 }
 
+                // Toggle Controls Legend (H)
+                if (Keyboard.current.hKey.wasPressedThisFrame)
+                {
+                    ToggleControlsLegend();
+                }
+
                 if (isDialogueActive && !isChoiceActive && (Keyboard.current.escapeKey.wasPressedThisFrame || Keyboard.current.spaceKey.wasPressedThisFrame))
                 {
                     CloseDialogue();
@@ -313,6 +324,12 @@ namespace SownInStone.UI
             if (Input.GetKeyDown(KeyCode.M))
             {
                 ToggleWeatherDetailsPanel();
+            }
+
+            // Toggle Controls Legend (H)
+            if (Input.GetKeyDown(KeyCode.H))
+            {
+                ToggleControlsLegend();
             }
 
             if (isDialogueActive && !isChoiceActive && (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.Space)))
@@ -384,7 +401,7 @@ namespace SownInStone.UI
                 r.anchorMin = new Vector2(0f, 1f);
                 r.anchorMax = new Vector2(0f, 1f);
                 r.pivot = new Vector2(0f, 1f);
-                r.anchoredPosition = new Vector2(25f, -25f);
+                r.anchoredPosition = new Vector2(20f, -20f);
                 r.sizeDelta = new Vector2(250f, 25f);
             }
             if (timeText != null)
@@ -400,8 +417,26 @@ namespace SownInStone.UI
                 r.anchorMin = new Vector2(0f, 1f);
                 r.anchorMax = new Vector2(0f, 1f);
                 r.pivot = new Vector2(0f, 1f);
-                r.anchoredPosition = new Vector2(25f, -50f);
+                r.anchoredPosition = new Vector2(20f, -48f);
                 r.sizeDelta = new Vector2(250f, 20f);
+            }
+
+            // 2.5. Định vị NghiaTinhPanel dưới Time HUD (X = 20, Y = -95)
+#if UNITY_2023_1_OR_NEWER
+            NghiaTinhUI nghiaTinh = FindAnyObjectByType<NghiaTinhUI>();
+#else
+            NghiaTinhUI nghiaTinh = FindObjectOfType<NghiaTinhUI>();
+#endif
+            if (nghiaTinh != null)
+            {
+                RectTransform r = nghiaTinh.GetComponent<RectTransform>();
+                if (r != null)
+                {
+                    r.anchorMin = new Vector2(0f, 1f);
+                    r.anchorMax = new Vector2(0f, 1f);
+                    r.pivot = new Vector2(0f, 1f);
+                    r.anchoredPosition = new Vector2(20f, -95f);
+                }
             }
 
             // 3. Nhóm thông tin Thời tiết và Tài sản (Top-Right)
@@ -1194,6 +1229,35 @@ namespace SownInStone.UI
 
         private void TriggerPhaseAnnouncement(GamePhase newPhase)
         {
+            if (villageSpeakerBanner != null)
+            {
+                string title = "";
+                string message = "";
+                int day = GameManager.Instance != null ? GameManager.Instance.CurrentDay : 1;
+
+                switch (newPhase)
+                {
+                    case GamePhase.LapNghiep:
+                        title = "TIẾNG TRỐNG ĐÌNH LÀNG";
+                        message = "Loa phát thanh xã xin thông báo: Hôm nay bà con ra đồng dọn ruộng, chuẩn bị vụ khoai đầu mùa. Mong mọi người giúp đỡ nhau, giữ gìn tình làng nghĩa xóm.";
+                        break;
+                    case GamePhase.GioLao:
+                        title = "NẮNG CHÁY GIÓ LÀO";
+                        message = "Loa phát thanh xã xin thông báo: Gió Lào đang thổi mạnh, bà con hạn chế ra đồng giữa trưa, tiết kiệm nước tưới và chú ý giữ sức khỏe.";
+                        break;
+                    case GamePhase.MuaBao:
+                        title = "TÌNH NGƯỜI TRONG MƯA BÃO";
+                        message = "Loa phát thanh xã xin thông báo: Bão lớn đang tiến vào đất liền. Đề nghị bà con chằng chống nhà cửa, kê cao lương thực và hỗ trợ các hộ neo đơn.";
+                        break;
+                    case GamePhase.PhuSa:
+                        title = "PHÙ SA SAU CƠN LŨ";
+                        message = "Loa phát thanh xã xin thông báo: Nước lũ đã rút. Bà con khẩn trương dọn bùn, khôi phục ruộng vườn và chia sẻ hạt giống để tái thiết sản xuất.";
+                        break;
+                }
+
+                villageSpeakerBanner.ShowAnnouncement(title, message, day);
+            }
+
             if (announcementCoroutine != null)
             {
                 StopCoroutine(announcementCoroutine);
@@ -1349,14 +1413,19 @@ namespace SownInStone.UI
             toastPanel.transform.SetParent(this.transform, false);
 
             RectTransform r = toastPanel.GetComponent<RectTransform>();
-            r.anchorMin = new Vector2(0.5f, 0.82f); // Upper middle
-            r.anchorMax = new Vector2(0.5f, 0.82f);
+            r.anchorMin = new Vector2(0.5f, 0.85f); // Upper middle
+            r.anchorMax = new Vector2(0.5f, 0.85f);
             r.pivot = new Vector2(0.5f, 0.5f);
             r.anchoredPosition = new Vector2(0f, 0f);
             r.sizeDelta = new Vector2(450f, 45f);
 
             Image bgImg = toastPanel.GetComponent<Image>();
-            bgImg.color = new Color(0.12f, 0.1f, 0.08f, 0.85f); // Semi-transparent dark
+            bgImg.color = new Color(0.10f, 0.08f, 0.06f, 0.95f); // Tông nâu tối sang trọng đồng bộ
+
+            // Thêm viền nhỏ cho tinh tế sang trọng
+            Outline outline = toastPanel.AddComponent<Outline>();
+            outline.effectColor = new Color(0.38f, 0.30f, 0.22f, 1f);
+            outline.effectDistance = new Vector2(1.5f, 1.5f);
 
             toastCanvasGroup = toastPanel.GetComponent<CanvasGroup>();
             toastCanvasGroup.alpha = 0f; // Hidden initially
@@ -1377,23 +1446,126 @@ namespace SownInStone.UI
             toastText.alignment = TextAlignmentOptions.Center;
             toastText.fontSize = 14;
             toastText.fontStyle = FontStyles.Bold;
-            toastText.color = new Color(0.95f, 0.85f, 0.4f, 1f); // Warm yellow/beige text
+            toastText.color = Color.white; // Màu trắng mặc định để các phần highlight nổi bật
             if (font != null) toastText.font = font;
 
             toastText.outlineColor = Color.black;
-            toastText.outlineWidth = 0.15f;
+            toastText.outlineWidth = 0.20f;
             toastText.text = "";
+        }
+
+        private GameObject controlsLegendPanel;
+        private bool isControlsLegendVisible = true;
+
+        private void CreateControlsLegendUI()
+        {
+            TMP_FontAsset font = speakerNameText != null ? speakerNameText.font : null;
+
+            // Container Panel
+            controlsLegendPanel = new GameObject("ControlsLegendHUD", typeof(RectTransform), typeof(Image));
+            controlsLegendPanel.transform.SetParent(this.transform, false);
+
+            RectTransform r = controlsLegendPanel.GetComponent<RectTransform>();
+            r.anchorMin = new Vector2(1f, 0.5f); // Right Middle
+            r.anchorMax = new Vector2(1f, 0.5f);
+            r.pivot = new Vector2(1f, 0.5f);
+            r.anchoredPosition = new Vector2(-20f, 50f);
+            r.sizeDelta = new Vector2(250f, 240f);
+
+            Image bgImg = controlsLegendPanel.GetComponent<Image>();
+            bgImg.color = new Color(0.10f, 0.08f, 0.06f, 0.95f);
+
+            Outline outline = controlsLegendPanel.AddComponent<Outline>();
+            outline.effectColor = new Color(0.38f, 0.30f, 0.22f, 1f);
+            outline.effectDistance = new Vector2(1.5f, 1.5f);
+
+            // Vertical Layout Group
+            VerticalLayoutGroup layout = controlsLegendPanel.AddComponent<VerticalLayoutGroup>();
+            layout.padding = new RectOffset(12, 12, 12, 12);
+            layout.spacing = 4f;
+            layout.childAlignment = TextAnchor.UpperLeft;
+            layout.childControlHeight = true;
+            layout.childControlWidth = true;
+            layout.childForceExpandHeight = false;
+            layout.childForceExpandWidth = true;
+
+            // Title
+            GameObject titleObj = new GameObject("TitleText", typeof(RectTransform), typeof(TextMeshProUGUI));
+            titleObj.transform.SetParent(controlsLegendPanel.transform, false);
+            TextMeshProUGUI title = titleObj.GetComponent<TextMeshProUGUI>();
+            title.text = "Điều khiển";
+            title.fontSize = 15;
+            title.fontStyle = FontStyles.Bold;
+            title.color = new Color(0.95f, 0.85f, 0.4f, 1f);
+            if (font != null) title.font = font;
+
+            // Lines
+            string[] lines = new string[] {
+                "<b>WASD</b>   Di chuyển",
+                "<b>RMB</b>    Xoay camera",
+                "<b>Scroll</b> Zoom camera",
+                "<b>E</b>      Làm nông / Thắp nhang",
+                "<b>1-3</b>    Chọn NPC",
+                "<b>I / Tab</b> Túi đồ",
+                "<b>C</b>      Nghĩa Tình",
+                "<b>M</b>      Thời tiết",
+                "<b>F1</b>     Demo",
+                "<color=#9f856f><b>H</b>      Ẩn/hiện hướng dẫn</color>"
+            };
+
+            foreach (var txtLine in lines)
+            {
+                GameObject lineObj = new GameObject("LegendLine", typeof(RectTransform), typeof(TextMeshProUGUI));
+                lineObj.transform.SetParent(controlsLegendPanel.transform, false);
+                TextMeshProUGUI txt = lineObj.GetComponent<TextMeshProUGUI>();
+                txt.text = txtLine;
+                txt.fontSize = 12.5f;
+                txt.color = Color.white;
+                if (font != null) txt.font = font;
+            }
+        }
+
+        public void ToggleControlsLegend()
+        {
+            if (controlsLegendPanel != null)
+            {
+                isControlsLegendVisible = !isControlsLegendVisible;
+                controlsLegendPanel.SetActive(isControlsLegendVisible);
+            }
         }
 
         public void ShowHUDToast(string message)
         {
             if (toastPanel == null || toastText == null || toastCanvasGroup == null) return;
 
+            // Làm nổi bật phần thưởng/thông báo
+            string highlightedMessage = message;
+            
+            // Xử lý Nghĩa Tình (Ví dụ: +5 Nghĩa Tình, +10 Nghĩa Tình, +15 Nghĩa Tình, +20 Nghĩa Tình)
+            highlightedMessage = System.Text.RegularExpressions.Regex.Replace(
+                highlightedMessage, 
+                @"\+(\d+)\s+Nghĩa\s+Tình", 
+                "<color=#F4D03F>+$1 Nghĩa Tình</color>"
+            );
+
+            // Xử lý Vần công (Ví dụ: +1 Vần công)
+            highlightedMessage = System.Text.RegularExpressions.Regex.Replace(
+                highlightedMessage, 
+                @"\+(\d+)\s+Vần\s+công", 
+                "<color=#2ECC71>+$1 Vần công</color>"
+            );
+
+            // Xử lý không đủ tài nguyên
+            if (highlightedMessage.Contains("Không đủ") || highlightedMessage.Contains("chưa có đủ") || highlightedMessage.Contains("không có đủ"))
+            {
+                highlightedMessage = $"<color=#E74C3C>{highlightedMessage}</color>";
+            }
+
             if (toastCoroutine != null)
             {
                 StopCoroutine(toastCoroutine);
             }
-            toastCoroutine = StartCoroutine(HUDToastCoroutine(message));
+            toastCoroutine = StartCoroutine(HUDToastCoroutine(highlightedMessage));
         }
 
         private IEnumerator HUDToastCoroutine(string message)
@@ -2008,6 +2180,19 @@ namespace SownInStone.UI
             else
             {
                 ShowHUDToast($"Không có {item.ItemName} để bán!");
+            }
+        }
+
+        /// <summary>
+        /// Ẩn hoặc hiển thị toàn bộ HUD gameplay (ví dụ khi hiện Ending Panel).
+        /// </summary>
+        public void SetHUDVisible(bool visible)
+        {
+            if (mainUICanvasGroup != null)
+            {
+                mainUICanvasGroup.alpha = visible ? 1f : 0f;
+                mainUICanvasGroup.interactable = visible;
+                mainUICanvasGroup.blocksRaycasts = visible;
             }
         }
 
