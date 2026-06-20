@@ -53,6 +53,15 @@
   * Auto-scaled the shop house to a height of `4.5` meters and the market stall to `1.2` meters.
   * Positioned the shop in the empty field to the left of Thành's house (`X: 4.5`, `Z: -10.0`) and aligned NPC O Thắm to stand right behind the stall facing the player (`X: 4.5`, `Y: 0.5`, `Z: -11.2`) with her height scaled to `1.7` meters.
   * Automatically calculated and aligned a BoxCollider to cover the shop structure to prevent player clipping.
+* **Bác Năm's House & Daybed Setup**:
+  * Integrated custom low-poly 3D models for Bác Năm's traditional house (`BacNam_House_Model.fbx`) and his bamboo daybed / chõng tre (`BacNam_Daybed_Model.fbx`).
+  * Created a custom Editor script `SetupBacNamHouse.cs` (`Sown In Stone -> Setup Bac Nam House` menu item) to automate scene setup.
+  * The script generates materials and assigns textures (`BacNam_House_Texture.png` and `BacNam_Daybed_Texture.png`) automatically.
+  * Corrects pivot offsets to place the bottom of both models flat on the ground (`Y = 0`).
+  * Auto-scales the house to a height of `4.5` meters and the bamboo daybed to `0.6` meters.
+  * Positions the house at world `(8.0, 0.0, 12.0)` and the daybed in front of the house at `(7.0, 0.0, 9.8)`.
+  * Repositions NPC Bác Năm next to the daybed at `(7.0, 0.5, 8.8)` facing the player, auto-scaling his visual to `1.7` meters.
+  * Configures a physical BoxCollider covering the house structure to prevent player clipping and extends Bác Năm's interaction trigger to cover the daybed area.
 * **Environment Polish & Collision Alignment**:
   * Mesh scaling for Village Well, Thanh's House, and Bác Năm's House matching physical sizes.
   * Rock and modular FenceSegment visual scaling, positioning, and upright rotations fixed.
