@@ -111,8 +111,14 @@ Do dự án Git chỉ lưu trữ mã nguồn và tài nguyên cấu hình tĩnh,
    * Tạo Empty GameObject tên là `SoilCell`, gắn script **`SoilCell`**.
    * Thêm component **`Box Collider`** (3D) và **tích chọn `Is Trigger`** để nhân vật có thể đi xuyên qua.
 2. **Bàn thờ tổ tiên (`AncestralAltar`):**
-   * Tạo Empty GameObject tên là `AncestralAltar`, gắn script **`AncestralAltar`** (Kéo tệp `Item_Incense` vào trường *Incense Item*).
-   * Thêm **`Box Collider`** (3D) và **tích chọn `Is Trigger`**.
+   * Dự án hỗ trợ một công cụ Editor tự động hóa việc thiết lập này.
+   * Trên thanh menu của Unity Editor, chọn **`Sown In Stone -> Setup Altar`**.
+   * Script sẽ tự động:
+     * Tải mô hình 3D từ FBX bàn thờ mới của bạn (`Meshy_AI_tôi_muốn_làm_mộ_0613091059_texture.fbx`).
+     * Tự gán Material tương ứng (`Mat_Altar`).
+     * Căn chỉnh chân bàn thờ sát mặt đất phẳng (`Y = 0`), scale chiều cao hợp lý (cao 1.8m).
+     * Đặt bàn thờ ở vị trí chuẩn (`X: 7.5, Z: -13.0`) tại góc dưới (phía trước bên trái) nhà của Thành.
+     * Cấu hình trigger BoxCollider kích thước `(2.5, 1.8, 2.5)` bao quanh bàn thờ thuận tiện cho việc thắp nhang tăng Morale.
 3. **Thiết lập Sạp Hàng O Thắm & NPC O Thắm (`OTham_Shop`):**
    * Dự án hỗ trợ một công cụ Editor tự động hóa việc thiết lập này.
    * Trên thanh menu của Unity Editor, chọn **`Sown In Stone -> Setup O Tham Shop`**.

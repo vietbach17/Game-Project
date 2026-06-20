@@ -601,11 +601,17 @@ namespace SownInStone.UI
                 r.anchorMax = new Vector2(0.5f, 0.5f);
                 r.pivot = new Vector2(0.5f, 0.5f);
                 r.anchoredPosition = new Vector2(0f, 0f);
-                r.sizeDelta = new Vector2(400f, 320f);
+                r.sizeDelta = new Vector2(420f, 400f);
 
-                // Thêm nền bán trong suốt sang trọng
+                // Thêm nền màu gỗ mộc mạc (Đậm chất nông thôn Việt Nam)
                 Image img = inventoryPanel.GetComponent<Image>();
-                if (img != null) img.color = new Color(0.12f, 0.1f, 0.08f, 0.95f);
+                if (img != null) img.color = new Color(0.45f, 0.28f, 0.15f, 0.98f); // Nâu gỗ ấm áp
+
+                // Thêm viền (Outline) mộc mạc cho viền gỗ
+                Outline outline = inventoryPanel.GetComponent<Outline>();
+                if (outline == null) outline = inventoryPanel.gameObject.AddComponent<Outline>();
+                outline.effectColor = new Color(0.2f, 0.1f, 0.05f, 1f); // Nâu đậm
+                outline.effectDistance = new Vector2(4f, -4f);
             }
         }
 
@@ -883,11 +889,17 @@ namespace SownInStone.UI
                         else
                         {
                             img.sprite = null;
-                            img.color = new Color(0.35f, 0.28f, 0.22f, 0.8f); // Nâu tối trung tính
+                            img.color = new Color(0.58f, 0.4f, 0.22f, 0.9f); // Nâu gỗ sáng hơn nền, giống thớt gỗ
                             img.enabled = true;
                         }
                     }
                 }
+
+                // Thêm viền (Outline) cho ô vật phẩm để giống như khắc vào gỗ
+                Outline slotOutline = newSlot.GetComponent<Outline>();
+                if (slotOutline == null) slotOutline = newSlot.AddComponent<Outline>();
+                slotOutline.effectColor = new Color(0.3f, 0.18f, 0.1f, 1f); // Nâu đậm tạo chiều sâu
+                slotOutline.effectDistance = new Vector2(3f, -3f);
 
                 // Căn chỉnh chữ hiển thị số lượng ở góc dưới bên phải
                 TextMeshProUGUI txt = newSlot.GetComponentInChildren<TextMeshProUGUI>();
@@ -947,7 +959,7 @@ namespace SownInStone.UI
             viewRect.anchorMax = new Vector2(1f, 1f);
             viewRect.pivot = new Vector2(0.5f, 0.5f);
             viewRect.offsetMin = new Vector2(25f, 60f);  // Chừa lề dưới cho tiền xu
-            viewRect.offsetMax = new Vector2(-25f, -70f); // Chừa lề trên cho tiêu đề
+            viewRect.offsetMax = new Vector2(-25f, -60f); // Chừa lề trên cho tiêu đề và đường kẻ ngang
 
             // Làm trong suốt Viewport
             viewportObj.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0f);
@@ -1464,11 +1476,24 @@ namespace SownInStone.UI
             titleRect.sizeDelta = new Vector2(360f, 30f);
 
             TextMeshProUGUI title = titleObj.GetComponent<TextMeshProUGUI>();
-            title.text = "<b>TÍCH CÓP PHÒNG CƠ</b>";
+            title.text = "<b>HÒM ĐỒ NÔNG CỤ</b>"; // Đậm chất việt nam
             title.alignment = TextAlignmentOptions.Center;
-            title.fontSize = 16;
-            title.color = new Color(0.95f, 0.8f, 0.3f, 1f);
+            title.fontSize = 20;
+            title.color = new Color(0.95f, 0.85f, 0.6f, 1f); // Vàng nhạt của lúa/tre
             if (font != null) title.font = font;
+
+            // Thêm đường kẻ ngang (Separator Line) mộc mạc dưới title
+            GameObject lineObj = new GameObject("SeparatorLine", typeof(RectTransform), typeof(Image));
+            lineObj.transform.SetParent(inventoryPanel.transform, false);
+            RectTransform lineRect = lineObj.GetComponent<RectTransform>();
+            lineRect.anchorMin = new Vector2(0.5f, 1f);
+            lineRect.anchorMax = new Vector2(0.5f, 1f);
+            lineRect.pivot = new Vector2(0.5f, 1f);
+            lineRect.anchoredPosition = new Vector2(0f, -40f); // Ngay dưới title
+            lineRect.sizeDelta = new Vector2(380f, 4f);
+            
+            Image lineImg = lineObj.GetComponent<Image>();
+            lineImg.color = new Color(0.7f, 0.5f, 0.3f, 0.8f); // Nâu sáng mộc mạc
         }
 
         #endregion
