@@ -40,6 +40,13 @@
 * **Interactive Alignment**: NPC O Thắm stands behind the counter of the market stall facing the player (Z: -11.2, rotated 180 degrees), with a BoxCollider trigger covering the front of the counter for smooth interactions. A physical BoxCollider is attached to the shop house to prevent clipping.
 * **Automated Setup Tool**: A custom Editor script `SetupOThamShop.cs` is accessible via the Unity Editor menu (`Sown In Stone -> Setup O Tham Shop`) to rebuild/re-align the shop models and NPC setup automatically.
 
+## Bác Năm's House & Interaction Setup
+
+* **Role**: NPC Bác Năm guides players in tilling, farming, and gives weather warnings.
+* **House Environment Layout**: Bác Năm's home consists of a stylized traditional house (scaled to 4.5m) and a bamboo daybed (chõng tre) (scaled to 0.6m) located at world (X: 8.0, Z: 12.0).
+* **Interactive Alignment**: NPC Bác Năm is positioned next to the daybed facing the player (X: 7.0, Y: 0.5, Z: 8.8, rotated 180 degrees) with a BoxCollider trigger covering the daybed area for easy interaction. A physical BoxCollider is attached to the house to prevent clipping.
+* **Automated Setup Tool**: A custom Editor script `SetupBacNamHouse.cs` is accessible via the Unity Editor menu (`Sown In Stone -> Setup Bac Nam House`) to automatically recreate materials, align pivots, scale heights, and place the house, daybed, and NPC in the scene.
+
 ## Sound & Ambiance (Audio)
 
 * **Atmospheric Ambiance**: Automatic fading between ambient soundscapes (calm wind for normal weather, howling dry wind for Gió Lào, thunderstorms for Storm/Flood phases).
@@ -54,6 +61,6 @@
 
 # PROJECT STATUS SNAPSHOT
 
-* **Current Playable Loop**: Player walks/runs (custom keybindings), tills SoilCells, plants and waters crops, triggers growth, harvests with HUD feedback, trades items at O Thắm's newly styled shop, interacts with the dynamic settings UI, hears ambient loops & action SFX, and triggers the Faint & Rescue loop.
+* **Current Playable Loop**: Player walks/runs (custom keybindings), tills SoilCells, plants and waters crops, triggers growth, harvests with HUD feedback, trades items at O Thắm's newly styled shop, interacts with NPC Bác Năm at his newly styled house and chõng tre, interacts with the dynamic settings UI, hears ambient loops & action SFX, and triggers the Faint & Rescue loop.
 * **Current Blockers**: None.
 * **Recommended Next Task**: Investigate and fix remaining invisible colliders/blockers near environment landmarks.

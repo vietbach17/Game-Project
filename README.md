@@ -123,9 +123,19 @@ Do dự án Git chỉ lưu trữ mã nguồn và tài nguyên cấu hình tĩnh,
      * Đặt sạp hàng tại vùng trống bên trái nhà Thành (`X: 4.5, Z: -10.0`).
      * Đặt NPC O Thắm (`NPC_OTham`) đứng sau sạp hàng đối mặt với người chơi (`X: 4.5, Y: 0.5, Z: -11.2`), tự động scale chiều cao NPC đạt 1.7m.
      * Cấu hình BoxCollider bao bọc nhà để ngăn người chơi đi xuyên tường, và cấu hình vùng Trigger của O Thắm bao phủ mặt trước sạp hàng thuận tiện cho việc nhấn phím `[E]` tương tác mua bán.
-4. **Dân làng (NPCs):**
-   * Đối với Bác Năm: Tạo Empty GameObject tên là `NPC_BacNam`, gắn script **`NPCCharacter`** (chọn Character Type = *Bac Nam*). Thêm **`Box Collider`** (3D), tích **`Is Trigger`**.
-   * Đối với O Thắm: Nếu không chạy Script ở trên, bạn tự tạo Empty GameObject tên là `NPC_OTham`, gắn script **`NPCCharacter`** (chọn Character Type = *O Tham*). Thêm **`Box Collider`** (3D), tích **`Is Trigger`**.
+4. **Thiết lập Nhà Bác Năm & Chõng tre (`BacNam_House`):**
+   * Dự án hỗ trợ một công cụ Editor tự động hóa việc thiết lập này.
+   * Trên thanh menu của Unity Editor, chọn **`Sown In Stone -> Setup Bac Nam House`**.
+   * Script sẽ tự động:
+     * Tải mô hình 3D từ các FBX mới của nhà (`BacNam_House_Model.fbx`) và chõng tre (`BacNam_Daybed_Model.fbx`).
+     * Tự gán các Material tương ứng (`Mat_BacNam_House` và `Mat_BacNam_Daybed`).
+     * Căn chỉnh chân nhà và chõng tre sát mặt đất phẳng (`Y = 0`), scale chiều cao hợp lý (nhà cao 4.5m, chõng tre cao 0.6m).
+     * Đặt nhà ở vị trí chuẩn (`X: 8.0, Z: 12.0`) và chõng tre ở trước hiên (`X: 7.0, Z: 9.8`).
+     * Định vị lại NPC Bác Năm đứng cạnh chõng tre (`X: 7.0, Y: 0.5, Z: 8.8`), tự động scale chiều cao NPC đạt 1.7m.
+     * Cấu hình BoxCollider bảo vệ cho nhà để tránh đi xuyên tường, và cấu hình vùng Trigger của Bác Năm bao trùm chõng tre thuận tiện cho việc đối thoại.
+5. **Dân làng (NPCs):**
+   * Đối với Bác Năm: Nếu không chạy Script tự động ở trên, bạn tự tạo Empty GameObject tên là `NPC_BacNam`, gắn script **`NPCCharacter`** (chọn Character Type = *Bac Nam*). Thêm **`Box Collider`** (3D), tích **`Is Trigger`**.
+   * Đối với O Thắm: Nếu không chạy Script tự động ở trên, bạn tự tạo Empty GameObject tên là `NPC_OTham`, gắn script **`NPCCharacter`** (chọn Character Type = *O Tham*). Thêm **`Box Collider`** (3D), tích **`Is Trigger`**.
 
 ### Bước 6: Tạo Giao Diện & Bộ Kiểm Thử (UI & Tester)
 1. Tạo Empty GameObject tên là `_UI_Tester`.
