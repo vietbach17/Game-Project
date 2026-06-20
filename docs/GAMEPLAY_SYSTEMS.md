@@ -33,6 +33,27 @@
 * **NPC Bios & Affinity**: Real-time display of community NPC stats (Bac Nam, O Tham) and affection level.
 * **Auto-Pause**: Activating settings panels scales the game's time scale to zero.
 
+## Economy & Shop Setup
+
+* **Trade system**: NPC O Thắm sells seeds and incense and buys harvested fresh crops.
+* **Shop Environment Layout**: O Thắm's shop consists of a shop house (scaled to 4.5m) and a market stall (scaled to 1.2m) located in the empty field to the left of Thành's house (X: 4.5, Z: -10.0).
+* **Interactive Alignment**: NPC O Thắm stands behind the counter of the market stall facing the player (Z: -11.2, rotated 180 degrees), with a BoxCollider trigger covering the front of the counter for smooth interactions. A physical BoxCollider is attached to the shop house to prevent clipping.
+* **Automated Setup Tool**: A custom Editor script `SetupOThamShop.cs` is accessible via the Unity Editor menu (`Sown In Stone -> Setup O Tham Shop`) to rebuild/re-align the shop models and NPC setup automatically.
+
+## Bác Năm's House & Interaction Setup
+
+* **Role**: NPC Bác Năm guides players in tilling, farming, and gives weather warnings.
+* **House Environment Layout**: Bác Năm's home consists of a stylized traditional house (scaled to 4.5m) and a bamboo daybed (chõng tre) (scaled to 1.2m) located at world `(8.0, 0.0, 12.0)` rotated 180 degrees to face south.
+* **Interactive Alignment**: NPC Bác Năm is positioned at world `(7.0, 0.5, 7.5)` facing the player, right next to the daybed at `(8.5, 0.0, 7.5)`, with a BoxCollider trigger covering the daybed area for easy interaction. A physical BoxCollider is attached to the house to prevent clipping.
+* **Automated Setup Tool**: A custom Editor script `SetupBacNamHouse.cs` is accessible via the Unity Editor menu (`Sown In Stone -> Setup Bac Nam House`) to automatically recreate materials, align pivots, scale heights, and place the house, daybed, and NPC in the scene.
+
+## Player's House (Thành's House) Setup
+
+* **Role**: The main character's home base and initial spawn area.
+* **House Environment Layout**: Thành's house consists of a stylized yellow plaster farmhouse (scaled to 4.5m) located at world `(10.66, 0.0, -10.0)` rotated 180 degrees to face the road/player (south).
+* **Interactive Alignment**: Serves as the starting point and visual representation of the player's home. A physical BoxCollider is configured around the house walls to prevent clipping.
+* **Automated Setup Tool**: A custom Editor script `SetupThanhHouse.cs` is accessible via the Unity Editor menu (`Sown In Stone -> Setup Thanh House`) to automatically recreate materials from textures, align the pivot flat to the ground (Y=0), scale the height to 4.5m, rotate Y by 180, and add the BoxCollider.
+
 ## Sound & Ambiance (Audio)
 
 * **Atmospheric Ambiance**: Automatic fading between ambient soundscapes (calm wind for normal weather, howling dry wind for Gió Lào, thunderstorms for Storm/Flood phases).
@@ -47,6 +68,6 @@
 
 # PROJECT STATUS SNAPSHOT
 
-* **Current Playable Loop**: Player walks/runs (custom keybindings), tills SoilCells, plants and waters crops, triggers growth, harvests with HUD feedback, trades items, interacts with the dynamic settings UI, hears ambient loops & action SFX, and triggers the Faint & Rescue loop.
+* **Current Playable Loop**: Player walks/runs (custom keybindings), tills SoilCells, plants and waters crops, triggers growth, harvests with HUD feedback, trades items at O Thắm's newly styled shop, interacts with NPC Bác Năm at his newly styled house and chõng tre, interacts with the dynamic settings UI, hears ambient loops & action SFX, and triggers the Faint & Rescue loop.
 * **Current Blockers**: None.
 * **Recommended Next Task**: Investigate and fix remaining invisible colliders/blockers near environment landmarks.
