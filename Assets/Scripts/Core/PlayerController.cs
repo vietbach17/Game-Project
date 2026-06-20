@@ -91,8 +91,51 @@ namespace SownInStone.Core
         private System.Collections.Generic.HashSet<string> animatorParams = new System.Collections.Generic.HashSet<string>();
         private SoilCell currentTargetSoil;
 
+        [Header("--- PHÍM BẤM HỖ TRỢ TƯƠNG THÍCH ---")]
+        public KeyCode keyMoveUp = KeyCode.W;
+        public KeyCode keyMoveDown = KeyCode.S;
+        public KeyCode keyMoveLeft = KeyCode.A;
+        public KeyCode keyMoveRight = KeyCode.D;
+        public KeyCode keyInteract = KeyCode.E;
+        public KeyCode keyRun = KeyCode.LeftShift;
+
+        public void LoadKeyBindings()
+        {
+            keyMoveUp = (KeyCode)PlayerPrefs.GetInt("Key_MoveUp", (int)KeyCode.W);
+            keyMoveDown = (KeyCode)PlayerPrefs.GetInt("Key_MoveDown", (int)KeyCode.S);
+            keyMoveLeft = (KeyCode)PlayerPrefs.GetInt("Key_MoveLeft", (int)KeyCode.A);
+            keyMoveRight = (KeyCode)PlayerPrefs.GetInt("Key_MoveRight", (int)KeyCode.D);
+            keyInteract = (KeyCode)PlayerPrefs.GetInt("Key_Interact", (int)KeyCode.E);
+            keyRun = (KeyCode)PlayerPrefs.GetInt("Key_Run", (int)KeyCode.LeftShift);
+        }
+
+        public void TriggerRescueSequence()
+        {
+            Debug.Log("[PlayerController] TriggerRescueSequence compatibility stub called.");
+            // Hồi phục 30 Health / 30 Stamina / 20 Morale khi ngất xỉu
+            if (PlayerStats.Instance != null)
+            {
+                PlayerStats.Instance.ModifyHealth(30f);
+                PlayerStats.Instance.ModifyStamina(30f);
+                PlayerStats.Instance.ModifyMorale(20f);
+            }
+            
+            // Teleport về nhà Thành
+            if (rb != null)
+            {
+                rb.linearVelocity = Vector3.zero;
+            }
+            Vector3 homePos = new Vector3(0f, 0.5f, -6f);
+            transform.position = homePos;
+            if (rb != null)
+            {
+                rb.position = homePos;
+            }
+        }
+
         private void Awake()
         {
+            LoadKeyBindings();
             if (Instance == null)
             {
                 Instance = this;

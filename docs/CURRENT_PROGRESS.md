@@ -317,6 +317,13 @@ Bản mẫu hiện tại đạt khoảng **75% tiến độ sẵn sàng cho Demo
     *   Implemented `ReturnToDefaultRotation()` which slerps the NPC's Y-axis rotation back to its original orientation over `0.35s` once the player leaves proximity or targets another NPC, triggered inside [NPCProximityOptionsUI.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/UI/NPCProximityOptionsUI.cs).
     *   Added checks to prevent resetting if active dialogue panel is currently displaying conversation choices.
 
+---
+
+## 26. Merge Compatibility Fixes
+*   **Post-merge compatibility fix for FrameworkMainMenuUI references**:
+    *   Restored key binding fields (`keyMoveUp`, `keyMoveDown`, `keyMoveLeft`, `keyMoveRight`, `keyInteract`, `keyRun`) as `KeyCode` parameters in [PlayerController.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Core/PlayerController.cs) for main menu settings binding display compatibility.
+    *   Added `LoadKeyBindings()` and `TriggerRescueSequence()` stub methods to PlayerController.cs to prevent runtime errors and compilation failures after merging `origin/dev`.
+
 
 
 

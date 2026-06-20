@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 using SownInStone.Core;
 
 namespace SownInStone
@@ -96,7 +97,7 @@ namespace SownInStone
         private void Update()
         {
             // Xử lý bật/tắt Menu khi nhấn ESC
-            if (Input.GetKeyDown(KeyCode.Escape) && hasStartedJourney)
+            if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame && hasStartedJourney)
             {
                 if (isMenuOpen)
                 {
