@@ -323,6 +323,7 @@ Bản mẫu hiện tại đạt khoảng **75% tiến độ sẵn sàng cho Demo
 *   **Post-merge compatibility fix for FrameworkMainMenuUI references**:
     *   Restored key binding fields (`keyMoveUp`, `keyMoveDown`, `keyMoveLeft`, `keyMoveRight`, `keyInteract`, `keyRun`) as `KeyCode` parameters in [PlayerController.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Core/PlayerController.cs) for main menu settings binding display compatibility.
     *   Added `LoadKeyBindings()` and `TriggerRescueSequence()` stub methods to PlayerController.cs to prevent runtime errors and compilation failures after merging `origin/dev`.
+    *   **Post-merge fix**: Replaced missing `House_OTham` prefab in `Village_Demo.unity` scene with `House_OTham_PLACEHOLDER` (instance ID: -32002) at parent node `Environment/_Environment/Houses` to restore scene integrity.
 
 
 
