@@ -111,8 +111,14 @@ Do dự án Git chỉ lưu trữ mã nguồn và tài nguyên cấu hình tĩnh,
    * Tạo Empty GameObject tên là `SoilCell`, gắn script **`SoilCell`**.
    * Thêm component **`Box Collider`** (3D) và **tích chọn `Is Trigger`** để nhân vật có thể đi xuyên qua.
 2. **Bàn thờ tổ tiên (`AncestralAltar`):**
-   * Tạo Empty GameObject tên là `AncestralAltar`, gắn script **`AncestralAltar`** (Kéo tệp `Item_Incense` vào trường *Incense Item*).
-   * Thêm **`Box Collider`** (3D) và **tích chọn `Is Trigger`**.
+   * Dự án hỗ trợ một công cụ Editor tự động hóa việc thiết lập này.
+   * Trên thanh menu của Unity Editor, chọn **`Sown In Stone -> Setup Altar`**.
+   * Script sẽ tự động:
+     * Tải mô hình 3D từ FBX bàn thờ mới của bạn (`Meshy_AI_tôi_muốn_làm_mộ_0613091059_texture.fbx`).
+     * Tự gán Material tương ứng (`Mat_Altar`).
+     * Căn chỉnh chân bàn thờ sát mặt đất phẳng (`Y = 0`), scale chiều cao hợp lý (cao 1.8m).
+     * Đặt bàn thờ ở vị trí chuẩn (`X: 7.5, Z: -13.0`) tại góc dưới (phía trước bên trái) nhà của Thành.
+     * Cấu hình trigger BoxCollider kích thước `(2.5, 1.8, 2.5)` bao quanh bàn thờ thuận tiện cho việc thắp nhang tăng Morale.
 3. **Thiết lập Sạp Hàng O Thắm & NPC O Thắm (`OTham_Shop`):**
    * Dự án hỗ trợ một công cụ Editor tự động hóa việc thiết lập này.
    * Trên thanh menu của Unity Editor, chọn **`Sown In Stone -> Setup O Tham Shop`**.
@@ -129,11 +135,20 @@ Do dự án Git chỉ lưu trữ mã nguồn và tài nguyên cấu hình tĩnh,
    * Script sẽ tự động:
      * Tải mô hình 3D từ các FBX mới của nhà (`BacNam_House_Model.fbx`) và chõng tre (`BacNam_Daybed_Model.fbx`).
      * Tự gán các Material tương ứng (`Mat_BacNam_House` và `Mat_BacNam_Daybed`).
-     * Căn chỉnh chân nhà và chõng tre sát mặt đất phẳng (`Y = 0`), scale chiều cao hợp lý (nhà cao 4.5m, chõng tre cao 0.6m).
-     * Đặt nhà ở vị trí chuẩn (`X: 8.0, Z: 12.0`) và chõng tre ở trước hiên (`X: 7.0, Z: 9.8`).
-     * Định vị lại NPC Bác Năm đứng cạnh chõng tre (`X: 7.0, Y: 0.5, Z: 8.8`), tự động scale chiều cao NPC đạt 1.7m.
+     * Căn chỉnh chân nhà và chõng tre sát mặt đất phẳng (`Y = 0`), scale chiều cao hợp lý (nhà cao 4.5m, chõng tre cao 1.2m).
+     * Đặt nhà ở vị trí chuẩn (`X: 8.0, Z: 12.0`) xoay 180 độ đón người chơi, đặt chõng tre ở trước hiên (`X: 8.5, Z: 7.5`).
+     * Định vị lại NPC Bác Năm đứng cạnh chõng tre (`X: 7.0, Y: 0.5, Z: 7.5`), tự động scale chiều cao NPC đạt 1.7m.
      * Cấu hình BoxCollider bảo vệ cho nhà để tránh đi xuyên tường, và cấu hình vùng Trigger của Bác Năm bao trùm chõng tre thuận tiện cho việc đối thoại.
-5. **Dân làng (NPCs):**
+5. **Thiết lập Nhà Nhân Vật Thành (`Thanh_House`):**
+   * Dự án hỗ trợ một công cụ Editor tự động hóa việc thiết lập này.
+   * Trên thanh menu của Unity Editor, chọn **`Sown In Stone -> Setup Thanh House`**.
+   * Script sẽ tự động:
+     * Tải mô hình 3D của nhà Thành (`Meshy_AI_Stylized_low_poly_3D__0620084846_texture.fbx`).
+     * Tự gán Material tương ứng (`Mat_Thanh_House`).
+     * Căn chỉnh chân nhà sát mặt đất phẳng (`Y = 0`), scale chiều cao hợp lý (nhà cao 4.5m).
+     * Đặt nhà ở vị trí chuẩn (`X: 10.66, Z: -10.0`) xoay 180 độ đón người chơi (quay mặt về phía Nam giống sạp O Thắm).
+     * Cấu hình BoxCollider bao bọc nhà để ngăn người chơi đi xuyên tường.
+6. **Dân làng (NPCs):**
    * Đối với Bác Năm: Nếu không chạy Script tự động ở trên, bạn tự tạo Empty GameObject tên là `NPC_BacNam`, gắn script **`NPCCharacter`** (chọn Character Type = *Bac Nam*). Thêm **`Box Collider`** (3D), tích **`Is Trigger`**.
    * Đối với O Thắm: Nếu không chạy Script tự động ở trên, bạn tự tạo Empty GameObject tên là `NPC_OTham`, gắn script **`NPCCharacter`** (chọn Character Type = *O Tham*). Thêm **`Box Collider`** (3D), tích **`Is Trigger`**.
 

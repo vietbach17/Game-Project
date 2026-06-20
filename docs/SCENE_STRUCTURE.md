@@ -8,6 +8,7 @@ SampleScene
 
 * **Player**: Main character with Rigidbody, BoxCollider, PlayerController, and PlayerStats.
   * `Player_Base` (Child GameObject): The 3D stylized model and Animator component.
+* **Thanh_House**: The main character's house, holding a custom low-poly yellow farmhouse model and a physical BoxCollider.
 * **BacNam_House**: Unified house parent GameObject grouping Bác Năm's traditional house (holding a physical BoxCollider) and his bamboo daybed (chõng tre) visual elements.
 * **NPC_BacNam**: Bác Năm character positioned next to his bamboo daybed facing the player, containing dialogue/tutorial logic and a trigger BoxCollider that covers the daybed area for easy interaction.
 * **OTham_Shop**: Unified shop parent GameObject grouping the shop house (holding a standard physical BoxCollider) and the market stall visual elements.
