@@ -44,6 +44,15 @@
 * **Environment**:
   * RoadSegment MeshColliders have been disabled to make roads walkable and resolve invisible movement blockers.
 * **O Thắm's Seed Shop & Economy Loop**: Fully implemented shop interface and trade loop, allowing players to spend coins to buy seeds and incense, and sell harvested fresh/preserved crop products with instant inventory updates and HUD feedback.
+* **O Thắm's Shop Visuals & Scene Setup**:
+  * Integrated low-poly 3D models for O Thắm's shop house (`Meshy_AI_Low_poly_stylized_3D__0620062116_texture.fbx`) and her market stall (`Meshy_AI_Low_poly_stylized_3D__0620065520_texture.fbx`).
+  * Removed the old placeholder asset `asian_house.glb`.
+  * Created a custom Editor script `SetupOThamShop.cs` (`Sown In Stone -> Setup O Tham Shop` menu item) to automate the entire scene configuration.
+  * The script automatically generates materials, applies textures, instantiates the prefabs under a unified `OTham_Shop` GameObject, and corrects coordinate offsets.
+  * Corrected pivot offsets horizontally and vertically to place the bottoms of both the house and the stall flat on the ground (Y = 0).
+  * Auto-scaled the shop house to a height of `4.5` meters and the market stall to `1.2` meters.
+  * Positioned the shop in the empty field to the left of Thành's house (`X: 4.5`, `Z: -10.0`) and aligned NPC O Thắm to stand right behind the stall facing the player (`X: 4.5`, `Y: 0.5`, `Z: -11.2`) with her height scaled to `1.7` meters.
+  * Automatically calculated and aligned a BoxCollider to cover the shop structure to prevent player clipping.
 * **Environment Polish & Collision Alignment**:
   * Mesh scaling for Village Well, Thanh's House, and Bác Năm's House matching physical sizes.
   * Rock and modular FenceSegment visual scaling, positioning, and upright rotations fixed.
@@ -68,6 +77,6 @@
 
 # PROJECT STATUS SNAPSHOT
 
-* **Current Playable Loop**: Player can walk/run around the map, inspect SoilCells, till rocks, plant potato seeds (with seeds consumed from storage), water the soil, use the F1 debug command to mature crops quickly for testing, harvest mature crops, receive visual HUD toast feedback, trade with NPC O Thắm to buy seeds/incense or sell harvested products, and view accumulated items/coins in the Inventory (`Tab`/`I` keys).
+* **Current Playable Loop**: Player can walk/run around the map (customizable keys), inspect SoilCells, till rocks, plant potato seeds (with seeds consumed from storage), water the soil, use the F1 debug command to mature crops quickly for testing, harvest mature crops, receive visual HUD toast feedback, trade with NPC O Thắm at her newly decorated shop (consisting of the house and market stall), adjust setting options & binds, hear ambient/SFX audio, and pass out to trigger Bác Năm's rescue loop.
 * **Current Blockers**: None.
 * **Recommended Next Task**: Investigate and fix remaining invisible colliders/blockers near environment landmarks.

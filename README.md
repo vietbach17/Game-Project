@@ -113,9 +113,19 @@ Do dự án Git chỉ lưu trữ mã nguồn và tài nguyên cấu hình tĩnh,
 2. **Bàn thờ tổ tiên (`AncestralAltar`):**
    * Tạo Empty GameObject tên là `AncestralAltar`, gắn script **`AncestralAltar`** (Kéo tệp `Item_Incense` vào trường *Incense Item*).
    * Thêm **`Box Collider`** (3D) và **tích chọn `Is Trigger`**.
-3. **Dân làng (NPCs):**
-   * Tạo Empty GameObject tên là `NPC_BacNam`, gắn script **`NPCCharacter`** (chọn Character Type = *Bac Nam*). Thêm **`Box Collider`** (3D), tích **`Is Trigger`**.
-   * Tạo Empty GameObject tên là `NPC_OTham`, gắn script **`NPCCharacter`** (chọn Character Type = *O Tham*). Thêm **`Box Collider`** (3D), tích **`Is Trigger`**.
+3. **Thiết lập Sạp Hàng O Thắm & NPC O Thắm (`OTham_Shop`):**
+   * Dự án hỗ trợ một công cụ Editor tự động hóa việc thiết lập này.
+   * Trên thanh menu của Unity Editor, chọn **`Sown In Stone -> Setup O Tham Shop`**.
+   * Script sẽ tự động:
+     * Tải mô hình 3D từ các FBX mới của nhà (`Meshy_AI_Low_poly_stylized_3D__0620062116_texture.fbx`) và sạp hàng (`Meshy_AI_Low_poly_stylized_3D__0620065520_texture.fbx`).
+     * Tự sinh và gán Material tương ứng (`Mat_OTham_House` và `Mat_OTham_Stall`).
+     * Căn chỉnh pivot của cả nhà và sạp hàng sát mặt đất phẳng (`Y = 0`), tự động tỉ lệ hóa chiều cao (nhà cao 4.5m, sạp hàng cao 1.2m).
+     * Đặt sạp hàng tại vùng trống bên trái nhà Thành (`X: 4.5, Z: -10.0`).
+     * Đặt NPC O Thắm (`NPC_OTham`) đứng sau sạp hàng đối mặt với người chơi (`X: 4.5, Y: 0.5, Z: -11.2`), tự động scale chiều cao NPC đạt 1.7m.
+     * Cấu hình BoxCollider bao bọc nhà để ngăn người chơi đi xuyên tường, và cấu hình vùng Trigger của O Thắm bao phủ mặt trước sạp hàng thuận tiện cho việc nhấn phím `[E]` tương tác mua bán.
+4. **Dân làng (NPCs):**
+   * Đối với Bác Năm: Tạo Empty GameObject tên là `NPC_BacNam`, gắn script **`NPCCharacter`** (chọn Character Type = *Bac Nam*). Thêm **`Box Collider`** (3D), tích **`Is Trigger`**.
+   * Đối với O Thắm: Nếu không chạy Script ở trên, bạn tự tạo Empty GameObject tên là `NPC_OTham`, gắn script **`NPCCharacter`** (chọn Character Type = *O Tham*). Thêm **`Box Collider`** (3D), tích **`Is Trigger`**.
 
 ### Bước 6: Tạo Giao Diện & Bộ Kiểm Thử (UI & Tester)
 1. Tạo Empty GameObject tên là `_UI_Tester`.
