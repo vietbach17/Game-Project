@@ -925,7 +925,7 @@ namespace SownInStone.Core
                         Coracle boat = closestCollider.GetComponent<Coracle>();
                         if (boat != null)
                         {
-                            prompt = $"[{keyName}] Lên thuyền thúng";
+                            prompt = $"[{keyInteract}] Lên thuyền thúng";
                         }
                         else
                         {

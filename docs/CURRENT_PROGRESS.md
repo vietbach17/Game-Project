@@ -411,6 +411,25 @@ Bản mẫu hiện tại đạt khoảng **75% tiến độ sẵn sàng cho Demo
     *   Expanded Buy/Sell button heights to `40f` and styled Buy with dark green and Sell with warm orange/brown. Added a subtle outline shadow.
     *   Redistributed spacing of row yPositions to `130f - index * 65f` inside the list container (which was resized to `460x320` at `Y = -35f` to fit the taller rows perfectly).
 
+---
+
+## 35. Post-Merge KeyName Compile Fix
+*   **Compile Error Resolved**:
+    *   Fixed the C# compiler error `CS0103` on line 928 in [PlayerController.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Core/PlayerController.cs).
+    *   **Original Code causing error**: `prompt = $"[{keyName}] Lên thuyền thúng";` (where `keyName` was undefined).
+    *   **Root Cause**: A merge conflict/leftover reference where the context intended to show the interaction key prompt for boarding the Coracle boat.
+    *   **Exact Fix**: Replaced the undefined `keyName` variable with the class-level `keyInteract` KeyCode field (i.e. `prompt = $"[{keyInteract}] Lên thuyền thúng";`), which correctly stringifies to `[E]` using the player's configured interaction key.
+
+---
+
+## 36. Inventory Quantity Text Crash Fix
+*   **TMP Outline Crash Fixed**:
+    *   Fixed a NullReferenceException in `SurvivalUIManager.RefreshInventoryUI()` when trying to set `outlineWidth` and `outlineColor` on text component.
+    *   Removed direct TMP outline properties assignment on the runtime-generated quantity labels.
+    *   Replaced with a safe UI `UnityEngine.UI.Shadow` component (black with 0.65 alpha, offset `(1, -1)`) for readable outline/shadow styling without runtime material crashes.
+
+
+
 
 
 

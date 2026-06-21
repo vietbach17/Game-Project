@@ -1001,8 +1001,13 @@ namespace SownInStone.UI
                     txt.fontStyle = FontStyles.Bold;
                     txt.alignment = TextAlignmentOptions.BottomRight;
                     txt.color = new Color(0.95f, 0.85f, 0.35f, 1f); // Màu vàng gold nổi bật
-                    txt.outlineWidth = 0.22f;
-                    txt.outlineColor = Color.black;
+                    UnityEngine.UI.Shadow shadow = txt.gameObject.GetComponent<UnityEngine.UI.Shadow>();
+                    if (shadow == null)
+                    {
+                        shadow = txt.gameObject.AddComponent<UnityEngine.UI.Shadow>();
+                    }
+                    shadow.effectColor = new Color(0f, 0f, 0f, 0.65f);
+                    shadow.effectDistance = new Vector2(1f, -1f);
 
                     RectTransform txtRect = txt.GetComponent<RectTransform>();
                     if (txtRect != null)
