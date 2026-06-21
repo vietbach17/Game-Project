@@ -14,7 +14,7 @@ namespace SownInStone.UI
 
         private void Start()
         {
-            npcs = FindObjectsOfType<NPCCharacter>();
+            npcs = FindObjectsByType<NPCCharacter>(FindObjectsInactive.Exclude);
             CreateMarkers();
         }
 
@@ -23,7 +23,7 @@ namespace SownInStone.UI
             Canvas canvas = GetComponentInParent<Canvas>();
             if (canvas == null)
             {
-                canvas = FindObjectOfType<Canvas>();
+                canvas = FindAnyObjectByType<Canvas>();
             }
             if (canvas == null) return;
 

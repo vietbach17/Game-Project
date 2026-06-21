@@ -15,8 +15,8 @@ namespace SownInStone.Editor
         public static void Setup()
         {
             // File paths for Thanh's House
-            string fbxPath = "Assets/Prefabs/Thanh_House/Meshy_AI_Stylized_low_poly_3D__0620084846_texture.fbx";
-            string texPath = "Assets/Prefabs/Thanh_House/Meshy_AI_Stylized_low_poly_3D__0620084846_texture.png";
+            string fbxPath = "Assets/Prefabs/Thanh_House/Thanh_House_Model.fbx";
+            string texPath = "Assets/Prefabs/Thanh_House/Thanh_House_Texture.png";
             string matPath = "Assets/Prefabs/Thanh_House/Mat_Thanh_House.mat";
 
             // 1. Create or Load Material
@@ -65,30 +65,44 @@ namespace SownInStone.Editor
                 AlignPivotOffset(houseObj, houseContainer.transform, Vector3.zero);
             }
 
-            // 5. Set up BoxCollider on Thanh_House covering the main house structure
-            BoxCollider boxCol = houseContainer.GetComponent<BoxCollider>();
-            if (boxCol == null)
-            {
-                boxCol = houseContainer.AddComponent<BoxCollider>();
-            }
-            boxCol.isTrigger = false;
-
+            // 5. Clean up any colliders on child objects to avoid conflicts
             if (houseObj != null)
             {
-                Renderer[] houseRenderers = houseObj.GetComponentsInChildren<Renderer>();
-                if (houseRenderers.Length > 0)
+                var childColliders = houseObj.GetComponentsInChildren<Collider>(true);
+                foreach (var col in childColliders)
                 {
-                    Bounds bounds = houseRenderers[0].bounds;
-                    foreach (var r in houseRenderers)
-                    {
-                        bounds.Encapsulate(r.bounds);
-                    }
-                    Vector3 localCenter = houseContainer.transform.InverseTransformPoint(bounds.center);
-                    boxCol.center = localCenter;
-                    boxCol.size = bounds.size;
-                    Debug.Log($"[SETUP THANH HOUSE] Configured House BoxCollider: Center={boxCol.center}, Size={boxCol.size}");
+                    Object.DestroyImmediate(col);
                 }
+                Debug.Log("[SETUP THANH HOUSE] Cleaned up child colliders.");
             }
+
+            // 6. Set up robust Compound BoxColliders on the parent container (Thanh_House)
+            // This prevents player from walking through the house's walls while keeping the front steps and porch open.
+            BoxCollider[] existingColliders = houseContainer.GetComponents<BoxCollider>();
+            foreach (var col in existingColliders)
+            {
+                Object.DestroyImmediate(col);
+            }
+
+            // A. Main House Body Collider
+            BoxCollider mainBodyCol = houseContainer.AddComponent<BoxCollider>();
+            mainBodyCol.center = new Vector3(0.0f, 2.25f, 0.3725f);
+            mainBodyCol.size = new Vector3(6.46f, 4.5f, 1.745f);
+            mainBodyCol.isTrigger = false;
+
+            // B. Left Porch Wall Collider
+            BoxCollider leftWallCol = houseContainer.AddComponent<BoxCollider>();
+            leftWallCol.center = new Vector3(-3.13f, 2.25f, -1.3525f);
+            leftWallCol.size = new Vector3(0.2f, 4.5f, 1.705f);
+            leftWallCol.isTrigger = false;
+
+            // C. Right Porch Wall Collider
+            BoxCollider rightWallCol = houseContainer.AddComponent<BoxCollider>();
+            rightWallCol.center = new Vector3(3.13f, 2.25f, -1.3525f);
+            rightWallCol.size = new Vector3(0.2f, 4.5f, 1.705f);
+            rightWallCol.isTrigger = false;
+
+            Debug.Log("[SETUP THANH HOUSE] Set up robust Compound BoxColliders (Main Body, Left Porch Wall, Right Porch Wall) on Thanh_House.");
 
             // 6. Mark scene dirty and save
             if (!Application.isPlaying)

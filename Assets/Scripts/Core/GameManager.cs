@@ -151,6 +151,10 @@ namespace SownInStone.Core
 
             OnDayChanged?.Invoke(currentDay);
             OnPhaseChanged?.Invoke(currentPhase);
+            
+            // Play phase change warning chime
+            SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_warning");
+
             Debug.Log($"[GAME MANAGER] Chuyển sang Giai Đoạn: {newPhase.ToString()}, Ngày: {currentDay}");
         }
 
