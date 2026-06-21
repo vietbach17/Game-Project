@@ -84,7 +84,7 @@ namespace SownInStone.Interactions
 
             // Apply movement on XZ plane
             Vector3 moveDir = transform.forward * moveInput * moveSpeed;
-            rb.velocity = new Vector3(moveDir.x, rb.velocity.y, moveDir.z);
+            rb.linearVelocity = new Vector3(moveDir.x, rb.linearVelocity.y, moveDir.z);
 
             // Apply rotation around Y axis
             if (Mathf.Abs(moveInput) > 0.05f || Mathf.Abs(turnInput) > 0.05f)
@@ -96,7 +96,7 @@ namespace SownInStone.Interactions
             else
             {
                 // Stop boat velocity when no input
-                rb.velocity = new Vector3(0f, rb.velocity.y, 0f);
+                rb.linearVelocity = new Vector3(0f, rb.linearVelocity.y, 0f);
             }
         }
 
@@ -117,7 +117,7 @@ namespace SownInStone.Interactions
             if (playerRb != null)
             {
                 playerRb.isKinematic = true;
-                playerRb.velocity = Vector3.zero;
+                playerRb.linearVelocity = Vector3.zero;
             }
 
             Collider playerCol = player.GetComponent<Collider>();
