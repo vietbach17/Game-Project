@@ -35,7 +35,7 @@ namespace SownInStone.UI
         private void Start()
         {
             // Tìm tất cả NPC trong scene
-            npcs = FindObjectsOfType<NPCCharacter>();
+            npcs = FindObjectsByType<NPCCharacter>(FindObjectsInactive.Exclude);
             
             // Tự động tạo giao diện
             CreateProximityUI();
@@ -47,7 +47,7 @@ namespace SownInStone.UI
             Canvas canvas = GetComponentInParent<Canvas>();
             if (canvas == null)
             {
-                canvas = FindObjectOfType<Canvas>();
+                canvas = FindAnyObjectByType<Canvas>();
             }
             if (canvas == null) return;
 
@@ -517,7 +517,7 @@ namespace SownInStone.UI
         private void TriggerRecoveryEvent(NPCCharacter npc)
         {
             var slots = StorageManager.Instance.GetStorageSlots();
-            var seedSlot = slots.Find(s => s.item.ItemID == "item_seed" && s.quantity >= 2);
+            var seedSlot = slots.Find(s => s.item.ItemID == "item_seed_khoai" && s.quantity >= 2);
             if (seedSlot != null)
             {
                 StorageManager.Instance.RemoveItem(seedSlot.item, 2);

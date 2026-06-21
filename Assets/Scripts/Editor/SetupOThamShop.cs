@@ -15,13 +15,13 @@ namespace SownInStone.Editor
         public static void Setup()
         {
             // File paths for House (first model: 0620062116)
-            string houseFbxPath = "Assets/Prefabs/OTham_Shop/Meshy_AI_Low_poly_stylized_3D__0620062116_texture.fbx";
-            string houseTexPath = "Assets/Prefabs/OTham_Shop/Meshy_AI_Low_poly_stylized_3D__0620062116_texture.png";
+            string houseFbxPath = "Assets/Prefabs/OTham_Shop/OTham_House_Model.fbx";
+            string houseTexPath = "Assets/Prefabs/OTham_Shop/OTham_House_Texture.png";
             string houseMatPath = "Assets/Prefabs/OTham_Shop/Mat_OTham_House.mat";
 
             // File paths for Stall (second model: 0620065520)
-            string stallFbxPath = "Assets/Prefabs/OTham_Shop/Meshy_AI_Low_poly_stylized_3D__0620065520_texture.fbx";
-            string stallTexPath = "Assets/Prefabs/OTham_Shop/Meshy_AI_Low_poly_stylized_3D__0620065520_texture.png";
+            string stallFbxPath = "Assets/Prefabs/OTham_Shop/OTham_Stall_Model.fbx";
+            string stallTexPath = "Assets/Prefabs/OTham_Shop/OTham_Stall_Texture.png";
             string stallMatPath = "Assets/Prefabs/OTham_Shop/Mat_OTham_Stall.mat";
 
             // 1. Create or Load Materials

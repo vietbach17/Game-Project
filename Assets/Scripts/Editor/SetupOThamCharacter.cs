@@ -37,7 +37,7 @@ namespace SownInStone.Editor
         [MenuItem("Sown In Stone/Setup O Tham Character")]
         public static void Setup()
         {
-            string fbxPath = "Assets/Character/Farmer/Meshy_AI_Straw_Hat_Farmer_0607174820_texture.fbx";
+            string fbxPath = "Assets/Character/NPCs/O_Tham/O_Tham.fbx";
             
             // 1. Find the O Thắm NPC GameObject in the active scene
             GameObject npcObj = GameObject.Find("NPC_OTham");
@@ -154,7 +154,7 @@ namespace SownInStone.Editor
             visualObj.transform.localScale = Vector3.one;
 
             // 5b. Thiết lập Material và Texture cho mô hình 3D (Đồng bộ từ file .png)
-            string matPath = "Assets/Character/Farmer/OTham_Material.mat";
+            string matPath = "Assets/Character/NPCs/O_Tham/M_OTham.mat";
             Material oThamMat = AssetDatabase.LoadAssetAtPath<Material>(matPath);
             if (oThamMat == null)
             {
@@ -165,7 +165,7 @@ namespace SownInStone.Editor
                 oThamMat = new Material(urpLitShader);
                 
                 // Tải Texture
-                string texPath = "Assets/Character/Farmer/Meshy_AI_Straw_Hat_Farmer_0607174820_texture.png";
+                string texPath = "Assets/Character/NPCs/O_Tham/O_Tham.png";
                 Texture2D tex = AssetDatabase.LoadAssetAtPath<Texture2D>(texPath);
                 if (tex != null)
                 {
@@ -210,6 +210,24 @@ namespace SownInStone.Editor
             }
             npcComp.characterType = NPCCharacter.StoryCharacterType.OTham;
             npcComp.visualModelPrefab = fbxAsset;
+
+            // Set animator controller
+            Animator anim = visualObj.GetComponent<Animator>();
+            if (anim == null) anim = visualObj.GetComponentInChildren<Animator>();
+            if (anim != null)
+            {
+                string controllerPath = "Assets/Character/NPCs/O_Tham/OThamAnimator.controller";
+                RuntimeAnimatorController controller = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(controllerPath);
+                if (controller != null)
+                {
+                    anim.runtimeAnimatorController = controller;
+                    Debug.Log($"[SETUP] Assigned Animator Controller from '{controllerPath}' to O Thắm.");
+                }
+                else
+                {
+                    Debug.LogWarning($"[SETUP] Could not load Animator Controller at '{controllerPath}'!");
+                }
+            }
 
             // 8. Mark scene dirty and save
             if (!Application.isPlaying)

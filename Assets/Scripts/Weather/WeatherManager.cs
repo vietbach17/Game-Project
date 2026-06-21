@@ -296,8 +296,9 @@ namespace SownInStone.Weather
             {
                 if (Temperature > 38f)
                 {
-                    // Tăng stress nhiệt độ nếu đứng ngoài trời làm việc
-                    PlayerStats.Instance.ApplyHeatStress(0.8f * Time.deltaTime);
+                    // Tăng stress nhiệt độ nếu đứng ngoài trời làm việc (giảm 50% nếu đội Nón Lá)
+                    float heatStressMultiplier = (PlayerController.Instance != null && PlayerController.Instance.isWearingNonLa) ? 0.5f : 1f;
+                    PlayerStats.Instance.ApplyHeatStress(0.8f * Time.deltaTime * heatStressMultiplier);
                     PlayerStats.Instance.ApplyColdStress(-2f * Time.deltaTime); // Xóa stress lạnh
                 }
             }

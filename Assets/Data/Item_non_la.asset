@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 39869f575bfac434498b7b71134fdf21, type: 3}
+  m_Name: Item_non_la
+  m_EditorClassIdentifier: Assembly-CSharp::SownInStone.Storage.ItemData
+  ItemID: item_non_la
+  ItemName: "N\xF3n L\xE1 Truy\u1EC1n Th\u1ED1ng"
+  Description: "N\xF3n l\xE1 truy\u1EC1n th\u1ED1ng che n\u1EAFng che m\u01B0a, gi\xFAp
+    gi\u1EA3m \u0111i m\u1ED9t n\u1EEDa s\u1EF1 m\u1EA5t s\u1EE9c v\xE0 m\u1EA5t
+    n\u01B0\u1EDBc d\u01B0\u1EDBi n\u1EAFng n\xF3ng Gi\xF3 L\xE0o."
+  type: 4
+  Icon: {fileID: 0}
+  StaminaRestoreValue: 0
+  MoraleRestoreValue: 0
+  DecayRateInHumidity: 0
