@@ -30,6 +30,16 @@ namespace SownInStone.Interactions
         [Tooltip("Hạt khói nhang (Unity Particle System).")]
         [SerializeField] private ParticleSystem smokeParticles;
 
+#if UNITY_EDITOR
+        private void Awake()
+        {
+            if (incenseItem == null)
+            {
+                incenseItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Incense.asset");
+            }
+        }
+#endif
+
         private void Start()
         {
             if (smokeParticles != null)

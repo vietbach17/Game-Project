@@ -23,6 +23,9 @@ namespace SownInStone
         [SerializeField] private ItemData testPreservedCrop;
         [SerializeField] private ItemData testIncense;
         [SerializeField] private ItemData testSeedItem;
+        [SerializeField] private ItemData testNonLa;
+        [SerializeField] private ItemData testSandbag;
+        [SerializeField] private ItemData testFloodBoard;
         [SerializeField] private AncestralAltar testAltar;
 
         private string alertMessage = "Hệ thống hoạt động bình thường.";
@@ -85,6 +88,15 @@ namespace SownInStone
             }
 
             // Thêm sẵn một số đồ đạc vào kho để người chơi test nghịch thử
+#if UNITY_EDITOR
+            if (testFreshCrop == null) testFreshCrop = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_FreshCrop.asset");
+            if (testPreservedCrop == null) testPreservedCrop = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_PreservedCrop.asset");
+            if (testIncense == null) testIncense = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Incense.asset");
+            if (testSeedItem == null) testSeedItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Seed.asset");
+            if (testNonLa == null) testNonLa = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_non_la.asset");
+            if (testSandbag == null) testSandbag = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_sandbag.asset");
+            if (testFloodBoard == null) testFloodBoard = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_flood_board.asset");
+#endif
             AddDefaultItemsToStorage();
         }
 
@@ -140,6 +152,9 @@ namespace SownInStone
             if (testPreservedCrop != null) StorageManager.Instance.AddItem(testPreservedCrop, 3);
             if (testIncense != null) StorageManager.Instance.AddItem(testIncense, 5);
             if (testSeedItem != null) StorageManager.Instance.AddItem(testSeedItem, 5);
+            if (testNonLa != null) StorageManager.Instance.AddItem(testNonLa, 1);
+            if (testSandbag != null) StorageManager.Instance.AddItem(testSandbag, 5);
+            if (testFloodBoard != null) StorageManager.Instance.AddItem(testFloodBoard, 3);
         }
 
         private void OnGUI()
@@ -395,6 +410,34 @@ namespace SownInStone
                 {
                     StorageManager.Instance.AddItem(testPreservedCrop, 5);
                     ShowAlert("Đã thêm 5 Khoai Gieo (lương thực khô) vào kho đồ!");
+                }
+            }
+            GUILayout.EndHorizontal();
+
+            // Row 2.5: Survival items cheats
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("Add +1 Nón Lá"))
+            {
+                if (StorageManager.Instance != null && testNonLa != null)
+                {
+                    StorageManager.Instance.AddItem(testNonLa, 1);
+                    ShowAlert("Đã thêm 1 Nón Lá vào kho đồ!");
+                }
+            }
+            if (GUILayout.Button("Add +5 Bao Cát"))
+            {
+                if (StorageManager.Instance != null && testSandbag != null)
+                {
+                    StorageManager.Instance.AddItem(testSandbag, 5);
+                    ShowAlert("Đã thêm 5 Bao Cát vào kho đồ!");
+                }
+            }
+            if (GUILayout.Button("Add +3 Tấm Chắn"))
+            {
+                if (StorageManager.Instance != null && testFloodBoard != null)
+                {
+                    StorageManager.Instance.AddItem(testFloodBoard, 3);
+                    ShowAlert("Đã thêm 3 Tấm Chắn Lũ vào kho đồ!");
                 }
             }
             GUILayout.EndHorizontal();

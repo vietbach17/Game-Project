@@ -13646,7 +13646,7 @@ MonoBehaviour:
   characterVisual: {fileID: 0}
   rotationSpeed: 10
   rotationAxis: 1
-  interactRadius: 1.2
+  interactRadius: 2.5
   interactableLayers:
     serializedVersion: 2
     m_Bits: 4294967295

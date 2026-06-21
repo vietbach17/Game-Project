@@ -15,8 +15,8 @@ namespace SownInStone.Editor
         public static void Setup()
         {
             // File paths for Altar
-            string fbxPath = "Assets/Prefabs/Altar/Meshy_AI_tôi_muốn_làm_mộ_0613091059_texture.fbx";
-            string texPath = "Assets/Prefabs/Altar/Meshy_AI_tôi_muốn_làm_mộ_0613091059_texture.png";
+            string fbxPath = "Assets/Prefabs/Altar/Altar_Model.fbx";
+            string texPath = "Assets/Prefabs/Altar/Altar_Texture.png";
             string matPath = "Assets/Prefabs/Altar/Mat_Altar.mat";
 
             // 1. Create or Load Material

@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 39869f575bfac434498b7b71134fdf21, type: 3}
+  m_Name: Item_sandbag
+  m_EditorClassIdentifier: Assembly-CSharp::SownInStone.Storage.ItemData
+  ItemID: item_sandbag
+  ItemName: "Bao C\xE1t Ch\u1ED1ng L\u0169"
+  Description: "Bao c\xE1t ch\u1EAFc ch\u1EAFn d\xF9ng \u0111\u1EC3 t\u1EA1o \u0111\xEA
+    ch\u1EAFn n\u01B0\u1EDBc l\u0169 d\xE2ng cao, b\u1EA3o v\u1EC7 \xF4 ru\u1ED9ng
+    \u0111\u1EA5t kh\u1ECFi ng\u1EADp \xFAng."
+  type: 4
+  Icon: {fileID: 0}
+  StaminaRestoreValue: 0
+  MoraleRestoreValue: 0
+  DecayRateInHumidity: 0

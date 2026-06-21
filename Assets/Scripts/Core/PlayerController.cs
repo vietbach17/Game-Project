@@ -58,7 +58,7 @@ namespace SownInStone.Core
 
         [Header("--- TƯƠNG TÁC PHÍM [E] ---")]
         [Tooltip("Bán kính hình cầu quét tìm vật thể có thể tương tác xung quanh nhân vật.")]
-        [SerializeField] private float interactRadius = 1.7f;
+        [SerializeField] private float interactRadius = 2.5f;
         
         [Tooltip("Lớp vật lý (Layer) chứa các đối tượng có thể tương tác (nên chọn Everything hoặc thiết lập riêng).")]
         [SerializeField] private LayerMask interactableLayers = ~0;
@@ -461,6 +461,14 @@ namespace SownInStone.Core
         }
 
         /// <summary>
+        /// Khóa di chuyển của người chơi trong khoảng thời gian nhất định.
+        /// </summary>
+        public void LockMovement(float duration)
+        {
+            StartCoroutine(LockMovementForSeconds(duration));
+        }
+
+        /// <summary>
         /// Quét tìm các đối tượng xung quanh trong bán kính quét và thực hiện tương tác.
         /// Ưu tiên đối tượng ở gần nhất.
         /// </summary>
@@ -526,28 +534,14 @@ namespace SownInStone.Core
                 }
             }
 
-            // Quét hình cầu vật lý 3D xung quanh người chơi
+            // Quét hình cầu vật lý 3D xung quanh người chơi và lấy đối tượng có thể tương tác gần nhất
             Collider[] colliders = Physics.OverlapSphere(transform.position, interactRadius, interactableLayers);
-            
-            Collider closestCollider = null;
-            float minDistance = float.MaxValue;
-
-            foreach (var col in colliders)
-            {
-                if (col.gameObject == gameObject) continue; // Bỏ qua bản thân người chơi
-
-                float dist = Vector3.Distance(transform.position, col.transform.position);
-                if (dist < minDistance)
-                {
-                    minDistance = dist;
-                    closestCollider = col;
-                }
-            }
+            Collider closestCollider = GetClosestInteractable(colliders);
 
             if (closestCollider != null)
             {
                 GameObject target = closestCollider.gameObject;
-                Debug.Log($"[PLAYER] Đã tìm thấy đối tượng gần nhất: {target.name}");
+                Debug.Log($"[PLAYER] Đã tìm thấy đối tượng tương tác gần nhất: {target.name}");
 
                 // 1. Tương tác với Dân làng (NPC Bác Năm, O Thắm) - Đã vô hiệu hóa tương tác trực tiếp E/Space theo yêu cầu thiết kế mới
                 NPCCharacter npc = target.GetComponent<NPCCharacter>();
@@ -577,6 +571,14 @@ namespace SownInStone.Core
                 if (boat != null)
                 {
                     boat.Interact(this);
+                    return;
+                }
+
+                // 2.7. Tương tác với Vũng bùn lầy
+                MudPuddle mud = target.GetComponent<MudPuddle>();
+                if (mud != null)
+                {
+                    mud.Interact();
                     return;
                 }
 
@@ -626,6 +628,7 @@ namespace SownInStone.Core
                     PlayerStats.Instance.ModifyStamina(-actualCost);
                     SetAnimTrigger("Dig");
                     StartCoroutine(LockMovementForSeconds(digActionDuration));
+                    SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_clear_rocks");
                     activeSoil.ActionClearRocks(999f);
                     Debug.Log($"Cleared rocks on {cellsWithRocks} cell(s)");
                     PlayerStats.Instance.TriggerAlert($"Đã nhặt đá cải tạo {cellsWithRocks} ô ruộng!");
@@ -660,6 +663,7 @@ namespace SownInStone.Core
             {
                 SetAnimTrigger("Harvest");
                 StartCoroutine(LockMovementForSeconds(harvestActionDuration));
+                SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_harvest");
 
                 int totalYield = 0;
                 ItemData harvestItem = null;
@@ -785,6 +789,7 @@ namespace SownInStone.Core
                     PlayerStats.Instance.ModifyStamina(-actualCost);
                     SetAnimTrigger("Water");
                     StartCoroutine(LockMovementForSeconds(waterActionDuration));
+                    SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_water");
                     activeSoil.ActionWaterSoil(50f);
                     Debug.Log($"Watered {dryCells} cell(s)");
                     PlayerStats.Instance.TriggerAlert($"Đã tưới nước cho {dryCells} ô ruộng!");
@@ -866,20 +871,9 @@ namespace SownInStone.Core
                 return;
             }
 
+            // Quét hình cầu vật lý 3D xung quanh người chơi và lấy đối tượng tương tác gần nhất
             Collider[] colliders = Physics.OverlapSphere(transform.position, interactRadius, interactableLayers);
-            Collider closestCollider = null;
-            float minDistance = float.MaxValue;
-
-            foreach (var col in colliders)
-            {
-                if (col.gameObject == gameObject) continue;
-                float dist = Vector3.Distance(transform.position, col.transform.position);
-                if (dist < minDistance)
-                {
-                    minDistance = dist;
-                    closestCollider = col;
-                }
-            }
+            Collider closestCollider = GetClosestInteractable(colliders);
 
             SoilCell targetSoil = null;
             if (closestCollider != null)
@@ -928,51 +922,59 @@ namespace SownInStone.Core
                         }
                         else
                         {
-                            SoilCell soil = closestCollider.GetComponent<SoilCell>();
-                        if (soil != null)
-                        {
-                            SoilCell activeSoil = soil.parentField != null ? soil.parentField : soil;
-
-                            int cellsWithRocks = 0;
-                            int emptySlots = 0;
-                            bool hasReadyCrops = false;
-                            int dryCells = 0;
-
-                            if (activeSoil.IsParentField)
+                            MudPuddle mud = closestCollider.GetComponent<MudPuddle>();
+                            if (mud != null)
                             {
-                                foreach (var child in activeSoil.childCells)
+                                prompt = $"[{keyInteract}] Dọn dẹp bùn đất";
+                            }
+                            else
+                            {
+                                SoilCell soil = closestCollider.GetComponent<SoilCell>();
+                                if (soil != null)
                                 {
-                                    if (child != null)
+                                    SoilCell activeSoil = soil.parentField != null ? soil.parentField : soil;
+
+                                    int cellsWithRocks = 0;
+                                    int emptySlots = 0;
+                                    bool hasReadyCrops = false;
+                                    int dryCells = 0;
+
+                                    if (activeSoil.IsParentField)
                                     {
-                                        if (child.RockDensity > 0f) cellsWithRocks++;
-                                        if (child.plantedCrop == null) emptySlots++;
-                                        if (child.plantedCrop != null && child.plantedCrop.IsReadyToHarvest()) hasReadyCrops = true;
-                                        if (child.Moisture < 40f) dryCells++;
+                                        foreach (var child in activeSoil.childCells)
+                                        {
+                                            if (child != null)
+                                            {
+                                                if (child.RockDensity > 0f) cellsWithRocks++;
+                                                if (child.plantedCrop == null) emptySlots++;
+                                                if (child.plantedCrop != null && child.plantedCrop.IsReadyToHarvest()) hasReadyCrops = true;
+                                                if (child.Moisture < 40f) dryCells++;
+                                            }
+                                        }
                                     }
+                                    else
+                                    {
+                                        if (activeSoil.RockDensity > 0f) cellsWithRocks = 1;
+                                        if (activeSoil.plantedCrop == null) emptySlots = 1;
+                                        if (activeSoil.plantedCrop != null && activeSoil.plantedCrop.IsReadyToHarvest()) hasReadyCrops = true;
+                                        if (activeSoil.Moisture < 40f) dryCells = 1;
+                                    }
+
+                                    if (cellsWithRocks > 0)
+                                        prompt = "[E] Dọn đá cải tạo ruộng";
+                                    else if (hasReadyCrops)
+                                        prompt = "[E] Thu hoạch khoai tươi";
+                                    else if (emptySlots > 0)
+                                        prompt = "[E] Gieo hạt giống khoai";
+                                    else if (soil.Moisture < 40f)
+                                        prompt = "[E] Tưới nước cho đất ẩm";
+                                    else
+                                        prompt = "Đất đã được gieo hạt";
                                 }
                             }
-                            else
-                            {
-                                if (activeSoil.RockDensity > 0f) cellsWithRocks = 1;
-                                if (activeSoil.plantedCrop == null) emptySlots = 1;
-                                if (activeSoil.plantedCrop != null && activeSoil.plantedCrop.IsReadyToHarvest()) hasReadyCrops = true;
-                                if (activeSoil.Moisture < 40f) dryCells = 1;
-                            }
-
-                            if (cellsWithRocks > 0)
-                                prompt = "[E] Dọn đá cải tạo ruộng";
-                            else if (hasReadyCrops)
-                                prompt = "[E] Thu hoạch khoai tươi";
-                            else if (emptySlots > 0)
-                                prompt = "[E] Gieo hạt giống khoai";
-                            else if (soil.Moisture < 40f)
-                                prompt = "[E] Tưới nước cho đất ẩm";
-                            else
-                                prompt = "Đất đã được gieo hạt";
                         }
                     }
                 }
-            }
 
                 SownInStone.UI.SurvivalUIManager.Instance.SetInteractionPrompt(prompt);
             }
@@ -980,6 +982,56 @@ namespace SownInStone.Core
             {
                 SownInStone.UI.SurvivalUIManager.Instance.SetInteractionPrompt("");
             }
+        }
+
+        [Header("--- TRANG PHỤC & THIẾT BỊ ---")]
+        public bool isWearingNonLa = false;
+        private GameObject activeHatVisual;
+
+        public void EquipNonLa(GameObject hatPrefab)
+        {
+            isWearingNonLa = true;
+            
+            // Destroy existing hat visual if any
+            if (activeHatVisual != null)
+            {
+                Destroy(activeHatVisual);
+            }
+
+            if (hatPrefab != null)
+            {
+                // Find head bone or parent to visual
+                Transform headBone = FindHeadBone(characterVisual != null ? characterVisual : transform);
+                activeHatVisual = Instantiate(hatPrefab);
+                activeHatVisual.name = "Equipped_NonLa";
+                
+                if (headBone != null)
+                {
+                    activeHatVisual.transform.SetParent(headBone, false);
+                    activeHatVisual.transform.localPosition = new Vector3(0f, 0.15f, 0f); // Slight offset above head bone
+                    activeHatVisual.transform.localRotation = Quaternion.Euler(-90f, 0f, 0f); // Align standard FBX import
+                    activeHatVisual.transform.localScale = Vector3.one * 0.8f;
+                }
+                else
+                {
+                    // Fallback to parent transform head level
+                    activeHatVisual.transform.SetParent(transform, false);
+                    activeHatVisual.transform.localPosition = new Vector3(0f, 1.6f, 0f);
+                    activeHatVisual.transform.localRotation = Quaternion.identity;
+                    activeHatVisual.transform.localScale = Vector3.one * 0.8f;
+                }
+            }
+        }
+
+        private Transform FindHeadBone(Transform current)
+        {
+            if (current.name.ToLower().Contains("head") || current.name.ToLower().Contains("bip001 head")) return current;
+            for (int i = 0; i < current.childCount; i++)
+            {
+                Transform found = FindHeadBone(current.GetChild(i));
+                if (found != null) return found;
+            }
+            return null;
         }
 
         private void SetAnimFloat(string paramName, float value)
@@ -990,7 +1042,7 @@ namespace SownInStone.Core
             }
         }
 
-        private void SetAnimTrigger(string paramName)
+        public void SetAnimTrigger(string paramName)
         {
             if (animator != null && animatorParams.Contains(paramName))
             {
@@ -1086,6 +1138,34 @@ namespace SownInStone.Core
                     }
                 }
             }
+        }
+
+        private Collider GetClosestInteractable(Collider[] colliders)
+        {
+            Collider closest = null;
+            float minDistance = float.MaxValue;
+            foreach (var col in colliders)
+            {
+                if (col.gameObject == gameObject) continue;
+
+                // Kiểm tra xem đối tượng có chứa bất kỳ Script tương tác nào không
+                bool isInteractable = col.GetComponent<NPCCharacter>() != null ||
+                                      col.GetComponent<AncestralAltar>() != null ||
+                                      col.GetComponent<Coracle>() != null ||
+                                      col.GetComponent<SoilCell>() != null ||
+                                      col.GetComponent<MudPuddle>() != null;
+
+                if (isInteractable)
+                {
+                    float dist = Vector3.Distance(transform.position, col.transform.position);
+                    if (dist < minDistance)
+                    {
+                        minDistance = dist;
+                        closest = col;
+                    }
+                }
+            }
+            return closest;
         }
 
         private void OnDrawGizmosSelected()

@@ -122,6 +122,9 @@ namespace SownInStone.UI
         [SerializeField] private ItemData seedItem;
         [SerializeField] private ItemData incenseItem;
         [SerializeField] private ItemData noodlesItem;
+        [SerializeField] private ItemData nonLaItem;
+        [SerializeField] private ItemData sandbagItem;
+        [SerializeField] private ItemData floodBoardItem;
 
         private GameObject shopPanel;
         private TextMeshProUGUI shopCoinsText;
@@ -181,6 +184,26 @@ namespace SownInStone.UI
             if (noodlesItem == null)
             {
                 noodlesItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Noodles.asset");
+            }
+            if (freshCropItem == null)
+            {
+                freshCropItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_FreshCrop.asset");
+            }
+            if (preservedCropItem == null)
+            {
+                preservedCropItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_PreservedCrop.asset");
+            }
+            if (nonLaItem == null)
+            {
+                nonLaItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_non_la.asset");
+            }
+            if (sandbagItem == null)
+            {
+                sandbagItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_sandbag.asset");
+            }
+            if (floodBoardItem == null)
+            {
+                floodBoardItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_flood_board.asset");
             }
 #endif
 
@@ -1171,7 +1194,93 @@ namespace SownInStone.UI
             }
             else
             {
-                // Đối với các vật phẩm không dùng trực tiếp (Nhang, Hạt giống, Vật liệu...)
+                // 1. Xử lý Nón Lá (Equip)
+                if (item.ItemID == "item_non_la")
+                {
+                    if (PlayerController.Instance != null && PlayerController.Instance.isWearingNonLa)
+                    {
+                        ShowDialogue(item.ItemName, "Bạn đang đội Nón Lá rồi!");
+                        return;
+                    }
+
+                    ShowDialogueWithChoices(
+                        item.ItemName,
+                        "Bạn có muốn đội Nón Lá này không?\n\nHiệu quả:\n• Giảm 50% tốc độ tích lũy sốc nhiệt dưới thời tiết nắng nóng Gió Lào.",
+                        "Đội nón",
+                        () => {
+                            if (StorageManager.Instance != null && StorageManager.Instance.RemoveItem(item, 1))
+                            {
+                                if (PlayerController.Instance != null)
+                                {
+                                    GameObject hatPrefab = Resources.Load<GameObject>("Prefabs/NonLa");
+                                    PlayerController.Instance.EquipNonLa(hatPrefab);
+                                }
+                                PlayerStats.Instance?.TriggerAlert("Đã đội Nón Lá!");
+                            }
+                            RefreshInventoryUI();
+                            CloseDialogue();
+                        },
+                        "Hủy bỏ",
+                        () => {
+                            CloseDialogue();
+                        }
+                    );
+                    return;
+                }
+
+                // 2. Xử lý Bao Cát và Tấm Chắn Lũ (Placement)
+                if (item.ItemID == "item_sandbag" || item.ItemID == "item_flood_board")
+                {
+                    bool isSandbag = item.ItemID == "item_sandbag";
+                    string actionName = isSandbag ? "Đặt bao cát" : "Dựng tấm chắn";
+                    string desc = isSandbag 
+                        ? "Bạn có muốn đặt Bao Cát này xuống đất để chặn nước lũ ngập úng không?\n\nHiệu quả:\n• Che chắn úng lụt cho các cây trồng gần đó (bán kính 2.2m)."
+                        : "Bạn có muốn dựng Tấm Chắn Lũ này xuống đất để ngăn nước ngập ruộng không?\n\nHiệu quả:\n• Che chắn úng lụt cho các cây trồng gần đó (bán kính 2.2m).";
+
+                    ShowDialogueWithChoices(
+                        item.ItemName,
+                        desc,
+                        actionName,
+                        () => {
+                            if (StorageManager.Instance != null && StorageManager.Instance.RemoveItem(item, 1))
+                            {
+                                if (PlayerController.Instance != null)
+                                {
+                                    string prefabPath = isSandbag ? "Prefabs/Sandbag" : "Prefabs/FloodBoard";
+                                    GameObject prefab = Resources.Load<GameObject>(prefabPath);
+                                    if (prefab != null)
+                                    {
+                                        Vector3 spawnPos = PlayerController.Instance.transform.position;
+                                        spawnPos.y = 0.0f; // Đặt ngang mặt đất
+                                        
+                                        // Đặt cách người chơi một khoảng nhỏ phía trước
+                                        Vector3 forwardOffset = PlayerController.Instance.transform.forward * 1.0f;
+                                        forwardOffset.y = 0f;
+                                        Vector3 finalPos = spawnPos + forwardOffset;
+                                        
+                                        GameObject deployed = Instantiate(prefab, finalPos, Quaternion.identity);
+                                        deployed.name = isSandbag ? "Deployed_Sandbag" : "Deployed_FloodBoard";
+                                        
+                                        PlayerStats.Instance?.TriggerAlert($"Đã đặt {item.ItemName}!");
+                                    }
+                                    else
+                                    {
+                                        Debug.LogError($"[SURVIVAL UI] Không tìm thấy prefab {prefabPath} trong Resources!");
+                                    }
+                                }
+                            }
+                            RefreshInventoryUI();
+                            CloseDialogue();
+                        },
+                        "Hủy bỏ",
+                        () => {
+                            CloseDialogue();
+                        }
+                    );
+                    return;
+                }
+
+                // Đối với các vật phẩm không dùng trực tiếp khác (Nhang, Hạt giống, Vật liệu...)
                 string descText = $"{item.Description}";
                 if (item.type == ItemType.Incense)
                 {
@@ -2106,7 +2215,7 @@ namespace SownInStone.UI
             r.anchorMax = new Vector2(0.5f, 0.5f);
             r.pivot = new Vector2(0.5f, 0.5f);
             r.anchoredPosition = new Vector2(0f, 0f);
-            r.sizeDelta = new Vector2(500f, 400f);
+            r.sizeDelta = new Vector2(500f, 580f);
 
             Image bg = shopPanel.GetComponent<Image>();
             bg.color = new Color(0.12f, 0.14f, 0.18f, 0.96f); // Nâu tối ánh xanh đen sang trọng
@@ -2179,15 +2288,18 @@ namespace SownInStone.UI
             listRect.anchorMin = new Vector2(0.5f, 0.5f);
             listRect.anchorMax = new Vector2(0.5f, 0.5f);
             listRect.pivot = new Vector2(0.5f, 0.5f);
-            listRect.anchoredPosition = new Vector2(0f, -35f);
-            listRect.sizeDelta = new Vector2(460f, 320f);
+            listRect.anchoredPosition = new Vector2(0f, -40f);
+            listRect.sizeDelta = new Vector2(460f, 480f);
 
-            // Tạo các dòng vật phẩm (5 dòng)
+            // Tạo các dòng vật phẩm (8 dòng)
             CreateShopRow(listContainer.transform, 0, "Hạt giống Khoai", "Dùng gieo trồng khoai lang", true, () => GetSeedPrice(), seedItem, font);
             CreateShopRow(listContainer.transform, 1, "Nhang cúng", "Dùng thắp nhang ban thờ gia tiên", true, () => 15, incenseItem, font);
             CreateShopRow(listContainer.transform, 2, "Khoai lang tươi", "Nông sản tươi thu hoạch từ ruộng", false, () => 25, freshCropItem, font);
             CreateShopRow(listContainer.transform, 3, "Khoai gieo khô", "Đặc sản phơi khô tích lũy chống lũ", false, () => 40, preservedCropItem, font);
             CreateShopRow(listContainer.transform, 4, "Mì Tôm Cứu Trợ", "Mì tôm ăn liền cứu trợ khẩn cấp", true, () => 15, noodlesItem, font);
+            CreateShopRow(listContainer.transform, 5, "Nón Lá Truyền Thống", "Che nắng mưa, giảm 50% sốc nhiệt", true, () => 15, nonLaItem, font);
+            CreateShopRow(listContainer.transform, 6, "Bao Cát Chống Lũ", "Dùng cản nước bảo vệ hoa màu ruộng", true, () => 8, sandbagItem, font);
+            CreateShopRow(listContainer.transform, 7, "Tấm Chắn Lũ", "Tấm gỗ chắn nước bảo vệ ruộng vườn", true, () => 12, floodBoardItem, font);
 
             shopPanel.SetActive(false); // Ẩn mặc định
         }
@@ -2200,7 +2312,7 @@ namespace SownInStone.UI
 
         private void CreateShopRow(Transform parent, int index, string itemName, string desc, bool isBuy, System.Func<int> priceFunc, ItemData item, TMP_FontAsset font)
         {
-            float yPos = 130f - index * 65f; // Khoảng cách 65 units chiều dọc để các hàng cách nhau thông thoáng
+            float yPos = 210f - index * 60f; // Cách nhau 60 units chiều dọc để dàn đều 8 hàng trong container 480f
 
             GameObject row = new GameObject($"Row_{index}", typeof(RectTransform), typeof(Image));
             row.transform.SetParent(parent, false);
@@ -2346,7 +2458,10 @@ namespace SownInStone.UI
                 new { name = "Nhang cúng", desc = "Dùng thắp nhang ban thờ gia tiên", isBuy = true, price = 15, item = incenseItem },
                 new { name = "Khoai lang tươi", desc = "Nông sản tươi thu hoạch từ ruộng", isBuy = false, price = 25, item = freshCropItem },
                 new { name = "Khoai gieo khô", desc = "Đặc sản phơi khô tích lũy chống lũ", isBuy = false, price = 40, item = preservedCropItem },
-                new { name = "Mì Tôm Cứu Trợ", desc = "Mì tôm ăn liền cứu trợ khẩn cấp", isBuy = true, price = 15, item = noodlesItem }
+                new { name = "Mì Tôm Cứu Trợ", desc = "Mì tôm ăn liền cứu trợ khẩn cấp", isBuy = true, price = 15, item = noodlesItem },
+                new { name = "Nón Lá Truyền Thống", desc = "Che nắng mưa, giảm 50% sốc nhiệt", isBuy = true, price = 15, item = nonLaItem },
+                new { name = "Bao Cát Chống Lũ", desc = "Dùng cản nước bảo vệ hoa màu ruộng", isBuy = true, price = 8, item = sandbagItem },
+                new { name = "Tấm Chắn Lũ", desc = "Tấm gỗ chắn nước bảo vệ ruộng vườn", isBuy = true, price = 12, item = floodBoardItem }
             };
 
             // 3. Quét qua từng hàng để cập nhật văn bản và nút bấm
