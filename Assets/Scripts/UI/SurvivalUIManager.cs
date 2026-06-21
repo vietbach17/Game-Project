@@ -1161,6 +1161,7 @@ namespace SownInStone.UI
                             PlayerStats.Instance.UseItem(item);
                         }
                         RefreshInventoryUI();
+                        CloseDialogue();
                     },
                     "Hủy bỏ",
                     () => {
@@ -1404,11 +1405,7 @@ namespace SownInStone.UI
         {
             if (!isChoiceActive) return;
 
-            isChoiceActive = false;
-            if (choiceContainer != null)
-            {
-                choiceContainer.SetActive(false);
-            }
+            CloseDialogue();
 
             if (choiceIndex == 1)
             {
