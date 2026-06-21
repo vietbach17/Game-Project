@@ -23,9 +23,7 @@ MonoBehaviour:
   HarvestedItem: {fileID: 11400000, guid: f0001001000100010001000100010001, type: 2}
   GrowthStageSprites:
   - {fileID: 10913, guid: 0000000000000000f000000000000000, type: 0}
-  - {fileID: 10911, guid: 0000000000000000f000000000000000, type: 0}
   - {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
   GrowthStagePrefabs:
-  - {fileID: 919132149155446097, guid: bc8f572944acbc04ba79641d3cf00f61, type: 3}
-  - {fileID: 919132149155446097, guid: 95ad5fcae82b91d429ba7a17b1da836e, type: 3}
-  - {fileID: 919132149155446097, guid: c08166daa8289124ba1b4090e116b91d, type: 3}
+  - {fileID: 3274051905516960946, guid: 5d7c8262b3f116d4dbc4b66a155ccc85, type: 3}
+  - {fileID: 9007890221813834129, guid: 0f99b58e42d1e6b479be3323f561569f, type: 3}

@@ -44,6 +44,25 @@ namespace SownInStone
 
         private void Start()
         {
+#if UNITY_EDITOR
+            if (testSeedItem == null)
+            {
+                testSeedItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Seed.asset");
+            }
+            if (testFreshCrop == null)
+            {
+                testFreshCrop = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_FreshCrop.asset");
+            }
+            if (testPreservedCrop == null)
+            {
+                testPreservedCrop = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_PreservedCrop.asset");
+            }
+            if (testIncense == null)
+            {
+                testIncense = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Incense.asset");
+            }
+#endif
+
             // Kiểm tra xem có Main Menu đang hiển thị hay không để ẩn bảng điều khiển
 #if UNITY_2023_1_OR_NEWER
             FrameworkMainMenuUI mainMenu = FindAnyObjectByType<FrameworkMainMenuUI>();

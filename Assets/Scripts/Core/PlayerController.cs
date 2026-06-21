@@ -182,7 +182,7 @@ namespace SownInStone.Core
 #if UNITY_EDITOR
             if (seedItem == null)
             {
-                seedItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_PreservedCrop.asset");
+                seedItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Seed.asset");
             }
             if (noodlesItem == null)
             {
@@ -466,6 +466,11 @@ namespace SownInStone.Core
         /// </summary>
         private void TryPerformInteraction()
         {
+            if (SownInStone.UI.SurvivalUIManager.Instance != null && SownInStone.UI.SurvivalUIManager.Instance.IsDialogueActive)
+            {
+                return;
+            }
+
             if (isPerformingAction) return;
 
             Debug.Log("[PLAYER] Bấm phím tương tác [E]!");
@@ -719,36 +724,30 @@ namespace SownInStone.Core
                         }
                     }
 
-                    int seedsToPlant = Mathf.Min(emptySlots, availableSeeds);
-
-                    if (seedsToPlant > 0)
+                    if (availableSeeds > 0)
                     {
-                        if (StorageManager.Instance.RemoveItem(seedItem, seedsToPlant))
-                        {
-                            if (activeSoil.IsParentField)
-                            {
-                                int planted = 0;
-                                foreach (var child in activeSoil.childCells)
-                                {
-                                    if (child != null && child.plantedCrop == null && planted < seedsToPlant)
-                                    {
-                                        if (child.ActionPlantCrop(testSeedData))
-                                        {
-                                            planted++;
-                                        }
-                                    }
-                                }
-                                PlayerStats.Instance.TriggerAlert($"Đã gieo {planted} hạt giống!");
-                            }
-                            else
-                            {
-                                activeSoil.ActionPlantCrop(testSeedData);
-                            }
+                        var plantable = GetPlantableCellsNear(activeSoil);
+                        int bulkCount = Mathf.Min(availableSeeds, plantable.Count);
 
-                            SetAnimTrigger("Plant");
-                            StartCoroutine(LockMovementForSeconds(plantActionDuration));
-                            Debug.Log("Plant success: seed consumed");
-                        }
+                        string title = "Gieo hạt giống";
+                        string msg = "Bạn muốn làm gì?";
+
+                        SownInStone.UI.SurvivalUIManager.Instance.ShowDialogueWithChoices(
+                            title,
+                            msg,
+                            $"Trồng hàng loạt ({bulkCount} ô)",
+                            () => {
+                                PerformBulkPlant(activeSoil, bulkCount);
+                            },
+                            "Chỉ trồng ô này",
+                            () => {
+                                PerformSinglePlant(activeSoil);
+                            },
+                            "Hủy",
+                            () => {
+                                SownInStone.UI.SurvivalUIManager.Instance.CloseDialogue();
+                            }
+                        );
                     }
                     else
                     {
@@ -1018,6 +1017,75 @@ namespace SownInStone.Core
             GUI.Label(new Rect(20, 310, 250, 20), $"Constraints: {(rb != null ? rb.constraints : RigidbodyConstraints.None)}");
             GUI.Label(new Rect(20, 330, 250, 20), $"Cam: {(Camera.main != null ? Camera.main.name : "null")}");
             GUI.Label(new Rect(20, 350, 250, 20), $"RootMotion: {(animator != null ? animator.applyRootMotion.ToString() : "null")}");
+        }
+
+        private System.Collections.Generic.List<SownInStone.Agriculture.SoilCell> GetPlantableCellsNear(SownInStone.Agriculture.SoilCell targetCell)
+        {
+            var list = new System.Collections.Generic.List<SownInStone.Agriculture.SoilCell>();
+            var allSoils = UnityEngine.Object.FindObjectsByType<SownInStone.Agriculture.SoilCell>(UnityEngine.FindObjectsSortMode.None);
+            foreach (var sc in allSoils)
+            {
+                if (sc != null && sc.gameObject.activeInHierarchy && sc.enabled && !sc.IsParentField)
+                {
+                    if (sc.RockDensity <= 0f && sc.plantedCrop == null)
+                    {
+                        list.Add(sc);
+                    }
+                }
+            }
+
+            // Sắp xếp ô mục tiêu hiện tại lên đầu tiên, các ô còn lại theo khoảng cách tăng dần
+            list.Sort((a, b) => {
+                if (a == targetCell) return -1;
+                if (b == targetCell) return 1;
+                float distA = UnityEngine.Vector3.Distance(a.transform.position, targetCell.transform.position);
+                float distB = UnityEngine.Vector3.Distance(b.transform.position, targetCell.transform.position);
+                return distA.CompareTo(distB);
+            });
+
+            return list;
+        }
+
+        private void PerformSinglePlant(SownInStone.Agriculture.SoilCell cell)
+        {
+            if (StorageManager.Instance != null && seedItem != null && testSeedData != null)
+            {
+                if (StorageManager.Instance.RemoveItem(seedItem, 1))
+                {
+                    cell.ActionPlantCrop(testSeedData);
+                    SetAnimTrigger("Plant");
+                    StartCoroutine(LockMovementForSeconds(plantActionDuration));
+                    PlayerStats.Instance.TriggerAlert("Đã gieo 1 hạt giống!");
+                    SownInStone.UI.SurvivalUIManager.Instance?.CloseDialogue();
+                }
+            }
+        }
+
+        private void PerformBulkPlant(SownInStone.Agriculture.SoilCell targetCell, int count)
+        {
+            if (StorageManager.Instance != null && seedItem != null && testSeedData != null)
+            {
+                var plantable = GetPlantableCellsNear(targetCell);
+                int actualCount = Mathf.Min(count, plantable.Count);
+                if (actualCount > 0)
+                {
+                    if (StorageManager.Instance.RemoveItem(seedItem, actualCount))
+                    {
+                        int planted = 0;
+                        for (int i = 0; i < actualCount; i++)
+                        {
+                            if (plantable[i].ActionPlantCrop(testSeedData))
+                            {
+                                planted++;
+                            }
+                        }
+                        SetAnimTrigger("Plant");
+                        StartCoroutine(LockMovementForSeconds(plantActionDuration));
+                        PlayerStats.Instance.TriggerAlert($"Đã gieo {planted} hạt giống!");
+                        SownInStone.UI.SurvivalUIManager.Instance?.CloseDialogue();
+                    }
+                }
+            }
         }
 
         private void OnDrawGizmosSelected()

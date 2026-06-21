@@ -428,9 +428,33 @@ Bản mẫu hiện tại đạt khoảng **75% tiến độ sẵn sàng cho Demo
     *   Removed direct TMP outline properties assignment on the runtime-generated quantity labels.
     *   Replaced with a safe UI `UnityEngine.UI.Shadow` component (black with 0.65 alpha, offset `(1, -1)`) for readable outline/shadow styling without runtime material crashes.
 
+---
 
+## 37. 3D SoilCell Grid Conversion
+*   **Grid Conversion Completed**:
+    *   Converted the single large sprite-based farming plot into a grid of 12 individual 3D SoilCell plots (4x3 grid) centered around `(-8.0, 0.02, -10.0)`.
+    *   Each cell is `2.0m` wide with a `BoxCollider` trigger of size `(2.0, 0.3, 2.0)` to ensure individual targeting works cleanly.
+    *   Modified [SoilCell.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Agriculture/SoilCell.cs) to hold references to the four 3D visual prefabs: `Rocky_Soil`, `Clean_Soil`, `Tilled_Soil`, and `Wet_Soil`.
+    *   Disabled old large sprite and collider components on `SoilCell_1` without deleting the gameobject structure to preserve references.
+    *   This provides extremely clear visual feedback to the player on exactly which individual 3D soil plot is currently targeted, working across all rocky/clean/tilled/wet states without hiding the underlying textures or meshes.
+*   **Normalized 3D Soil visual scale & material binding**:
+    *   Normalized the local scales of all four 3D soil state prefabs (`Soil_Rocky`, `Soil_Clean`, `Soil_Tilled`, `Soil_Wet`) so they have an identical `2.0m x 2.0m` visible footprint in world coordinates, eliminating size jumps when switching states (e.g. Rocky -> Clean).
+    *   Created and bound new URP Simple Lit materials for each state under `Assets/Art/Farming_Plot_Status/Materials/`, assigning their respective texture maps (`RockySoil_texture.png`, `CleanSoil_texture.png`, `Tilled_Soil.png`, `Wet_Soil.png`) with low roughness/smoothness (`0.15`) and no metallic reflection.
+    *   Cleaned up 3 leftover root sample visual objects from the active scene (`Village_Demo.unity`) to maintain a clean workspace.
+    *   Normalized the thickness/height of `Clean_Soil` (local scale Z set to `52.38f`) to perfectly align it with Rocky, Tilled, and Wet soil states (around `0.22m` in height), preventing a visual height jump during transitions.
+    *   Finalized manual `Clean_Soil` visual alignment using localPosition `(0, 0.077, 0)`, localRotation `(0, 0, 0)`, and localScale `(106.38, 52.38, 100)`.
+*   **Bulk Planting Confirmation**:
+    *   Implemented bulk planting confirmation dialogue popup inside [PlayerController.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Core/PlayerController.cs) using `SurvivalUIManager.ShowDialogueWithChoices`.
+    *   Calculates maximum plantable neighbors (based on cleared rocks and empty crop conditions) and compares with available seed item counts.
+    *   Adds choice to bulk-plant all available cells, plant only the current targeted cell, or cancel the planting action altogether.
 
+---
 
-
+## 38. SweetPotato Crop Visual Fixes
+*   **Prefab Visual Alignment & Orientation**:
+    *   Simplified Khoai Lang growth stages to use only the two imported FBX stages (`SweetPotato_Stage1` and `SweetPotato_Stage2`).
+    *   Manual SweetPotato Stage1/Stage2 VisualMesh transforms finalized from scene verification to ensure they are upright, centered in the `SoilCell`, and grounded perfectly on the tilled soil block:
+        *   **Stage 1**: localPosition = `(0f, -0.0083f, -0.00681f)`, localRotation = `(-180f, 0f, 0f)`, localScale = `(1f, 1f, 1f)`.
+        *   **Stage 2**: localPosition = `(0f, -0.005f, -0.00402f)`, localRotation = `(-180f, 0f, 0f)`, localScale = `(1f, 1f, 1f)`.
 
 
