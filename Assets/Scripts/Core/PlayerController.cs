@@ -90,6 +90,7 @@ namespace SownInStone.Core
 
         private System.Collections.Generic.HashSet<string> animatorParams = new System.Collections.Generic.HashSet<string>();
         private SoilCell currentTargetSoil;
+        public SoilCell CurrentTargetSoilCell => currentTargetSoil;
 
         [Header("--- PHÍM BẤM HỖ TRỢ TƯƠNG THÍCH ---")]
         public KeyCode keyMoveUp = KeyCode.W;

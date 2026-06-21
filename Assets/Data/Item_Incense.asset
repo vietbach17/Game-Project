@@ -13,10 +13,12 @@ MonoBehaviour:
   m_Name: Item_Incense
   m_EditorClassIdentifier: 
   ItemID: item_incense
-  ItemName: "Nhang"
-  Description: "Nhang tr\u1EA7m c\xFAng b\xE1i T\u1ED5 ti\xEAn/Th\u1ED5 \u0111\u1ECBa gi\xFAp Th\xE0nh h\u1ED3i ph\u1EE5c Morale (Tinh th\u1EA7n), xua tan ho\u1EA3ng lo\u1EA1n khi b\xE3o l\u0169 cu\u1ED3ng phong."
+  ItemName: Nhang
+  Description: "Nhang tr\u1EA7m c\xFAng b\xE1i T\u1ED5 ti\xEAn/Th\u1ED5 \u0111\u1ECBa
+    gi\xFAp Th\xE0nh h\u1ED3i ph\u1EE5c Morale (Tinh th\u1EA7n), xua tan ho\u1EA3ng
+    lo\u1EA1n khi b\xE3o l\u0169 cu\u1ED3ng phong."
   type: 3
-  Icon: {fileID: 0}
+  Icon: {fileID: 21300000, guid: 1ba0057db1f252e49bbac6671539296c, type: 3}
   StaminaRestoreValue: 0
   MoraleRestoreValue: 10
   DecayRateInHumidity: 0

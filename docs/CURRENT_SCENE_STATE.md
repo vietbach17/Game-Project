@@ -30,10 +30,13 @@ Trong cảnh chơi `SampleScene.unity`, các đối tượng đang được xế
     *   `FrameworkDebugUI` (Bảng debug F1).
     *   `FrameworkTester` (Chạy kịch bản test nhanh).
 *   **`Canvas`** (Main UI Canvas):
-    *   `NghiaTinhPanel` (HUD displaying Community Reputation, positioned top-left at x=20, y=-120, size 260x60, with `NghiaTinhUI` script).
+    *   `NghiaTinhPanel` (HUD displaying Community Reputation, positioned top-left below Time panel at x=20, y=-100 inside the `SurvivalUI` hierarchy, size 280x70, with `NghiaTinhUI` script).
+    *   `ResourcePanel` (HUD panel containing Health, Stamina, and Morale sliders, positioned bottom-left at x=20, y=20. Auto-hides when NPC Dialogue, Shop UI, or Ending screen is active to prevent overlapping).
     *   `VillageSpeakerBanner` (Banner Loa phát thanh xã phát thông điệp khẩn cấp, kèm script `VillageSpeakerBanner`).
     *   `EndingPanel` (Màn hình kết thúc cốt truyện, kèm script `EndingManager` liên kết ngoài).
     *   `NPCProximityPanel` (Dynamic dark semi-transparent options popup panel showing up when player is near NPCs, managed by `NPCProximityOptionsUI` attached to `SurvivalUI`).
+    *   `inventoryPanel` (Centered at `(0, 0)`, size `400x320` with a dark rustic background. Item slots size `80x80` with dark rustic background, gold outlines, centered `60x60` icons, and bold warm yellow quantity counts).
+    *   `shopPanel` (Centered at `(0, 0)`, size `500x400` with dark blue-brown background. List container size `460x320` containing 5 item rows. Each row is `60` height with `56x56` icons, warm gold item titles, gray descriptions, and custom Green Buy / Orange Sell transaction buttons).
 
 ---
 
@@ -104,9 +107,9 @@ Trong cảnh chơi `SampleScene.unity`, các đối tượng đang được xế
 
 *   **Key World Coordinates:**
     *   `Player`: `(0, 0.5, -6)`
-    *   `Thanh_House`: `(-6, 0, -4)`
-    *   `OTham_Shop`: `(8, 0, 3)`
-    *   `BacNam_House`: `(-6, 0, 8)`
+    *   `Thanh_House`: `(0.0, 0.0, -15.5)`
+    *   `OTham_Shop`: `(8.0, 0.0, 10.28)`
+    *   `BacNam_House`: `(-12.0, 0.0, 8.5)`
     *   `Village_Well`: `(0, 0, 3)`
     *   `Village_Speaker`: `(0, 1.75, 6)` (Custom Cylinder pole acts as stand-in)
     *   `Shrine` (previously AncestralAltar): `(7, 0, -6)`
@@ -114,7 +117,7 @@ Trong cảnh chơi `SampleScene.unity`, các đối tượng đang được xế
     *   `NPC_BacNam`: `(-1.78, 0.5, -10.18)` (Visual child scale = `1.22`, local Y position = `0.54`, height = `2.074m`)
     *   `SoilCells`: Arranged as a clean 2x2 grid near Thành House (SoilCell_1: `(-8, 0.02, -10)`, SoilCell_2: `(-6, 0.02, -10)`, SoilCell_3: `(-8, 0.02, -12)`, SoilCell_4: `(-6, 0.02, -12)`). Excess SoilCells are disabled. All active SoilCells are rotated X = 90 to lie flat on XZ plane.
     *   `FarmingPlot`: A visual brown soil bounding box under `FarmingArea` at `(-6, 0.01, -11)` to visually frame the SoilCells in Edit Mode.
-    *   `Main Camera`: Controlled by `CameraFollow3D` script at runtime with Roblox-like third-person settings: Default Distance = 7, Height = 3.5, Default Pitch = 30°, smoothTime = 0.1s, and SphereCast-based collision safety enabled.
+    *   `Main Camera`: Controlled by `CameraFollow3D` script at runtime with Roblox-like third-person settings: Default Distance = 6, Height = 2.5, Default Pitch = 25° (pitch range: 12°-55°), Zoom Range = 3-9, smoothTime = 0.1s, and SphereCast-based collision safety enabled.
     *   `Directional Light`: Rotation `(45, 30, 0)`, Color set to warm sunlight (Color: Warm Yellow, Intensity: 1.1).
  
 *   **Scene Setup Limitations:**

@@ -114,6 +114,9 @@ namespace SownInStone.UI
         private CanvasGroup toastCanvasGroup;
         private Coroutine toastCoroutine;
 
+        private GameObject resourcePanel;
+        private CanvasGroup resourceCanvasGroup;
+
         // --- PHÂN HỆ CỬA HÀNG O THẮM (SHOP SYSTEM) ---
         [Header("--- CÀI ĐẶT CỬA HÀNG ---")]
         [SerializeField] private ItemData seedItem;
@@ -253,11 +256,24 @@ namespace SownInStone.UI
 
             // Cập nhật cuộn sóng nước lũ
             UpdateWaterOverlay();
-
             // Cập nhật dữ liệu cho các Panel phụ khi chúng đang mở
             if (isCommunityOpen) UpdateCommunityPanelData();
             if (isWeatherDetailsOpen) UpdateWeatherDetailsPanelData();
 
+            // Cập nhật hiển thị của ResourcePanel dựa trên trạng thái hội thoại, cửa hàng, và kết thúc game
+            if (resourceCanvasGroup != null)
+            {
+                bool shouldShow = !isDialogueActive && !isShopOpen;
+                if (EndingManager.Instance != null && EndingManager.Instance.IsEndingShown)
+                {
+                    shouldShow = false;
+                }
+                
+                float targetAlpha = shouldShow ? 1f : 0f;
+                resourceCanvasGroup.alpha = Mathf.MoveTowards(resourceCanvasGroup.alpha, targetAlpha, Time.deltaTime * 5f);
+                resourceCanvasGroup.blocksRaycasts = shouldShow;
+                resourceCanvasGroup.interactable = shouldShow;
+            }
             // 3. Lắng nghe phím bấm tương thích cả 2 Input System
 #if ENABLE_INPUT_SYSTEM
             if (Keyboard.current != null)
@@ -361,48 +377,138 @@ namespace SownInStone.UI
         private void ReorganizeUILayout()
         {
             // Tìm font chữ chung từ SpeakerText để đồng bộ hóa
-            TMP_FontAsset font = speakerNameText != null ? speakerNameText.font : null;
+            TMP_FontAsset font = speakerNameText != null ? speakerNameText.font : null;            // 1. Nhóm chỉ số Survival Bars (Bottom-Left)
+            // Tạo background panel nhỏ gọn (ResourcePanel)
+            resourcePanel = new GameObject("ResourcePanel", typeof(RectTransform), typeof(Image), typeof(CanvasGroup));
+            resourceCanvasGroup = resourcePanel.GetComponent<CanvasGroup>();
+            resourcePanel.transform.SetParent(this.transform, false);
+            RectTransform resRect = resourcePanel.GetComponent<RectTransform>();
+            resRect.anchorMin = new Vector2(0f, 0f);
+            resRect.anchorMax = new Vector2(0f, 0f);
+            resRect.pivot = new Vector2(0f, 0f);
+            resRect.anchoredPosition = new Vector2(20f, 20f);
+            resRect.sizeDelta = new Vector2(260f, 120f);
 
-            // 1. Nhóm chỉ số Survival Bars (Bottom-Left)
+            Image resImg = resourcePanel.GetComponent<Image>();
+            resImg.color = new Color(0.08f, 0.06f, 0.05f, 0.9f);
+
+            Outline resOutline = resourcePanel.AddComponent<Outline>();
+            resOutline.effectColor = new Color(0.38f, 0.30f, 0.22f, 1f);
+            resOutline.effectDistance = new Vector2(1.5f, 1.5f);
+
+            // Reparent and position sliders, and add text labels
             if (healthSlider != null)
             {
+                healthSlider.transform.SetParent(resourcePanel.transform, false);
                 RectTransform r = healthSlider.GetComponent<RectTransform>();
-                r.anchorMin = new Vector2(0f, 0f);
-                r.anchorMax = new Vector2(0f, 0f);
-                r.pivot = new Vector2(0f, 0f);
-                r.anchoredPosition = new Vector2(25f, 95f);
-                r.sizeDelta = new Vector2(220f, 15f);
+                r.anchorMin = new Vector2(0f, 1f);
+                r.anchorMax = new Vector2(1f, 1f);
+                r.pivot = new Vector2(0.5f, 1f);
+                r.anchoredPosition = new Vector2(0f, -28f);
+                r.offsetMin = new Vector2(15f, r.offsetMin.y);
+                r.offsetMax = new Vector2(-15f, r.offsetMax.y);
+                r.sizeDelta = new Vector2(r.sizeDelta.x, 10f);
+
+                GameObject labelObj = new GameObject("HealthLabel", typeof(RectTransform), typeof(TextMeshProUGUI));
+                labelObj.transform.SetParent(resourcePanel.transform, false);
+                RectTransform labelRect = labelObj.GetComponent<RectTransform>();
+                labelRect.anchorMin = new Vector2(0f, 1f);
+                labelRect.anchorMax = new Vector2(1f, 1f);
+                labelRect.pivot = new Vector2(0f, 1f);
+                labelRect.anchoredPosition = new Vector2(15f, -10f);
+                labelRect.sizeDelta = new Vector2(230f, 16f);
+
+                TextMeshProUGUI label = labelObj.GetComponent<TextMeshProUGUI>();
+                label.text = "Sức khỏe";
+                label.fontSize = 11;
+                label.color = new Color(0.95f, 0.85f, 0.4f, 1f);
+                if (font != null) label.font = font;
             }
             if (staminaSlider != null)
             {
+                staminaSlider.transform.SetParent(resourcePanel.transform, false);
                 RectTransform r = staminaSlider.GetComponent<RectTransform>();
-                r.anchorMin = new Vector2(0f, 0f);
-                r.anchorMax = new Vector2(0f, 0f);
-                r.pivot = new Vector2(0f, 0f);
-                r.anchoredPosition = new Vector2(25f, 60f);
-                r.sizeDelta = new Vector2(220f, 12f);
+                r.anchorMin = new Vector2(0f, 1f);
+                r.anchorMax = new Vector2(1f, 1f);
+                r.pivot = new Vector2(0.5f, 1f);
+                r.anchoredPosition = new Vector2(0f, -62f);
+                r.offsetMin = new Vector2(15f, r.offsetMin.y);
+                r.offsetMax = new Vector2(-15f, r.offsetMax.y);
+                r.sizeDelta = new Vector2(r.sizeDelta.x, 8f);
+
+                GameObject labelObj = new GameObject("StaminaLabel", typeof(RectTransform), typeof(TextMeshProUGUI));
+                labelObj.transform.SetParent(resourcePanel.transform, false);
+                RectTransform labelRect = labelObj.GetComponent<RectTransform>();
+                labelRect.anchorMin = new Vector2(0f, 1f);
+                labelRect.anchorMax = new Vector2(1f, 1f);
+                labelRect.pivot = new Vector2(0f, 1f);
+                labelRect.anchoredPosition = new Vector2(15f, -44f);
+                labelRect.sizeDelta = new Vector2(230f, 16f);
+
+                TextMeshProUGUI label = labelObj.GetComponent<TextMeshProUGUI>();
+                label.text = "Thể lực";
+                label.fontSize = 11;
+                label.color = new Color(0.95f, 0.85f, 0.4f, 1f);
+                if (font != null) label.font = font;
             }
             if (moraleSlider != null)
             {
+                moraleSlider.transform.SetParent(resourcePanel.transform, false);
                 RectTransform r = moraleSlider.GetComponent<RectTransform>();
-                r.anchorMin = new Vector2(0f, 0f);
-                r.anchorMax = new Vector2(0f, 0f);
-                r.pivot = new Vector2(0f, 0f);
-                r.anchoredPosition = new Vector2(25f, 25f);
-                r.sizeDelta = new Vector2(220f, 12f);
+                r.anchorMin = new Vector2(0f, 1f);
+                r.anchorMax = new Vector2(1f, 1f);
+                r.pivot = new Vector2(0.5f, 1f);
+                r.anchoredPosition = new Vector2(0f, -96f);
+                r.offsetMin = new Vector2(15f, r.offsetMin.y);
+                r.offsetMax = new Vector2(-15f, r.offsetMax.y);
+                r.sizeDelta = new Vector2(r.sizeDelta.x, 8f);
+
+                GameObject labelObj = new GameObject("MoraleLabel", typeof(RectTransform), typeof(TextMeshProUGUI));
+                labelObj.transform.SetParent(resourcePanel.transform, false);
+                RectTransform labelRect = labelObj.GetComponent<RectTransform>();
+                labelRect.anchorMin = new Vector2(0f, 1f);
+                labelRect.anchorMax = new Vector2(1f, 1f);
+                labelRect.pivot = new Vector2(0f, 1f);
+                labelRect.anchoredPosition = new Vector2(15f, -78f);
+                labelRect.sizeDelta = new Vector2(230f, 16f);
+
+                TextMeshProUGUI label = labelObj.GetComponent<TextMeshProUGUI>();
+                label.text = "Tinh thần";
+                label.fontSize = 11;
+                label.color = new Color(0.95f, 0.85f, 0.4f, 1f);
+                if (font != null) label.font = font;
             }
 
-            // 2. Nhóm thông tin Thời gian (Top-Left)
+            // 2. Nhóm thông tin Thời gian (Panel 1: Time / Season)
+            GameObject timeSeasonPanel = new GameObject("TimeSeasonPanel", typeof(RectTransform), typeof(Image));
+            timeSeasonPanel.transform.SetParent(this.transform, false);
+            RectTransform timeRect = timeSeasonPanel.GetComponent<RectTransform>();
+            timeRect.anchorMin = new Vector2(0f, 1f);
+            timeRect.anchorMax = new Vector2(0f, 1f);
+            timeRect.pivot = new Vector2(0f, 1f);
+            timeRect.anchoredPosition = new Vector2(20f, -20f);
+            timeRect.sizeDelta = new Vector2(280f, 70f);
+
+            Image timeImg = timeSeasonPanel.GetComponent<Image>();
+            timeImg.color = new Color(0.08f, 0.06f, 0.05f, 0.9f);
+
+            Outline timeOutline = timeSeasonPanel.AddComponent<Outline>();
+            timeOutline.effectColor = new Color(0.38f, 0.30f, 0.22f, 1f);
+            timeOutline.effectDistance = new Vector2(1.5f, 1.5f);
+
             if (dayText != null)
             {
-                dayText.fontSize = 16;
+                dayText.transform.SetParent(timeSeasonPanel.transform, false);
+                dayText.fontSize = 14;
+                dayText.fontStyle = FontStyles.Bold;
+                dayText.color = new Color(0.95f, 0.85f, 0.4f, 1f);
                 dayText.alignment = TextAlignmentOptions.Left;
                 RectTransform r = dayText.GetComponent<RectTransform>();
                 r.anchorMin = new Vector2(0f, 1f);
-                r.anchorMax = new Vector2(0f, 1f);
+                r.anchorMax = new Vector2(1f, 1f);
                 r.pivot = new Vector2(0f, 1f);
-                r.anchoredPosition = new Vector2(20f, -20f);
-                r.sizeDelta = new Vector2(250f, 25f);
+                r.anchoredPosition = new Vector2(15f, -12f);
+                r.sizeDelta = new Vector2(250f, 22f);
             }
             if (timeText != null)
             {
@@ -410,18 +516,19 @@ namespace SownInStone.UI
             }
             if (phaseText != null)
             {
-                phaseText.fontSize = 13;
-                phaseText.color = new Color(0.9f, 0.75f, 0.5f);
+                phaseText.transform.SetParent(timeSeasonPanel.transform, false);
+                phaseText.fontSize = 12;
+                phaseText.color = Color.white;
                 phaseText.alignment = TextAlignmentOptions.Left;
                 RectTransform r = phaseText.GetComponent<RectTransform>();
-                r.anchorMin = new Vector2(0f, 1f);
-                r.anchorMax = new Vector2(0f, 1f);
-                r.pivot = new Vector2(0f, 1f);
-                r.anchoredPosition = new Vector2(20f, -48f);
+                r.anchorMin = new Vector2(0f, 0f);
+                r.anchorMax = new Vector2(1f, 0f);
+                r.pivot = new Vector2(0f, 0f);
+                r.anchoredPosition = new Vector2(15f, 12f);
                 r.sizeDelta = new Vector2(250f, 20f);
             }
 
-            // 2.5. Định vị NghiaTinhPanel dưới Time HUD (X = 20, Y = -95)
+            // 2.5. Định vị và định kiểu NghiaTinhPanel dưới Time HUD (X = 20, Y = -100)
 #if UNITY_2023_1_OR_NEWER
             NghiaTinhUI nghiaTinh = FindAnyObjectByType<NghiaTinhUI>();
 #else
@@ -429,13 +536,73 @@ namespace SownInStone.UI
 #endif
             if (nghiaTinh != null)
             {
+                nghiaTinh.transform.SetParent(this.transform, false);
                 RectTransform r = nghiaTinh.GetComponent<RectTransform>();
                 if (r != null)
                 {
                     r.anchorMin = new Vector2(0f, 1f);
                     r.anchorMax = new Vector2(0f, 1f);
                     r.pivot = new Vector2(0f, 1f);
-                    r.anchoredPosition = new Vector2(20f, -95f);
+                    r.anchoredPosition = new Vector2(20f, -100f);
+                    r.sizeDelta = new Vector2(280f, 70f);
+
+                    Image nghiaTinhBg = nghiaTinh.GetComponent<Image>();
+                    if (nghiaTinhBg != null)
+                    {
+                        nghiaTinhBg.color = new Color(0.08f, 0.06f, 0.05f, 0.9f);
+                    }
+                    Outline nghiaTinhOutline = nghiaTinh.GetComponent<Outline>();
+                    if (nghiaTinhOutline == null)
+                    {
+                        nghiaTinhOutline = nghiaTinh.gameObject.AddComponent<Outline>();
+                    }
+                    nghiaTinhOutline.effectColor = new Color(0.38f, 0.30f, 0.22f, 1f);
+                    nghiaTinhOutline.effectDistance = new Vector2(1.5f, 1.5f);
+
+                    // Style children inside NghiaTinhPanel
+                    Transform titleTr = nghiaTinh.transform.Find("TitleText");
+                    if (titleTr != null)
+                    {
+                        TextMeshProUGUI tText = titleTr.GetComponent<TextMeshProUGUI>();
+                        tText.fontSize = 14;
+                        tText.fontStyle = FontStyles.Bold;
+                        tText.color = new Color(0.95f, 0.85f, 0.4f, 1f);
+                        RectTransform tr = titleTr.GetComponent<RectTransform>();
+                        tr.anchorMin = new Vector2(0f, 1f);
+                        tr.anchorMax = new Vector2(0f, 1f);
+                        tr.pivot = new Vector2(0f, 1f);
+                        tr.anchoredPosition = new Vector2(15f, -12f);
+                        tr.sizeDelta = new Vector2(130f, 20f);
+                    }
+
+                    Transform valueTr = nghiaTinh.transform.Find("ValueText");
+                    if (valueTr != null)
+                    {
+                        TextMeshProUGUI vText = valueTr.GetComponent<TextMeshProUGUI>();
+                        vText.fontSize = 14;
+                        vText.fontStyle = FontStyles.Bold;
+                        vText.color = Color.white;
+                        vText.alignment = TextAlignmentOptions.Right;
+                        RectTransform vr = valueTr.GetComponent<RectTransform>();
+                        vr.anchorMin = new Vector2(1f, 1f);
+                        vr.anchorMax = new Vector2(1f, 1f);
+                        vr.pivot = new Vector2(1f, 1f);
+                        vr.anchoredPosition = new Vector2(-15f, -12f);
+                        vr.sizeDelta = new Vector2(100f, 20f);
+                    }
+
+                    Transform barTr = nghiaTinh.transform.Find("ProgressBar");
+                    if (barTr != null)
+                    {
+                        RectTransform br = barTr.GetComponent<RectTransform>();
+                        br.anchorMin = new Vector2(0f, 0f);
+                        br.anchorMax = new Vector2(1f, 0f);
+                        br.pivot = new Vector2(0.5f, 0f);
+                        br.anchoredPosition = new Vector2(0f, 12f);
+                        br.offsetMin = new Vector2(15f, br.offsetMin.y);
+                        br.offsetMax = new Vector2(-15f, br.offsetMax.y);
+                        br.sizeDelta = new Vector2(br.sizeDelta.x, 10f);
+                    }
                 }
             }
 
@@ -482,6 +649,50 @@ namespace SownInStone.UI
                 // Thêm nền bán trong suốt sang trọng
                 Image img = inventoryPanel.GetComponent<Image>();
                 if (img != null) img.color = new Color(0.12f, 0.1f, 0.08f, 0.95f);
+            }
+
+            // 5. Cải thiện độ an toàn cho khung hội thoại (Dialogue Panel padding & layout)
+            if (dialoguePanel != null)
+            {
+                RectTransform diagRect = dialoguePanel.GetComponent<RectTransform>();
+                if (diagRect != null)
+                {
+                    // Giữ nguyên kiểu full-width bottom nhưng tăng chiều cao để tránh cắt chữ
+                    diagRect.anchorMin = new Vector2(0f, 0f);
+                    diagRect.anchorMax = new Vector2(1f, 0f);
+                    diagRect.pivot = new Vector2(0.5f, 0f);
+                    diagRect.anchoredPosition = new Vector2(0f, 0f);
+                    diagRect.sizeDelta = new Vector2(0f, 185f); // Tăng chiều cao lên 185f
+                }
+
+                // Căn chỉnh vị trí của Speaker Name và Content Text để không bị đè và có đủ không gian
+                if (speakerNameText != null)
+                {
+                    RectTransform specRect = speakerNameText.GetComponent<RectTransform>();
+                    if (specRect != null)
+                    {
+                        specRect.anchorMin = new Vector2(0f, 1f);
+                        specRect.anchorMax = new Vector2(1f, 1f);
+                        specRect.pivot = new Vector2(0f, 1f);
+                        specRect.anchoredPosition = new Vector2(30f, -12f);
+                        specRect.sizeDelta = new Vector2(-60f, 25f);
+                    }
+                    speakerNameText.margin = new Vector4(0f, 0f, 0f, 0f);
+                }
+
+                if (dialogueContentText != null)
+                {
+                    RectTransform contRect = dialogueContentText.GetComponent<RectTransform>();
+                    if (contRect != null)
+                    {
+                        contRect.anchorMin = new Vector2(0f, 0f);
+                        contRect.anchorMax = new Vector2(1f, 1f);
+                        contRect.pivot = new Vector2(0f, 1f);
+                        contRect.offsetMin = new Vector2(30f, 15f); // 15f bottom padding cho an toàn
+                        contRect.offsetMax = new Vector2(-380f, -42f); // Lề phải chừa khoảng trống cho ChoiceContainer
+                    }
+                    dialogueContentText.margin = new Vector4(0f, 0f, 0f, 0f);
+                }
             }
         }
 
@@ -725,12 +936,21 @@ namespace SownInStone.UI
             {
                 GameObject newSlot = Instantiate(itemSlotPrefab, itemSlotContainer);
 
-                // Căn chỉnh kích thước ô vật phẩm thành hình vuông
+                // Căn chỉnh kích thước ô vật phẩm thành hình vuông và thêm style nền/viền
                 RectTransform slotRect = newSlot.GetComponent<RectTransform>();
                 if (slotRect != null)
                 {
                     slotRect.sizeDelta = new Vector2(80f, 80f);
                 }
+
+                Image slotBg = newSlot.GetComponent<Image>();
+                if (slotBg == null) slotBg = newSlot.AddComponent<Image>();
+                slotBg.color = new Color(0.12f, 0.09f, 0.07f, 0.95f); // Nền nâu tối mộc mạc
+
+                Outline slotOutline = newSlot.GetComponent<Outline>();
+                if (slotOutline == null) slotOutline = newSlot.AddComponent<Outline>();
+                slotOutline.effectColor = new Color(0.45f, 0.35f, 0.25f, 0.8f); // Viền vàng/nâu đồng bộ
+                slotOutline.effectDistance = new Vector2(1.5f, 1.5f);
 
                 // Gán hình ảnh biểu tượng vật phẩm và căn chỉnh chiếm trọn ô vuông
                 Transform iconTr = newSlot.transform.Find("Icon");
@@ -739,11 +959,11 @@ namespace SownInStone.UI
                     RectTransform iconRect = iconTr.GetComponent<RectTransform>();
                     if (iconRect != null)
                     {
-                        iconRect.anchorMin = Vector2.zero;
-                        iconRect.anchorMax = Vector2.one;
+                        iconRect.anchorMin = new Vector2(0.5f, 0.5f);
+                        iconRect.anchorMax = new Vector2(0.5f, 0.5f);
                         iconRect.pivot = new Vector2(0.5f, 0.5f);
-                        iconRect.offsetMin = Vector2.zero;
-                        iconRect.offsetMax = Vector2.zero;
+                        iconRect.anchoredPosition = Vector2.zero;
+                        iconRect.sizeDelta = new Vector2(60f, 60f); // Icon kích thước 60x60 cân đối
                     }
 
                     Image img = iconTr.GetComponent<Image>();
@@ -757,8 +977,16 @@ namespace SownInStone.UI
                         }
                         else
                         {
-                            img.sprite = null;
-                            img.color = new Color(0.35f, 0.28f, 0.22f, 0.8f); // Nâu tối trung tính
+                            img.sprite = Resources.Load<Sprite>("UI/gear_icon");
+                            if (img.sprite != null)
+                            {
+                                img.color = Color.white;
+                            }
+                            else
+                            {
+                                img.sprite = null;
+                                img.color = new Color(0.35f, 0.28f, 0.22f, 0.8f); // Nâu tối trung tính
+                            }
                             img.enabled = true;
                         }
                     }
@@ -769,9 +997,12 @@ namespace SownInStone.UI
                 if (txt != null)
                 {
                     txt.text = $"x{slot.quantity}";
-                    txt.fontSize = 11;
+                    txt.fontSize = 12;
+                    txt.fontStyle = FontStyles.Bold;
                     txt.alignment = TextAlignmentOptions.BottomRight;
-                    txt.color = new Color(0.95f, 0.9f, 0.3f, 1f); // Màu vàng gold nổi bật
+                    txt.color = new Color(0.95f, 0.85f, 0.35f, 1f); // Màu vàng gold nổi bật
+                    txt.outlineWidth = 0.22f;
+                    txt.outlineColor = Color.black;
 
                     RectTransform txtRect = txt.GetComponent<RectTransform>();
                     if (txtRect != null)
@@ -784,12 +1015,18 @@ namespace SownInStone.UI
                     }
                 }
 
-                // Thêm Button Component để nhận click
+                // Thêm Button Component để nhận click và hiệu ứng hover sáng viền
                 Button btn = newSlot.GetComponent<Button>();
                 if (btn == null)
                 {
                     btn = newSlot.AddComponent<Button>();
                 }
+                ColorBlock cb = btn.colors;
+                cb.normalColor = Color.white;
+                cb.highlightedColor = new Color(1.25f, 1.25f, 1.25f, 1f); // Sáng hơn khi di chuột qua
+                cb.pressedColor = new Color(0.8f, 0.8f, 0.8f, 1f);
+                cb.selectedColor = Color.white;
+                btn.colors = cb;
                 
                 ItemData currentItem = slot.item;
                 btn.onClick.RemoveAllListeners();
@@ -1466,14 +1703,14 @@ namespace SownInStone.UI
             controlsLegendPanel.transform.SetParent(this.transform, false);
 
             RectTransform r = controlsLegendPanel.GetComponent<RectTransform>();
-            r.anchorMin = new Vector2(1f, 0.5f); // Right Middle
-            r.anchorMax = new Vector2(1f, 0.5f);
-            r.pivot = new Vector2(1f, 0.5f);
-            r.anchoredPosition = new Vector2(-20f, 50f);
-            r.sizeDelta = new Vector2(250f, 240f);
+            r.anchorMin = new Vector2(1f, 1f); // Top Right
+            r.anchorMax = new Vector2(1f, 1f);
+            r.pivot = new Vector2(1f, 1f);
+            r.anchoredPosition = new Vector2(-20f, -120f);
+            r.sizeDelta = new Vector2(220f, 220f);
 
             Image bgImg = controlsLegendPanel.GetComponent<Image>();
-            bgImg.color = new Color(0.10f, 0.08f, 0.06f, 0.95f);
+            bgImg.color = new Color(0.08f, 0.06f, 0.05f, 0.8f);
 
             Outline outline = controlsLegendPanel.AddComponent<Outline>();
             outline.effectColor = new Color(0.38f, 0.30f, 0.22f, 1f);
@@ -1481,8 +1718,8 @@ namespace SownInStone.UI
 
             // Vertical Layout Group
             VerticalLayoutGroup layout = controlsLegendPanel.AddComponent<VerticalLayoutGroup>();
-            layout.padding = new RectOffset(12, 12, 12, 12);
-            layout.spacing = 4f;
+            layout.padding = new RectOffset(10, 10, 10, 10);
+            layout.spacing = 3f;
             layout.childAlignment = TextAnchor.UpperLeft;
             layout.childControlHeight = true;
             layout.childControlWidth = true;
@@ -1494,7 +1731,7 @@ namespace SownInStone.UI
             titleObj.transform.SetParent(controlsLegendPanel.transform, false);
             TextMeshProUGUI title = titleObj.GetComponent<TextMeshProUGUI>();
             title.text = "Điều khiển";
-            title.fontSize = 15;
+            title.fontSize = 13.5f;
             title.fontStyle = FontStyles.Bold;
             title.color = new Color(0.95f, 0.85f, 0.4f, 1f);
             if (font != null) title.font = font;
@@ -1519,7 +1756,7 @@ namespace SownInStone.UI
                 lineObj.transform.SetParent(controlsLegendPanel.transform, false);
                 TextMeshProUGUI txt = lineObj.GetComponent<TextMeshProUGUI>();
                 txt.text = txtLine;
-                txt.fontSize = 12.5f;
+                txt.fontSize = 11f;
                 txt.color = Color.white;
                 if (font != null) txt.font = font;
             }
@@ -1940,8 +2177,8 @@ namespace SownInStone.UI
             listRect.anchorMin = new Vector2(0.5f, 0.5f);
             listRect.anchorMax = new Vector2(0.5f, 0.5f);
             listRect.pivot = new Vector2(0.5f, 0.5f);
-            listRect.anchoredPosition = new Vector2(0f, -40f);
-            listRect.sizeDelta = new Vector2(460f, 300f);
+            listRect.anchoredPosition = new Vector2(0f, -35f);
+            listRect.sizeDelta = new Vector2(460f, 320f);
 
             // Tạo các dòng vật phẩm (5 dòng)
             CreateShopRow(listContainer.transform, 0, "Hạt giống Khoai", "Dùng gieo trồng khoai lang", true, () => GetSeedPrice(), seedItem, font);
@@ -1961,7 +2198,7 @@ namespace SownInStone.UI
 
         private void CreateShopRow(Transform parent, int index, string itemName, string desc, bool isBuy, System.Func<int> priceFunc, ItemData item, TMP_FontAsset font)
         {
-            float yPos = 120f - index * 60f; // Cách nhau 60 units chiều dọc
+            float yPos = 130f - index * 65f; // Khoảng cách 65 units chiều dọc để các hàng cách nhau thông thoáng
 
             GameObject row = new GameObject($"Row_{index}", typeof(RectTransform), typeof(Image));
             row.transform.SetParent(parent, false);
@@ -1970,9 +2207,13 @@ namespace SownInStone.UI
             rowRect.anchorMax = new Vector2(0.5f, 0.5f);
             rowRect.pivot = new Vector2(0.5f, 0.5f);
             rowRect.anchoredPosition = new Vector2(0f, yPos);
-            rowRect.sizeDelta = new Vector2(450f, 50f);
+            rowRect.sizeDelta = new Vector2(450f, 60f); // Tăng chiều cao lên 60f
 
-            row.GetComponent<Image>().color = new Color(0.18f, 0.2f, 0.25f, 0.6f); // Nền dòng xám dịu
+            row.GetComponent<Image>().color = new Color(0.08f, 0.06f, 0.05f, 0.75f); // Nền dòng nâu tối mộc mạc bán trong suốt
+            
+            Outline rowOutline = row.AddComponent<Outline>();
+            rowOutline.effectColor = new Color(0.38f, 0.30f, 0.22f, 0.4f); // Viền nâu sáng tinh tế
+            rowOutline.effectDistance = new Vector2(1f, 1f);
 
             // Icon
             GameObject iconObj = new GameObject("Icon", typeof(RectTransform), typeof(Image));
@@ -1982,7 +2223,7 @@ namespace SownInStone.UI
             iconRect.anchorMax = new Vector2(0f, 0.5f);
             iconRect.pivot = new Vector2(0f, 0.5f);
             iconRect.anchoredPosition = new Vector2(10f, 0f);
-            iconRect.sizeDelta = new Vector2(40f, 40f);
+            iconRect.sizeDelta = new Vector2(56f, 56f); // Tăng kích thước icon lên 56f
 
             Image iconImg = iconObj.GetComponent<Image>();
             if (item != null && item.Icon != null)
@@ -1992,7 +2233,16 @@ namespace SownInStone.UI
             }
             else
             {
-                iconImg.color = new Color(0.3f, 0.3f, 0.3f, 1f);
+                iconImg.sprite = Resources.Load<Sprite>("UI/gear_icon");
+                if (iconImg.sprite != null)
+                {
+                    iconImg.color = Color.white;
+                }
+                else
+                {
+                    iconImg.sprite = null;
+                    iconImg.color = new Color(0.3f, 0.3f, 0.3f, 1f);
+                }
             }
 
             // Info Text (Tên, Mô tả và Số lượng đang có)
@@ -2002,8 +2252,8 @@ namespace SownInStone.UI
             infoRect.anchorMin = new Vector2(0f, 0.5f);
             infoRect.anchorMax = new Vector2(1f, 0.5f);
             infoRect.pivot = new Vector2(0f, 0.5f);
-            infoRect.anchoredPosition = new Vector2(60f, 0f);
-            infoRect.sizeDelta = new Vector2(250f, 40f);
+            infoRect.anchoredPosition = new Vector2(76f, 0f); // Dịch chuyển để không đè icon
+            infoRect.sizeDelta = new Vector2(235f, 50f);
 
             TextMeshProUGUI infoTxt = infoObj.GetComponent<TextMeshProUGUI>();
             infoTxt.alignment = TextAlignmentOptions.Left;
@@ -2019,9 +2269,13 @@ namespace SownInStone.UI
             btnRect.anchorMax = new Vector2(1f, 0.5f);
             btnRect.pivot = new Vector2(1f, 0.5f);
             btnRect.anchoredPosition = new Vector2(-10f, 0f);
-            btnRect.sizeDelta = new Vector2(110f, 35f);
+            btnRect.sizeDelta = new Vector2(110f, 40f); // Tăng chiều cao nút lên 40f
 
-            btnObj.GetComponent<Image>().color = isBuy ? new Color(0.2f, 0.6f, 0.3f, 0.9f) : new Color(0.8f, 0.5f, 0.1f, 0.9f); // Xanh lá mua, Cam đất bán
+            btnObj.GetComponent<Image>().color = isBuy ? new Color(0.18f, 0.48f, 0.25f, 0.95f) : new Color(0.75f, 0.38f, 0.15f, 0.95f); // Xanh lá mua, Cam đất bán
+            
+            Outline btnOutline = btnObj.AddComponent<Outline>();
+            btnOutline.effectColor = new Color(0.08f, 0.06f, 0.05f, 0.4f);
+            btnOutline.effectDistance = new Vector2(1f, 1f);
 
             GameObject btnTextObj = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
             btnTextObj.transform.SetParent(btnObj.transform, false);
@@ -2114,7 +2368,7 @@ namespace SownInStone.UI
                 TextMeshProUGUI infoTxt = row.transform.Find("InfoText")?.GetComponent<TextMeshProUGUI>();
                 if (infoTxt != null)
                 {
-                    infoTxt.text = $"<b>{param.name}</b> (Đang có: {ownedCount})\n<size=9.5>{param.desc}</size>";
+                    infoTxt.text = $"<b><color=#F4D03F>{param.name}</color></b>  <size=10><color=#D1C7BD>(Đang có: {ownedCount})</color></size>\n<color=#B3A394><size=9.5>{param.desc}</size></color>";
                 }
 
                 // Cập nhật Button Text và tương tác

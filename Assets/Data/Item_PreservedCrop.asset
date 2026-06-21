@@ -13,10 +13,12 @@ MonoBehaviour:
   m_Name: Item_PreservedCrop
   m_EditorClassIdentifier: 
   ItemID: item_khoai_gieo
-  ItemName: "Khoai Gieo"
-  Description: "Khoai lang th\xE1i l\xE1t ph\u01A1i kh\xF4 n\u1EAFng gi\xF2n \u0111\u1EB7c s\u1EA3n mi\u1EC1n Trung, dai d\u1EBBo ng\u1ECDt b\xF9i, tr\u1EEF c\u1EF1c l\xE2u kh\xF4ng m\u1ED1c."
+  ItemName: Khoai Gieo
+  Description: "Khoai lang th\xE1i l\xE1t ph\u01A1i kh\xF4 n\u1EAFng gi\xF2n \u0111\u1EB7c
+    s\u1EA3n mi\u1EC1n Trung, dai d\u1EBBo ng\u1ECDt b\xF9i, tr\u1EEF c\u1EF1c l\xE2u
+    kh\xF4ng m\u1ED1c."
   type: 1
-  Icon: {fileID: 0}
+  Icon: {fileID: 21300000, guid: 5fa0265ab4f6d3a40b3c8f8a2c5ce97f, type: 3}
   StaminaRestoreValue: 25
   MoraleRestoreValue: 10
   DecayRateInHumidity: 0

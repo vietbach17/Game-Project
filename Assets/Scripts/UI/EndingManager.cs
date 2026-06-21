@@ -22,6 +22,7 @@ namespace SownInStone.UI
         [SerializeField] private Button exitButton;
 
         private bool endingShown = false;
+        public bool IsEndingShown => endingShown;
 
         private void Awake()
         {

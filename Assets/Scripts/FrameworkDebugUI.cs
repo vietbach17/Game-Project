@@ -4,6 +4,7 @@ using SownInStone.Weather;
 using SownInStone.Community;
 using SownInStone.Storage;
 using SownInStone.Interactions;
+using SownInStone.Agriculture;
 
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
@@ -429,6 +430,107 @@ namespace SownInStone
             GUI.color = new Color(1f, 0.6f, 0.1f);
             GUILayout.Label($"THÔNG BÁO: {alertMessage}");
             GUI.color = Color.white;
+
+            GUILayout.EndArea();
+
+            // 8. FARMING DEMO CONTROLS (Column 2)
+            Rect farmingRect = new Rect(540, 45, 250, 220);
+            GUI.Box(farmingRect, "<b>FARMING DEMO CONTROLS</b>");
+            GUILayout.BeginArea(new Rect(farmingRect.x + 10, farmingRect.y + 20, farmingRect.width - 20, farmingRect.height - 30));
+
+            SoilCell targetSoil = null;
+            if (PlayerController.Instance != null)
+            {
+                targetSoil = PlayerController.Instance.CurrentTargetSoilCell;
+            }
+
+            if (targetSoil != null)
+            {
+                GUILayout.Label($"Đang chọn: <color=#F4D03F><b>{targetSoil.gameObject.name}</b></color>");
+            }
+            else
+            {
+                GUILayout.Label("Đang chọn: <color=grey>Chưa chọn ô đất nào</color>");
+            }
+
+            if (GUILayout.Button("Grow Target Crop"))
+            {
+                if (targetSoil != null)
+                {
+                    if (targetSoil.plantedCrop != null)
+                    {
+                        targetSoil.DebugGrowOneStage();
+                        ShowAlert("Đã thúc cây tiến thêm 1 giai đoạn!");
+                    }
+                    else
+                    {
+                        ShowAlert("Không có cây đang trồng trong ô đang chọn.");
+                    }
+                }
+                else
+                {
+                    ShowAlert("Hãy đứng gần một ô đất để thực hiện!");
+                }
+            }
+
+            if (GUILayout.Button("Force Target Crop Ready"))
+            {
+                if (targetSoil != null)
+                {
+                    if (targetSoil.plantedCrop != null)
+                    {
+                        targetSoil.DebugForceReadyToHarvest();
+                        ShowAlert("Cây trồng đã chín sẵn sàng thu hoạch!");
+                    }
+                    else
+                    {
+                        ShowAlert("Không có cây đang trồng trong ô đang chọn.");
+                    }
+                }
+                else
+                {
+                    ShowAlert("Hãy đứng gần một ô đất để thực hiện!");
+                }
+            }
+
+            if (GUILayout.Button("Make Target Soil Wet"))
+            {
+                if (targetSoil != null)
+                {
+                    targetSoil.DebugMakeWet();
+                    ShowAlert("Đất đã được làm ẩm đạt 75%!");
+                }
+                else
+                {
+                    ShowAlert("Hãy đứng gần một ô đất để thực hiện!");
+                }
+            }
+
+            if (GUILayout.Button("Clear Rocks On Target Soil"))
+            {
+                if (targetSoil != null)
+                {
+                    targetSoil.DebugClearRocks();
+                    ShowAlert("Đã nhặt sạch sỏi đá trên ô ruộng!");
+                }
+                else
+                {
+                    ShowAlert("Hãy đứng gần một ô đất để thực hiện!");
+                }
+            }
+
+            if (GUILayout.Button("Reset Target Soil"))
+            {
+                if (targetSoil != null)
+                {
+                    targetSoil.DebugResetSoil();
+                    ShowAlert("Đã đặt lại ô ruộng về trạng thái cằn cỗi ban đầu.");
+                }
+                else
+                {
+                    ShowAlert("Hãy đứng gần một ô đất để thực hiện!");
+                }
+            }
 
             GUILayout.EndArea();
         }

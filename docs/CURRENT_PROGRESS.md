@@ -325,6 +325,93 @@ Bản mẫu hiện tại đạt khoảng **75% tiến độ sẵn sàng cho Demo
     *   Added `LoadKeyBindings()` and `TriggerRescueSequence()` stub methods to PlayerController.cs to prevent runtime errors and compilation failures after merging `origin/dev`.
     *   **Post-merge fix**: Replaced missing `House_OTham` prefab in `Village_Demo.unity` scene with `House_OTham_PLACEHOLDER` (instance ID: -32002) at parent node `Environment/_Environment/Houses` to restore scene integrity.
 
+## 27. Visual Assets Migration from SampleScene
+*   **Visual Assets Migrated to Village_Demo**:
+    *   **OTham_Shop**: Copied the 3D visual models and stalls from `SampleScene` and placed them at `(8.0, 0.0, 10.28)` under `Environment/_Environment/Houses`. Disabled `House_OTham_PLACEHOLDER`.
+    *   **BacNam_House**: Copied the 3D visual models and daybed from `SampleScene` and placed them at `(-12.0, 0.0, 8.5)` under `Environment/_Environment/Houses`.
+    *   **Thanh_House**: Copied the 3D visual model from `SampleScene` and placed it at `(0.0, 0.0, -15.5)` under `Environment/_Environment/Houses` (rotated 180 degrees to face the village paths cleanly) with corrected local visual and `BoxCollider` alignment (centered at local `(0,0,0)`, size `(8.00, 5.57, 9.59)`) to prevent blocking the Player spawn point.
+    *   **AltarModel**: Swapped the `Visual` child under `InteractionZones/Shrine` with `Mat_Altar.mat` material configuration.
+    *   **Village_Well Collider Adjustment**: Corrected the root `BoxCollider` on `Village_Well` which was offset and oversized. Adjusted local center to `(0.000043, -0.001367, 0.00375)` and local size to `(0.007, 0.007, 0.0075)`. With the root scale of `200` and rotation of `270` degrees on X, this aligns the collider exactly with the visual mesh center at world `(0.0085, 1.38, 3.2735)` and scales the physical box to a tight footprint of `1.4m x 1.5m x 1.4m`, preventing player movement blockage on the surrounding paths.
+    *   Unpacked all copied prefab instances in the scene to prevent broken or missing prefab references.
+
+## 28. Third-Person Camera Polish
+*   **Third-Person Camera Height Polish in Village_Demo**:
+    *   **Settings Adjusted**: Configured `CameraFollow3D` with lower, more player-friendly values: default `distance = 6f`, `height = 2.5f`, `defaultPitch = 25f` (with bounds `minPitch = 12f`, `maxPitch = 55f`), and scroll zoom limits `minDistance = 3f` and `maxDistance = 9f`.
+    *   **Scene Persistence**: Saved these properties in `Village_Demo.unity` via editor serialization and updated default script fields in [CameraFollow3D.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Core/CameraFollow3D.cs).
+    *   **Behavioral Verification**: Confirmed that RMB rotation, scroll zoom, and spherecast-based camera collision avoidance continue to work perfectly without clipping issues.
+
+## 29. HUD Layout & Visual Hierarchy Polish
+*   **In-Game HUD Repositioning & Styling**:
+    *   **Top-Left Status Cluster**: Grouped Day/Time and Season Text into a new `TimeSeasonPanel` (anchored Top-Left at `(20, -20)`, size `280x70`) with a dark semi-transparent rustic background `(0.08, 0.06, 0.05, 0.9)` and a gold outline border. Reparented `NghiaTinhPanel` to the `SurvivalUI` hierarchy at runtime and positioned it directly below it (anchored Top-Left at `(20, -100)`, size `280x70`) with matching styling. This unifies the coordinate spaces and eliminates coordinate system drift and canvas sibling overlaps.
+    *   **Resource Bars (Bottom-Left)**: Grouped Health, Stamina, and Morale sliders into a new `ResourcePanel` (anchored Bottom-Left at `(20, 20)`, size `260x120`) styled with matching transparent background and outline. Added clear labels ("Sức khỏe", "Thể lực", "Tinh thần") above each respective horizontal bar.
+    *   **Controls Legend (Top-Right)**: Repositioned the legend (anchored Top-Right at `(-20, -120)`, size `220x220`), reduced text size slightly (`11f` for shortcuts), and increased transparency to `0.8f` to prevent visual blocking of central gameplay or NPC proximity popups.
+    *   **Style Consistency**: Unified the visual design with dark rustic brown/black panels, warm gold highlights, and clean typography. All interactions and toasts remain fully functional.
+
+---
+
+## 30. F1 Presentation Demo Controls
+*   **Farming Demo Controls Added**:
+    *   Added a new "FARMING DEMO CONTROLS" section/column inside [FrameworkDebugUI.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/FrameworkDebugUI.cs) positioned cleanly at `x = 540` to avoid vertical overflow.
+    *   Exposed player's current targeted soil cell via `CurrentTargetSoilCell` property in [PlayerController.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Core/PlayerController.cs).
+    *   Implemented debug helper methods in [SoilCell.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Agriculture/SoilCell.cs):
+        *   `DebugGrowOneStage()`: Advances the target crop's growth incrementally (by calculated stage steps based on sprite length).
+        *   `DebugForceReadyToHarvest()`: Sets the target crop to its mature ready-to-harvest stage.
+        *   `DebugMakeWet()`: Instantly waters the target soil to 75% moisture and updates visuals.
+        *   `DebugClearRocks()`: Clears rocks (RockDensity = 0) and sets quality to TrungBinh.
+        *   `DebugResetSoil()`: Resets the soil cell back to its initial rocky, dry, and crop-free state.
+    *   Included user-friendly GUI notifications for targeted cell actions, and warnings when no soil cell is targeted.
+
+---
+
+## 31. UI Dialogue Overlap Fix
+*   **ResourcePanel Overlap Resolution**:
+    *   Declared `resourcePanel` and `resourceCanvasGroup` fields in [SurvivalUIManager.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/UI/SurvivalUIManager.cs) to hold the dynamically created bottom-left panel reference.
+    *   Added a `CanvasGroup` component to `ResourcePanel` at runtime.
+    *   Exposed `IsEndingShown` property in [EndingManager.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/UI/EndingManager.cs) to track when the ending panel is displayed.
+    *   Modified the `Update()` loop in `SurvivalUIManager.cs` to smoothly fade `ResourcePanel` alpha to `0` (and disable raycasts/interaction) when a dialogue is active (`isDialogueActive`), shop is open (`isShopOpen`), or the ending screen is shown (`IsEndingShown`). Smoothly fades back to `1` during normal gameplay.
+*   **Dialogue Panel Layout Polish**:
+    *   Ensured full-width bottom layout alignment for `dialoguePanel` RectTransform.
+    *   Configured safe left/right margins/paddings on `dialogueContentText` (`30f`, `10f`, `30f`, `10f`) and `speakerNameText` (`30f`, `5f`, `30f`, `0f`) to prevent text overlaps and ensure high readability.
+
+---
+
+## 32. Item Icons UI Integration
+*   **Icon Texture Reimporting & Binding**:
+    *   Reimported all 5 PNG icons inside `Assets/Art/UI/Icons/` as `Sprite (2D and UI)` with `SpriteImportMode` set to `Single` to enable sub-asset Sprite generation.
+    *   Mapped and bound the respective sprites directly to the `Icon` fields on the 5 [ItemData](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Storage/ItemData.cs) ScriptableObject assets (Hạt giống Khoai -> `hat_giong_khoai_lang`, Khoai Lang Tươi -> `khoai_lang`, Khoai Gieo Khô -> `khoai_gieo_kho`, Nhang Cúng -> `3_cay_nhang`, Mì Tôm Cứu Trợ -> `mi_tom`).
+*   **Shop UI Row Size & Padding Adjustment**:
+    *   Increased the icon size in `CreateShopRow()` inside [SurvivalUIManager.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/UI/SurvivalUIManager.cs) from `40x40` to `48x48`.
+    *   Shifted the item detail text `infoRect.anchoredPosition` from `60f` to `70f` and updated width size to `240f` to prevent text overlapping with the larger icon.
+*   **Inventory UI & Shop UI Fallback Safety**:
+    *   Configured slots in `RefreshInventoryUI()` and `CreateShopRow()` to load `UI/gear_icon` from Resources folder as a fallback if `ItemData.Icon` is null.
+
+---
+
+## 33. Shop Audio Warning & Item Usage Dialogue Polish
+*   **Audio Warning Suppression**:
+    *   Added a `missingClips` cache HashSet in [AudioManager.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Audio/AudioManager.cs) to prevent repeated red compilation errors/logs for missing optional audio files (e.g. `sfx_coins`).
+    *   Changed repeated error logging inside `GetAudioClip` to a one-time console warning (`Debug.LogWarning`), allowing shop transactions to execute cleanly without errors or warnings flooding.
+*   **Dialogue Panel Height & Text Layout Polish**:
+    *   Increased the `dialoguePanel` height in `ReorganizeUILayout` within [SurvivalUIManager.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/UI/SurvivalUIManager.cs) from `140f` to `185f` to provide ample vertical space for dialogue content.
+    *   Refactored RectTransforms for `speakerNameText` and `dialogueContentText` programmatically in `SurvivalUIManager.cs` to ensure they stretch properly, with `dialogueContentText` configured with a right offset of `-380f` and bottom padding of `15f` to prevent text overlapping dialogue choice buttons or clipping at the bottom.
+
+---
+
+## 34. Inventory & O Tham Shop UI Polish
+*   **Inventory UI Polish**:
+    *   Polished item slot presentation in `RefreshInventoryUI()` in [SurvivalUIManager.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/UI/SurvivalUIManager.cs). Enabled a dark rustic background `new Color(0.12f, 0.09f, 0.07f, 0.95f)` and a gold/brown border outline `new Color(0.45f, 0.35f, 0.25f, 0.8f)` for each slot.
+    *   Centered item icons inside `80x80` slots with a consistent size of `60x60`.
+    *   Styled quantity labels to bold warm yellow `new Color(0.95f, 0.85f, 0.35f, 1f)` at size `12` with a `0.22f` black outline for readability.
+    *   Assigned hover state highlights to slot buttons via `ColorBlock` with `highlightedColor = (1.25, 1.25, 1.25)`.
+*   **O Tham Shop UI Polish**:
+    *   Increased row height in `CreateShopRow()` from `50f` to `60f` and expanded icon size to `56x56` for clearer card visuals.
+    *   Set a dark rustic semi-transparent background `new Color(0.08f, 0.06f, 0.05f, 0.75f)` with a subtle brown border for each shop row.
+    *   Repositioned item details text (`infoRect.anchoredPosition = 76f`, `sizeDelta = 235f`) to prevent overlap with the larger icon.
+    *   Polished shop text formatting dynamically in `RefreshShopUI()`: item names styled in bold gold (`#F4D03F`), owned quantity in light gray, and descriptions in a soft gray (`#B3A394`).
+    *   Expanded Buy/Sell button heights to `40f` and styled Buy with dark green and Sell with warm orange/brown. Added a subtle outline shadow.
+    *   Redistributed spacing of row yPositions to `130f - index * 65f` inside the list container (which was resized to `460x320` at `Y = -35f` to fit the taller rows perfectly).
+
+
 
 
 

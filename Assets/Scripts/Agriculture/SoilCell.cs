@@ -347,5 +347,50 @@ namespace SownInStone.Agriculture
                 }
             }
         }
+
+        // --- CÁC PHƯƠNG THỨC HỖ TRỢ TRÌNH DIỄN (DEMO SHORTCUTS) ---
+
+        public void DebugGrowOneStage()
+        {
+            if (plantedCrop != null)
+            {
+                plantedCrop.DebugGrowOneStage();
+            }
+        }
+
+        public void DebugForceReadyToHarvest()
+        {
+            if (plantedCrop != null)
+            {
+                plantedCrop.DebugMature();
+            }
+        }
+
+        public void DebugMakeWet()
+        {
+            Moisture = 75f;
+            UpdateVisuals();
+        }
+
+        public void DebugClearRocks()
+        {
+            RockDensity = 0f;
+            quality = SoilQuality.TrungBinh;
+            UpdateVisuals();
+        }
+
+        public void DebugResetSoil()
+        {
+            Moisture = 10f;
+            Nutrients = 15f;
+            RockDensity = 80f;
+            quality = SoilQuality.BacMau;
+            if (plantedCrop != null)
+            {
+                Destroy(plantedCrop.gameObject);
+                plantedCrop = null;
+            }
+            UpdateVisuals();
+        }
     }
 }

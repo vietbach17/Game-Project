@@ -33,6 +33,7 @@ namespace SownInStone.Audio
         private List<AudioSource> sfxSources = new List<AudioSource>();
 
         private Dictionary<string, AudioClip> audioClips = new Dictionary<string, AudioClip>();
+        private HashSet<string> missingClips = new HashSet<string>();
 
         private void Awake()
         {
@@ -192,7 +193,11 @@ namespace SownInStone.Audio
             }
             else
             {
-                Debug.LogError($"[AUDIO] THẤT BẠI! Không tìm thấy tệp âm thanh ở Assets/Resources/Audio/{clipName}. Hãy kiểm tra lại tệp.");
+                if (!missingClips.Contains(clipName))
+                {
+                    missingClips.Add(clipName);
+                    Debug.LogWarning($"[AUDIO] Cảnh báo: Không tìm thấy tệp âm thanh ở Assets/Resources/Audio/{clipName}. Âm thanh này sẽ bị bỏ qua.");
+                }
             }
             return clip;
         }

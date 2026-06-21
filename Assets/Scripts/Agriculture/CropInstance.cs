@@ -373,6 +373,24 @@ namespace SownInStone.Agriculture
         }
 
         /// <summary>
+        /// Tiến cây thêm 1 giai đoạn sinh trưởng để debug/trình diễn.
+        /// </summary>
+        public void DebugGrowOneStage()
+        {
+            if (cropData == null) return;
+            int numStages = 3;
+            if (cropData.GrowthStageSprites != null && cropData.GrowthStageSprites.Length > 0)
+            {
+                numStages = cropData.GrowthStageSprites.Length;
+            }
+            float daysPerStage = cropData.DaysToMature / (float)(numStages - 1);
+            currentGrowthDays = Mathf.Min(currentGrowthDays + daysPerStage, cropData.DaysToMature);
+            isWithered = false;
+            isRotted = false;
+            UpdateVisualSprite();
+        }
+
+        /// <summary>
         /// Tiến hành thu hoạch. Trả về số lượng nông sản thu được. Giải phóng ô đất.
         /// </summary>
         public int ActionHarvest()

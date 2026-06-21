@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using SownInStone.Core;
+using SownInStone.Community;
 
 namespace SownInStone
 {
@@ -41,6 +42,9 @@ namespace SownInStone
         
         private Texture2D bgImage;
         private Texture2D transparentTex;
+        
+        // Hover state scales for the 6 menu buttons
+        private float[] menuHoverScales = new float[6] { 1f, 1f, 1f, 1f, 1f, 1f };
 
         private void Awake()
         {
@@ -153,14 +157,24 @@ namespace SownInStone
             float menuWidth = 500f;
             float menuX = 50f; // Căn lề trái
 
-            // 2. TIÊU ĐỀ GAME
-            Rect titleRect = new Rect(menuX, 80f, menuWidth, 150f);
+            // 2. TIÊU ĐỀ GAME (Reduced size by 25%: 72 -> 54)
+            Rect titleRect = new Rect(menuX, 60f, menuWidth, 120f);
             GUIStyle titleStyle = new GUIStyle();
             titleStyle.alignment = TextAnchor.MiddleLeft;
-            titleStyle.normal.textColor = new Color(0.96f, 0.85f, 0.6f);
-            titleStyle.fontSize = 72;
+            titleStyle.fontSize = 54;
             titleStyle.fontStyle = FontStyle.Bold;
-            GUI.Label(titleRect, "ĐẤT CÀY\nLÊN SỎI ĐÁ", titleStyle);
+            DrawOutlinedLabel(titleRect, "ĐẤT CÀY\nLÊN SỎI ĐÁ", titleStyle, new Color(0.96f, 0.85f, 0.6f), Color.black, 2.5f);
+
+            // Subtitle
+            Rect subtitleRect = new Rect(menuX, 185f, menuWidth, 30f);
+            GUIStyle subtitleStyle = new GUIStyle();
+            subtitleStyle.alignment = TextAnchor.MiddleLeft;
+            subtitleStyle.fontSize = 14;
+            subtitleStyle.fontStyle = FontStyle.Italic;
+            DrawOutlinedLabel(subtitleRect, "Một hành trình sinh tồn và nghĩa tình nơi miền Trung Việt Nam", subtitleStyle, new Color(0.85f, 0.85f, 0.85f, 0.95f), Color.black, 1.5f);
+
+            // Save summary
+            DrawSaveSummary();
 
             // Bắt đầu vẽ nội dung các Tab
             float contentStartY = Screen.height - 400f;
@@ -203,51 +217,56 @@ namespace SownInStone
         
         private void DrawMainMenu()
         {
-            // Thiết lập nút bấm KHÔNG CÓ NỀN, CHỈ CÓ CHỮ (Raft Style)
             GUIStyle clearBtnStyle = new GUIStyle();
             clearBtnStyle.normal.background = transparentTex;
-            clearBtnStyle.hover.background = transparentTex;
-            clearBtnStyle.active.background = transparentTex;
-            clearBtnStyle.normal.textColor = new Color(0.9f, 0.85f, 0.7f);
-            clearBtnStyle.hover.textColor = new Color(1f, 0.85f, 0.3f);
-            clearBtnStyle.fontSize = 32;
+            clearBtnStyle.fontSize = 28;
             clearBtnStyle.fontStyle = FontStyle.Bold;
             clearBtnStyle.alignment = TextAnchor.MiddleLeft;
             
             GUILayout.Space(5);
-            string startBtnText = hasStartedJourney ? "TIẾP TỤC CUỐC" : "BẮT ĐẦU CUỐC";
-            if (GUILayout.Button(startBtnText, clearBtnStyle))
+            if (hasStartedJourney)
+            {
+                if (DrawMenuButton(0, "Continue Game", clearBtnStyle))
+                {
+                    SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
+                    StartJourney();
+                }
+                GUILayout.Space(5);
+            }
+            
+            if (DrawMenuButton(1, "New Game", clearBtnStyle))
             {
                 SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
                 if (hasStartedJourney)
                 {
-                    StartJourney(); // Đã bắt đầu rồi thì tiếp tục luôn
+                    hasStartedJourney = false;
                 }
-                else
-                {
-                    currentTab = MenuTab.WarningDialog;
-                }
+                currentTab = MenuTab.WarningDialog;
             }
             GUILayout.Space(5);
-            if (GUILayout.Button("HƯỚNG DẪN CUỐC", clearBtnStyle))
+            
+            if (DrawMenuButton(2, "How To Play", clearBtnStyle))
             {
                 SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
                 currentTab = MenuTab.KyUcMienTrung;
             }
             GUILayout.Space(5);
-            if (GUILayout.Button("CÀI ĐẶT & TÙY BIẾN", clearBtnStyle))
+            
+            if (DrawMenuButton(3, "Settings", clearBtnStyle))
             {
                 SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
                 currentTab = MenuTab.Settings;
             }
             GUILayout.Space(5);
-            if (GUILayout.Button("ĐỘI NGŨ SẢN XUẤT", clearBtnStyle))
+            
+            if (DrawMenuButton(4, "Credits", clearBtnStyle))
             {
                 SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
                 currentTab = MenuTab.DoiNgu;
             }
             GUILayout.Space(5);
-            if (GUILayout.Button("THOÁT GAME", clearBtnStyle))
+            
+            if (DrawMenuButton(5, "Exit", clearBtnStyle))
             {
                 SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
                 Application.Quit();
@@ -591,6 +610,139 @@ namespace SownInStone
             }
             GUILayout.EndHorizontal();
             GUILayout.Space(3);
+        }
+
+        private void DrawOutlinedLabel(Rect rect, string text, GUIStyle style, Color textColor, Color outlineColor, float outlineWidth = 1.5f)
+        {
+            GUIStyle outlineStyle = new GUIStyle(style);
+            outlineStyle.normal.textColor = outlineColor;
+
+            // Draw outline in 8 directions
+            for (float x = -outlineWidth; x <= outlineWidth; x += outlineWidth)
+            {
+                for (float y = -outlineWidth; y <= outlineWidth; y += outlineWidth)
+                {
+                    if (x == 0 && y == 0) continue;
+                    Rect outlineRect = new Rect(rect.x + x, rect.y + y, rect.width, rect.height);
+                    GUI.Label(outlineRect, text, outlineStyle);
+                }
+            }
+
+            // Draw subtle shadow offset
+            Rect shadowRect = new Rect(rect.x + 2f, rect.y + 2f, rect.width, rect.height);
+            outlineStyle.normal.textColor = new Color(0f, 0f, 0f, 0.4f);
+            GUI.Label(shadowRect, text, outlineStyle);
+
+            // Draw main text
+            GUIStyle mainStyle = new GUIStyle(style);
+            mainStyle.normal.textColor = textColor;
+            GUI.Label(rect, text, mainStyle);
+        }
+
+        private bool DrawMenuButton(int index, string text, GUIStyle style, float height = 45f)
+        {
+            Rect rect = GUILayoutUtility.GetRect(new GUIContent(text), style, GUILayout.Height(height));
+            Vector2 mousePos = Event.current.mousePosition;
+            bool isHovered = rect.Contains(mousePos);
+            
+            float targetScale = isHovered ? 1.08f : 1.0f;
+            if (Event.current.type == EventType.Repaint)
+            {
+                menuHoverScales[index] = Mathf.MoveTowards(menuHoverScales[index], targetScale, Time.unscaledDeltaTime / 0.15f);
+            }
+            
+            float currentScale = menuHoverScales[index];
+            float scaledWidth = rect.width * currentScale;
+            float scaledHeight = rect.height * currentScale;
+            float offsetX = (rect.width - scaledWidth) / 2f;
+            float offsetY = (rect.height - scaledHeight) / 2f;
+            Rect drawRect = new Rect(rect.x + offsetX, rect.y + offsetY, scaledWidth, scaledHeight);
+            
+            Color normalColor = new Color(0.9f, 0.9f, 0.9f);
+            Color hoverColor = new Color(0.98f, 0.85f, 0.35f); // #FAD959
+            Color textColor = Color.Lerp(normalColor, hoverColor, (currentScale - 1f) / 0.08f);
+            
+            GUIStyle buttonStyle = new GUIStyle(style);
+            buttonStyle.fontSize = Mathf.RoundToInt(style.fontSize * currentScale);
+            buttonStyle.normal.textColor = textColor;
+            
+            if (isHovered)
+            {
+                Rect arrowRect = new Rect(drawRect.x - 25f, drawRect.y + (drawRect.height - drawRect.height) / 2f, 20f, drawRect.height);
+                GUIStyle arrowStyle = new GUIStyle(buttonStyle);
+                arrowStyle.normal.textColor = hoverColor;
+                GUI.Label(arrowRect, "▶", arrowStyle);
+            }
+            
+            DrawOutlinedLabel(drawRect, text, buttonStyle, textColor, Color.black, 1.5f);
+            
+            if (Event.current.type == EventType.MouseDown && Event.current.button == 0 && isHovered)
+            {
+                Event.current.Use();
+                return true;
+            }
+            
+            return false;
+        }
+
+        private void DrawSaveSummary()
+        {
+            if (!hasStartedJourney) return;
+
+            int day = 1;
+            string phaseName = "Lập Nghiệp";
+            int karma = 20;
+
+            if (GameManager.Instance != null)
+            {
+                day = GameManager.Instance.CurrentDay;
+                switch (GameManager.Instance.CurrentPhase)
+                {
+                    case GamePhase.LapNghiep: phaseName = "Lập Nghiệp"; break;
+                    case GamePhase.GioLao: phaseName = "Gió Lào"; break;
+                    case GamePhase.ChuanBiBao: phaseName = "Chuẩn Bị Bão"; break;
+                    case GamePhase.MuaBao: phaseName = "Mùa Bão Lũ"; break;
+                    case GamePhase.PhuSa: phaseName = "Phù Sa Sau Lũ"; break;
+                }
+            }
+            if (CommunityManager.Instance != null)
+            {
+                karma = CommunityManager.Instance.GlobalKarma;
+            }
+
+            float panelWidth = 280f;
+            float panelHeight = 120f;
+            float panelX = 15f;
+            float panelY = Screen.height - panelHeight - 40f;
+
+            GUI.color = new Color(0.12f, 0.08f, 0.05f, 0.85f);
+            GUI.DrawTexture(new Rect(panelX, panelY, panelWidth, panelHeight), Texture2D.whiteTexture);
+            
+            GUI.color = new Color(0.85f, 0.7f, 0.35f, 0.8f);
+            GUI.DrawTexture(new Rect(panelX, panelY, panelWidth, 2), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(panelX, panelY + panelHeight - 2, panelWidth, 2), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(panelX, panelY, 2, panelHeight), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(panelX + panelWidth - 2, panelY, 2, panelHeight), Texture2D.whiteTexture);
+            GUI.color = Color.white;
+
+            GUILayout.BeginArea(new Rect(panelX + 15f, panelY + 10f, panelWidth - 30f, panelHeight - 20f));
+            
+            GUIStyle titleStyle = new GUIStyle();
+            titleStyle.fontSize = 14;
+            titleStyle.fontStyle = FontStyle.Bold;
+            titleStyle.normal.textColor = new Color(0.96f, 0.85f, 0.6f);
+            
+            GUIStyle itemStyle = new GUIStyle();
+            itemStyle.fontSize = 12;
+            itemStyle.normal.textColor = Color.white;
+            
+            GUILayout.Label("◆ TIẾN TRÌNH HIỆN TẠI ◆", titleStyle);
+            GUILayout.Space(6);
+            GUILayout.Label($"Ngày canh tác: {day}", itemStyle);
+            GUILayout.Label($"Giai đoạn: {phaseName}", itemStyle);
+            GUILayout.Label($"Điểm Nghĩa Tình: {karma} / 100", itemStyle);
+            
+            GUILayout.EndArea();
         }
     }
 }

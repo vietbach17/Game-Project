@@ -18,17 +18,17 @@ namespace SownInStone.Core
 
         [Header("--- ZOOM SETTINGS ---")]
         [Tooltip("Default distance from target.")]
-        [SerializeField] private float distance = 7f;
+        [SerializeField] private float distance = 6f;
         [SerializeField] private float minDistance = 3f;
-        [SerializeField] private float maxDistance = 10f;
+        [SerializeField] private float maxDistance = 9f;
         [SerializeField] private float zoomSpeed = 2f;
 
         [Header("--- HEIGHT & ANGLE ---")]
         [Tooltip("Vertical height offset relative to target.")]
-        [SerializeField] private float height = 3.5f;
-        [SerializeField] private float minPitch = 15f;
-        [SerializeField] private float maxPitch = 65f;
-        [SerializeField] private float defaultPitch = 30f;
+        [SerializeField] private float height = 2.5f;
+        [SerializeField] private float minPitch = 12f;
+        [SerializeField] private float maxPitch = 55f;
+        [SerializeField] private float defaultPitch = 25f;
 
         [Header("--- ROTATION SENSITIVITY ---")]
         [SerializeField] private float yawSensitivity = 2f;
