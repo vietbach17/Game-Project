@@ -340,6 +340,34 @@ namespace SownInStone.UI
                     });
                 }
             }
+            else if (npc.characterType == NPCCharacter.StoryCharacterType.CuBay)
+            {
+                // Option 1: Trò chuyện
+                currentOptions.Add(new ProximityOption 
+                { 
+                    label = "[1] Trò chuyện (+5 Nghĩa Tình)", 
+                    action = () => TriggerTalk(npc) 
+                });
+
+                // Option 2: Cứu trợ lương thực cho Cụ Bảy (chỉ xuất hiện trong Phase Mưa Bão)
+                if (currentPhase == GamePhase.MuaBao)
+                {
+                    currentOptions.Add(new ProximityOption 
+                    { 
+                        label = "[2] Cứu trợ lương thực (+20 NT)", 
+                        action = () => TriggerCuBayRescueEvent(npc) 
+                    });
+                }
+            }
+            else if (npc.characterType == NPCCharacter.StoryCharacterType.BeTi)
+            {
+                // Option 1: Trò chuyện
+                currentOptions.Add(new ProximityOption 
+                { 
+                    label = "[1] Trò chuyện (+5 Nghĩa Tình)", 
+                    action = () => TriggerTalk(npc) 
+                });
+            }
 
             // Tạo các Button UI đồng bộ kích thước chuẩn (Chiều rộng 360px, Chiều cao 36px)
             float totalHeight = 39f; // Tiêu đề + padding ban đầu
@@ -441,13 +469,85 @@ namespace SownInStone.UI
             if (npc.CanReceiveTalkReward())
             {
                 CommunityManager.Instance?.ModifyGlobalKarma(5);
-                string msg = npc.characterType == NPCCharacter.StoryCharacterType.BacNam ? 
-                    "Bác Năm động viên bạn bám đất giữ làng. +5 Nghĩa Tình" : 
-                    "O Thắm quý tấm lòng của bạn. +5 Nghĩa Tình";
+                string msg = "";
+                if (npc.characterType == NPCCharacter.StoryCharacterType.BacNam)
+                {
+                    msg = "Bác Năm động viên bạn bám đất giữ làng. +5 Nghĩa Tình";
+                }
+                else if (npc.characterType == NPCCharacter.StoryCharacterType.OTham)
+                {
+                    msg = "O Thắm quý tấm lòng của bạn. +5 Nghĩa Tình";
+                }
+                else if (npc.characterType == NPCCharacter.StoryCharacterType.CuBay)
+                {
+                    msg = "Cụ Bảy chia sẻ kinh nghiệm dân gian bổ ích. +5 Nghĩa Tình";
+                }
+                else if (npc.characterType == NPCCharacter.StoryCharacterType.BeTi)
+                {
+                    msg = "Bé Tí cười hồn nhiên khi thấy bạn. +5 Nghĩa Tình";
+                }
+                else
+                {
+                    msg = npc.NPCName + " quý tấm lòng của bạn. +5 Nghĩa Tình";
+                }
                 SurvivalUIManager.Instance?.ShowHUDToast(msg);
                 npc.MarkTalkedToday();
             }
             targetAlpha = 0f; // Ẩn ngay khi mở dialogue toàn màn hình
+        }
+
+        private void TriggerCuBayRescueEvent(NPCCharacter npc)
+        {
+            if (StorageManager.Instance == null) return;
+            var slots = StorageManager.Instance.GetStorageSlots();
+            
+            int freshCount = 0;
+            int preservedCount = 0;
+            int noodlesCount = 0;
+            
+            InventorySlot freshSlot = slots.Find(s => s.item != null && s.item.ItemID == "item_fresh_crop");
+            InventorySlot preservedSlot = slots.Find(s => s.item != null && s.item.ItemID == "item_khoai_gieo");
+            InventorySlot noodlesSlot = slots.Find(s => s.item != null && s.item.ItemID == "item_mi_tom");
+            
+            if (freshSlot != null) freshCount = freshSlot.quantity;
+            if (preservedSlot != null) preservedCount = preservedSlot.quantity;
+            if (noodlesSlot != null) noodlesCount = noodlesSlot.quantity;
+            
+            int totalFood = freshCount + preservedCount + noodlesCount;
+            
+            if (totalFood >= 5)
+            {
+                int needed = 5;
+                if (needed > 0 && noodlesSlot != null && noodlesCount > 0)
+                {
+                    int take = Mathf.Min(needed, noodlesCount);
+                    StorageManager.Instance.RemoveItem(noodlesSlot.item, take);
+                    needed -= take;
+                }
+                if (needed > 0 && preservedSlot != null && preservedCount > 0)
+                {
+                    int take = Mathf.Min(needed, preservedCount);
+                    StorageManager.Instance.RemoveItem(preservedSlot.item, take);
+                    needed -= take;
+                }
+                if (needed > 0 && freshSlot != null && freshCount > 0)
+                {
+                    int take = Mathf.Min(needed, freshCount);
+                    StorageManager.Instance.RemoveItem(freshSlot.item, take);
+                    needed -= take;
+                }
+                
+                CommunityManager.Instance?.ModifyGlobalKarma(20);
+                npc.ModifyAffection(20); // Reward affection as well
+                SurvivalUIManager.Instance?.ShowHUDToast("Bạn mang lương thực cứu trợ cho Cụ Bảy qua mùa lũ. +20 Nghĩa Tình!");
+                SurvivalUIManager.Instance?.ShowDialogue(npc.NPCName, "\"Cảm ơn tấm lòng của con! Lương thực này quý giá vô cùng trong những ngày bão lụt tăm tối này.\"");
+            }
+            else
+            {
+                SurvivalUIManager.Instance?.ShowHUDToast("<color=#E74C3C>Không đủ 5 phần lương thực để cứu trợ!</color>");
+                SurvivalUIManager.Instance?.ShowDialogue(npc.NPCName, "\"Con cứ giữ lấy mà ăn phòng thân, cụ già rồi, ăn uống đáng bao nhiêu đâu con.\"");
+            }
+            targetAlpha = 0f;
         }
 
         private void TriggerWork(NPCCharacter npc)
