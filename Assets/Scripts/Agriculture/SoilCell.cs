@@ -170,11 +170,11 @@ namespace SownInStone.Agriculture
         /// </summary>
         private void OnPhaseChanged(GamePhase newPhase)
         {
-            if (newPhase == GamePhase.PhuSa && wasFloodedDuringStorm)
+            if (newPhase == GamePhase.PhuSa)
             {
                 quality = SoilQuality.PhuSa;
                 Nutrients = 100f; // Dinh dưỡng tối đa
-                RockDensity = Mathf.Max(0f, RockDensity - 30f); // Che phủ sỏi đá
+                RockDensity = 0f; // Tự động dọn sạch sỏi đá
                 wasFloodedDuringStorm = false;
                 Debug.Log($"[SOIL] Ô đất {gameObject.name} đã được bồi đắp PHÙ SA trù phú sau lũ!");
                 UpdateVisuals();
@@ -339,7 +339,7 @@ namespace SownInStone.Agriculture
             {
                 activeVisual = rockySoilVisual;
             }
-            else if (Moisture >= 35f)
+            else if (Moisture >= 35f || quality == SoilQuality.PhuSa)
             {
                 activeVisual = wetSoilVisual;
             }

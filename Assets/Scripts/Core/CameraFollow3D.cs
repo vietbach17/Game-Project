@@ -18,17 +18,17 @@ namespace SownInStone.Core
 
         [Header("--- ZOOM SETTINGS ---")]
         [Tooltip("Default distance from target.")]
-        [SerializeField] private float distance = 6f;
-        [SerializeField] private float minDistance = 3f;
-        [SerializeField] private float maxDistance = 9f;
+        [SerializeField] private float distance = 1.9f;
+        [SerializeField] private float minDistance = 1.3f;
+        [SerializeField] private float maxDistance = 3.5f;
         [SerializeField] private float zoomSpeed = 2f;
 
         [Header("--- HEIGHT & ANGLE ---")]
-        [Tooltip("Vertical height offset relative to target.")]
-        [SerializeField] private float height = 2.5f;
-        [SerializeField] private float minPitch = 12f;
+        [Tooltip("Vertical height of the orbit pivot relative to target position.")]
+        [SerializeField] private float pivotHeight = 1.35f;
+        [SerializeField] private float minPitch = 10f;
         [SerializeField] private float maxPitch = 55f;
-        [SerializeField] private float defaultPitch = 25f;
+        [SerializeField] private float defaultPitch = 10f;
 
         [Header("--- ROTATION SENSITIVITY ---")]
         [SerializeField] private float yawSensitivity = 2f;
@@ -36,7 +36,7 @@ namespace SownInStone.Core
 
         [Header("--- SMOOTHING ---")]
         [Tooltip("Time to smooth camera movement.")]
-        [SerializeField] private float smoothTime = 0.1f;
+        [SerializeField] private float smoothTime = 0.02f;
 
         [Header("--- COLLISION SAFETY ---")]
         [SerializeField] private LayerMask collisionLayers = ~0;
@@ -44,7 +44,7 @@ namespace SownInStone.Core
 
         // Current rotation state
         private float currentYaw = 0f;
-        private float currentPitch = 30f;
+        private float currentPitch = 10f;
         
         // Target values for smoothing zoom
         private float targetDistance;
@@ -53,9 +53,30 @@ namespace SownInStone.Core
 
         private void Start()
         {
-            if (target == null && PlayerController.Instance != null)
+            ResetCameraToTargetImmediate();
+        }
+
+        private void OnEnable()
+        {
+            ResetCameraToTargetImmediate();
+        }
+
+        public void ResetCameraToTargetImmediate()
+        {
+            if (target == null)
             {
-                target = PlayerController.Instance.transform;
+                if (PlayerController.Instance != null)
+                {
+                    target = PlayerController.Instance.transform;
+                }
+                else
+                {
+                    PlayerController pc = FindAnyObjectByType<PlayerController>();
+                    if (pc != null)
+                    {
+                        target = pc.transform;
+                    }
+                }
             }
 
             targetCamera = GetComponent<Camera>();
@@ -65,9 +86,26 @@ namespace SownInStone.Core
                 targetCamera.fieldOfView = 60f;
             }
 
-            currentYaw = transform.eulerAngles.y;
+            // Snap yaw to target's current rotation if available, otherwise default to 0
+            if (target != null)
+            {
+                currentYaw = target.eulerAngles.y;
+            }
+            else
+            {
+                currentYaw = 0f;
+            }
             currentPitch = defaultPitch;
             targetDistance = distance;
+
+            if (target != null)
+            {
+                Quaternion rotation = Quaternion.Euler(currentPitch, currentYaw, 0f);
+                Vector3 pivot = target.position + Vector3.up * pivotHeight;
+                Vector3 position = pivot - (rotation * Vector3.forward * distance);
+                transform.position = position;
+                transform.rotation = Quaternion.LookRotation(pivot - position, Vector3.up);
+            }
         }
 
         private void LateUpdate()
@@ -78,7 +116,15 @@ namespace SownInStone.Core
                 {
                     target = PlayerController.Instance.transform;
                 }
-                return;
+                else
+                {
+                    PlayerController pc = FindAnyObjectByType<PlayerController>();
+                    if (pc != null)
+                    {
+                        target = pc.transform;
+                    }
+                }
+                if (target == null) return;
             }
 
             // 1. Mouse wheel zoom
@@ -131,12 +177,12 @@ namespace SownInStone.Core
 
             // 3. Calculate desired camera rotation and position
             Quaternion rotation = Quaternion.Euler(currentPitch, currentYaw, 0f);
-            Vector3 targetCenter = target.position + Vector3.up * height;
+            Vector3 pivot = target.position + Vector3.up * pivotHeight;
             Vector3 desiredDirection = rotation * Vector3.back;
 
-            // 4. Collision Safety (SphereCast from target center to desired camera position)
+            // 4. Collision Safety (SphereCast from pivot to desired camera position)
             float checkDistance = distance;
-            RaycastHit[] hits = Physics.SphereCastAll(targetCenter, cameraRadius, desiredDirection, distance, collisionLayers, QueryTriggerInteraction.Ignore);
+            RaycastHit[] hits = Physics.SphereCastAll(pivot, cameraRadius, desiredDirection, distance, collisionLayers, QueryTriggerInteraction.Ignore);
             System.Array.Sort(hits, (x, y) => x.distance.CompareTo(y.distance));
             foreach (var hitInfo in hits)
             {
@@ -146,11 +192,27 @@ namespace SownInStone.Core
                 checkDistance = Mathf.Clamp(hitInfo.distance, minDistance, distance);
                 break;
             }
-            Vector3 finalTargetPos = targetCenter + desiredDirection * checkDistance;
+            Vector3 finalTargetPos = pivot + desiredDirection * checkDistance;
 
             // 5. Smooth camera movement
             transform.position = Vector3.SmoothDamp(transform.position, finalTargetPos, ref currentVelocity, smoothTime);
-            transform.rotation = rotation;
+            
+            // 6. Always look at pivot
+            transform.rotation = Quaternion.LookRotation(pivot - transform.position, Vector3.up);
+
+            // 7. Temporary runtime viewport centering check
+            if (targetCamera == null)
+            {
+                targetCamera = GetComponent<Camera>();
+            }
+            if (targetCamera != null)
+            {
+                Vector3 vp = targetCamera.WorldToViewportPoint(target.position + Vector3.up * 1.0f);
+                if (vp.x < 0.47f || vp.x > 0.53f)
+                {
+                    Debug.LogWarning($"[CameraFollow3D] Player viewport X is offset: {vp.x}");
+                }
+            }
         }
     }
 }

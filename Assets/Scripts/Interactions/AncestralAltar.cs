@@ -81,6 +81,10 @@ namespace SownInStone.Interactions
             if (remainingBurnTime > 0f)
             {
                 Debug.Log($"[{AltarName}] Nhang vẫn đang cháy ấm cúng, khói thơm nghi ngút.");
+                if (SownInStone.UI.SurvivalUIManager.Instance != null)
+                {
+                    SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast("Nhang vẫn đang cháy ấm cúng, khói thơm nghi ngút.");
+                }
                 return false;
             }
 
@@ -97,14 +101,35 @@ namespace SownInStone.Interactions
                     }
 
                     // Tăng nóng hổi 10 điểm tinh thần ngay lập tức khi thắp nhang
-                    PlayerStats.Instance?.ModifyMorale(10f);
+                    if (PlayerStats.Instance != null)
+                    {
+                        PlayerStats.Instance.ModifyMorale(10f);
+                    }
+                    
                     SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_altar");
                     Debug.Log($"[{AltarName}] Bạn thắp nhang cúi đầu cầu nguyện bình an. Khói nhang tỏa hương ấm cúng, xua tan hoảng sợ bão giông.");
+                    
+                    if (SownInStone.UI.SurvivalUIManager.Instance != null)
+                    {
+                        SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast("Bạn thắp nhang thành kính cầu nguyện tổ tiên. +10 Tinh thần");
+                    }
                     return true;
                 }
                 else
                 {
                     Debug.LogWarning($"[{AltarName}] Bạn không có Nhang (Incense) để thắp cúng lễ!");
+                    if (SownInStone.UI.SurvivalUIManager.Instance != null)
+                    {
+                        SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast("Không đủ Nhang cúng để thực hiện hành động này!");
+                    }
+                }
+            }
+            else
+            {
+                // Fallback check if incenseItem is somehow not initialized
+                if (SownInStone.UI.SurvivalUIManager.Instance != null)
+                {
+                    SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast("Không đủ Nhang cúng để thực hiện hành động này!");
                 }
             }
             return false;

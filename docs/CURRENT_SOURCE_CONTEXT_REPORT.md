@@ -43,8 +43,8 @@ Tài liệu này cung cấp báo cáo ngữ cảnh mã nguồn toàn diện củ
 *   **Main Scripts**:
     *   [PlayerController.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Core/PlayerController.cs)
     *   [CameraFollow3D.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Core/CameraFollow3D.cs)
-*   **Responsibilities**: Điều khiển di chuyển của nhân vật Thành theo hướng tương quan của camera phẳng (XZ plane) và xoay hướng mượt mà. Camera hỗ trợ xoay RMB, cuộn phóng thu thuôn mượt (Smooth Zoom) bằng `Vector3.SmoothDamp`, và quét va chạm tự động (SphereCast).
-*   **Important Behavior**: Camera được thiết lập hạ thấp chiều cao (2.5m), góc nghiêng vừa phải (mặc định 25 độ, phạm vi 12-55 độ) mang lại cảm giác nhập vai đậm chất Roblox Simulator.
+*   **Responsibilities**: Điều khiển di chuyển của nhân vật Thành theo hướng tương quan của camera phẳng (XZ plane) và xoay hướng mượt mà. Camera hoạt động theo cơ chế orbit xoay quanh pivot chính xác của nhân vật, hỗ trợ xoay RMB, cuộn phóng thu mượt (Smooth Zoom) bằng `Vector3.SmoothDamp`, và quét va chạm tự động (SphereCast) bỏ qua nhân vật.
+*   **Important Behavior**: Camera được thiết lập theo sát pivotHeight = 1.35m với khoảng cách mặc định 4.5m (phạm vi zoom 1.3-8.0) và góc nghiêng mặc định 10 độ, đảm bảo người chơi luôn nằm ở chính giữa khung hình theo phương ngang và thấp hơn một chút theo phương dọc mà không bị trôi lệch khi xoay.
 *   **Known Dependencies**: New Input System, Rigidbody.
 
 ### Farming Loop & SoilCell Target Highlight

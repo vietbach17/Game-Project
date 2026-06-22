@@ -566,6 +566,14 @@ namespace SownInStone.Core
                     return;
                 }
 
+                // 2.3. Tương tác qua Interface IInteractable (như Bếp ga, v.v.)
+                IInteractable interactable = target.GetComponent<IInteractable>();
+                if (interactable != null)
+                {
+                    interactable.Interact();
+                    return;
+                }
+
                 // 2.5. Tương tác với Thuyền thúng
                 Coracle boat = target.GetComponent<Coracle>();
                 if (boat != null)
@@ -667,6 +675,7 @@ namespace SownInStone.Core
 
                 int totalYield = 0;
                 ItemData harvestItem = null;
+                bool isSilted = false;
 
                 if (activeSoil.IsParentField)
                 {
@@ -675,14 +684,26 @@ namespace SownInStone.Core
                         if (child != null && child.plantedCrop != null && child.plantedCrop.IsReadyToHarvest())
                         {
                             if (harvestItem == null) harvestItem = child.plantedCrop.cropData.HarvestedItem;
-                            totalYield += child.plantedCrop.ActionHarvest();
+                            int yield = child.plantedCrop.ActionHarvest();
+                            if (child.quality == SoilQuality.PhuSa || (GameManager.Instance != null && GameManager.Instance.CurrentPhase == GamePhase.PhuSa))
+                            {
+                                yield *= 2;
+                                isSilted = true;
+                            }
+                            totalYield += yield;
                         }
                     }
                 }
                 else
                 {
                     harvestItem = activeSoil.plantedCrop.cropData.HarvestedItem;
-                    totalYield = activeSoil.plantedCrop.ActionHarvest();
+                    int yield = activeSoil.plantedCrop.ActionHarvest();
+                    if (activeSoil.quality == SoilQuality.PhuSa || (GameManager.Instance != null && GameManager.Instance.CurrentPhase == GamePhase.PhuSa))
+                    {
+                        yield *= 2;
+                        isSilted = true;
+                    }
+                    totalYield = yield;
                 }
 
                 if (totalYield > 0 && StorageManager.Instance != null && harvestItem != null)
@@ -690,8 +711,21 @@ namespace SownInStone.Core
                     StorageManager.Instance.AddItem(harvestItem, totalYield);
                     Debug.Log($"[PLAYER] Thu hoạch thành công ruộng cây: {harvestItem.ItemName} x{totalYield}!");
                     string itemName = !string.IsNullOrEmpty(harvestItem.ItemName) ? harvestItem.ItemName : "Nông sản";
-                    string harvestMsg = $"Thu hoạch thành công: +{totalYield} {itemName}";
-                    PlayerStats.Instance.TriggerAlert(harvestMsg);
+                    
+                    if (isSilted)
+                    {
+                        string siltMsg = $"Đất phù sa màu mỡ giúp nhân đôi sản lượng! Bạn thu hoạch được +{totalYield} {itemName}.";
+                        if (SownInStone.UI.SurvivalUIManager.Instance != null)
+                        {
+                            SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast(siltMsg);
+                        }
+                        PlayerStats.Instance.TriggerAlert(siltMsg);
+                    }
+                    else
+                    {
+                        string harvestMsg = $"Thu hoạch thành công: +{totalYield} {itemName}";
+                        PlayerStats.Instance.TriggerAlert(harvestMsg);
+                    }
                 }
                 return;
             }
@@ -915,9 +949,16 @@ namespace SownInStone.Core
                     }
                     else
                     {
-                        Coracle boat = closestCollider.GetComponent<Coracle>();
-                        if (boat != null)
+                        KitchenHearth hearth = closestCollider.GetComponent<KitchenHearth>();
+                        if (hearth != null)
                         {
+                            prompt = "[E] Nấu nướng / Chế biến";
+                        }
+                        else
+                        {
+                            Coracle boat = closestCollider.GetComponent<Coracle>();
+                            if (boat != null)
+                            {
                             prompt = $"[{keyInteract}] Lên thuyền thúng";
                         }
                         else
@@ -975,6 +1016,7 @@ namespace SownInStone.Core
                         }
                     }
                 }
+            }
 
                 SownInStone.UI.SurvivalUIManager.Instance.SetInteractionPrompt(prompt);
             }
@@ -1149,7 +1191,8 @@ namespace SownInStone.Core
                 if (col.gameObject == gameObject) continue;
 
                 // Kiểm tra xem đối tượng có chứa bất kỳ Script tương tác nào không
-                bool isInteractable = col.GetComponent<NPCCharacter>() != null ||
+                bool isInteractable = col.GetComponent<IInteractable>() != null ||
+                                      col.GetComponent<NPCCharacter>() != null ||
                                       col.GetComponent<AncestralAltar>() != null ||
                                       col.GetComponent<Coracle>() != null ||
                                       col.GetComponent<SoilCell>() != null ||

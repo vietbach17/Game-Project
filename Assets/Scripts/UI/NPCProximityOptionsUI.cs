@@ -505,6 +505,18 @@ namespace SownInStone.UI
                 CommunityManager.Instance.ModifyGlobalKarma(15);
                 SurvivalUIManager.Instance?.ShowHUDToast("Bạn cùng bà con chằng chống nhà Bác Năm. +15 Nghĩa Tình");
                 SurvivalUIManager.Instance?.ShowDialogue(npc.NPCName, "\"Cảm ơn con và bà con chòm xóm! Nhà cửa bác vững vàng rồi, không lo gió lốc cuốn bay mái lá nữa!\"");
+
+                // Visual feedback: activate pre-placed sandbag cluster on BacNam's house
+                GameObject bacNamHouse = GameObject.Find("BacNam_House");
+                if (bacNamHouse != null)
+                {
+                    Transform sandbagCluster = bacNamHouse.transform.Find("Visual_Sandbags_Event");
+                    if (sandbagCluster != null)
+                    {
+                        sandbagCluster.gameObject.SetActive(true);
+                        Debug.Log("[EVENT] Visual_Sandbags_Event activated on BacNam_House.");
+                    }
+                }
             }
             else
             {

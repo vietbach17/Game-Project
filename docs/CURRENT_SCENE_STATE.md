@@ -98,26 +98,26 @@ Trong cảnh chơi `SampleScene.unity`, các đối tượng đang được xế
     *   `Player`: Player controller and Rigidbody/Collider.
     *   `Main Camera`: Camera follow script.
     *   `Lighting`: Contains lighting objects (`Directional Light`, `Global Volume`).
-    *   `Environment`: Land, fences, paths, and houses.
-    *   `FarmingArea`: Rectangular plot containing the 11 `SoilCell` GameObjects.
+    *   `Environment`: Land, fences, paths, and houses (`Houses` group contains the migrated 3D visual models for `Thanh_House`, `OTham_Shop`, and `BacNam_House`. `House_OTham_PLACEHOLDER` is deactivated).
+    *   `FarmingArea`: Rectangular plot containing the `SoilCell` GameObjects.
     *   `NPCs`: `NPC_BacNam` and `NPC_OTham`.
-    *   `InteractionZones`: `AncestralAltar`.
+    *   `InteractionZones`: `Shrine` (includes the migrated 3D `AltarModel`).
     *   `DisasterObjects`: Empty parent (for runtime instantiated flood water plane).
     *   `Audio`: Ambient and music sources.
-
+ 
 *   **Key World Coordinates:**
     *   `Player`: `(0, 0.5, -6)`
-    *   `Thanh_House`: `(0.0, 0.0, -15.5)`
+    *   `Thanh_House`: `(0.0, 0.0, -15.5)` (Rotated Y = 180°, BoxCollider size = 8.0 x 5.57 x 9.59)
     *   `OTham_Shop`: `(8.0, 0.0, 10.28)`
     *   `BacNam_House`: `(-12.0, 0.0, 8.5)`
     *   `Village_Well`: `(0, 0, 3)`
     *   `Village_Speaker`: `(0, 1.75, 6)` (Custom Cylinder pole acts as stand-in)
-    *   `Shrine` (previously AncestralAltar): `(7, 0, -6)`
+    *   `Shrine`: `(7, 0, -6)`
     *   `NPC_OTham`: `(3.53, 0.5, -9.49)` (Visual child scale = `1.30`, local Y position = `0.61`, height = `2.21m`)
     *   `NPC_BacNam`: `(-1.78, 0.5, -10.18)` (Visual child scale = `1.22`, local Y position = `0.54`, height = `2.074m`)
     *   `SoilCells`: Arranged as a clean 2x2 grid near Thành House (SoilCell_1: `(-8, 0.02, -10)`, SoilCell_2: `(-6, 0.02, -10)`, SoilCell_3: `(-8, 0.02, -12)`, SoilCell_4: `(-6, 0.02, -12)`). Excess SoilCells are disabled. All active SoilCells are rotated X = 90 to lie flat on XZ plane.
     *   `FarmingPlot`: A visual brown soil bounding box under `FarmingArea` at `(-6, 0.01, -11)` to visually frame the SoilCells in Edit Mode.
-    *   `Main Camera`: Controlled by `CameraFollow3D` script at runtime with Roblox-like third-person settings: Default Distance = 6, Height = 2.5, Default Pitch = 25° (pitch range: 12°-55°), Zoom Range = 3-9, smoothTime = 0.1s, and SphereCast-based collision safety enabled.
+    *   `Main Camera`: Controlled by `CameraFollow3D` script at runtime with Roblox-style third-person orbit settings: Default Distance = 4.5, pivotHeight = 1.35, Default Pitch = 10° (pitch range: 10°-55°), Zoom Range = 1.3-8.0, smoothTime = 0.02s, and SphereCast-based collision safety (ignoring the Player layer) enabled. Player visual remains perfectly centered horizontally and lower-center vertically in LateUpdate.
     *   `Directional Light`: Rotation `(45, 30, 0)`, Color set to warm sunlight (Color: Warm Yellow, Intensity: 1.1).
  
 *   **Scene Setup Limitations:**

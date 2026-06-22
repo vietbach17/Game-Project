@@ -151,6 +151,23 @@ namespace SownInStone.Core
 
             OnDayChanged?.Invoke(currentDay);
             OnPhaseChanged?.Invoke(currentPhase);
+
+            // Tự động phủ phù sa cho toàn bộ ruộng đất khi chuyển sang GĐ Phù Sa
+            if (newPhase == GamePhase.PhuSa)
+            {
+                var soils = FindObjectsByType<SownInStone.Agriculture.SoilCell>(FindObjectsInactive.Exclude);
+                foreach (var s in soils)
+                {
+                    if (s != null)
+                    {
+                        s.quality = SownInStone.Agriculture.SoilQuality.PhuSa;
+                        s.Nutrients = 100f;
+                        s.RockDensity = 0f;
+                        s.UpdateVisuals();
+                    }
+                }
+                Debug.Log($"[GAME MANAGER] Đã tự động bồi đắp PHÙ SA và dọn sạch sỏi đá cho {soils.Length} ô đất.");
+            }
             
             // Play phase change warning chime
             SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_warning");
