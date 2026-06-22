@@ -26,7 +26,7 @@ Tài liệu này vạch ra kế hoạch hành động chi tiết trong 2 tuần 
 *   [x] **Sound effects:** Tiếng mưa rơi, gió rít Gió Lào, tiếng trống đình làng réo rắt báo bão, và tiếng loa phát thanh xã rè rè đặc trưng.
 
 ### Priority 2 - Nice To Have (Có thể làm thêm nếu thừa thời gian)
-*   [ ] **Cụ Bảy / Bé Tí:** Thêm mô hình 3D NPC Trưởng thôn (Cụ Bảy) đứng gần đình làng và Bé Tí chạy việc vặt.
+*   [x] **Cụ Bảy / Bé Tí:** Thêm mô hình 3D NPC Trưởng thôn (Cụ Bảy) đứng gần đình làng và Bé Tí chạy việc vặt.
 *   [x] **Ancestral Altar interaction:** Tương tác thắp nhang tại bàn thờ tổ tiên để hồi phục Tinh thần (giảm Stress).
 *   [ ] **More dialogue lines:** Thêm một vài dòng thoại đậm chất địa phương (Central Vietnam dialect) cho O Thắm, Bác Năm.
 *   [ ] **Multiple ending illustrations:** Vẽ/tạo 3 hình ảnh minh họa tương ứng cho 3 kết cục Nghĩa Tình (Đất sỏi đá cằn, Lá lành đùm lá rách, Đất cày nở hoa).

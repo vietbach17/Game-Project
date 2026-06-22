@@ -497,5 +497,44 @@ Bản mẫu hiện tại đạt khoảng **75% tiến độ sẵn sàng cho Demo
         *   *Environmental Weather Data*: Real-time Temperature (°C), Humidity (%), Wind Speed (km/h), Rain Intensity (%), and active Flood Level (meters).
         *   *World Clock & Progress*: Active Game Day, Hour, and Curent Story/Weather Phase (Lập nghiệp / Gió Lào / Bão lũ / Phù sa).
 
+---
+
+## 43. Final Altar Morale Restorations & Gas Stove Cooking Options
+*   **Altar Morale Restore**:
+    *   Connected the incense burning mechanism inside [AncestralAltar.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Interactions/AncestralAltar.cs) to check if the player's inventory contains at least 1 incense item.
+    *   Successfully deducts 1 incense, restores $+10$ Morale (clamped at max 100), and shows styled toast/debug messages.
+*   **Gas Stove Interaction**:
+    *   Reparented the `bep_gas` GameObject under the path `Environment/_Environment/Houses/Thanh_House/` and grounded its position flush with the turf (world Y = `0.21f`).
+    *   Attached `BoxCollider` (`isTrigger = true`) and narrowed its size properties tightly to `(0.03, 0.03, 0.03)` with a local scale of `(40, 40, 40)`. This narrowing generates an effective $1.2$ meters trigger boundary in world space, preventing premature interaction popups.
+    *   Created and attached the C# component [KitchenHearth.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Interaction/KitchenHearth.cs) implementing the `IInteractable` interface.
+    *   Wired dialogue option buttons for either drying crops (converting 2 fresh crops into 1 preserved dry crop) or cooking (consuming 1 fresh crop to restore $+15$ Stamina) with appropriate red warning notifications.
+
+---
+
+## 44. Local Workspace Git Synchronization
+*   **Git Dev Merge & Conflict Resolution**:
+    *   Fetched and merged 4 pending commits from the remote repository branch `origin/dev` cleanly.
+    *   Resolved minor file conflicts in `SampleScene.unity` and `LiberationSans SDF - Fallback.asset` in favor of remote revisions (`--ours`) to preserve upstream progress.
+    *   Staged all 14 modified/untracked files and executed a local commit packaging them with the exact message: `"feat: finalized gas stove interaction, altar morale recovery, and synchronized URP scene visuals"`.
+    *   Unity assemblies were regenerated, verifying the workspace builds successfully with **$0$ C# compilation errors**.
+
+---
+
+## 45. NPC_CuBay & NPC_BeTi Scene Layout & Interaction Logic
+*   **3D Rigged Model Placement & Animation Loop**:
+    *   Dragged Mixamo-rigged animation assets `"cu_bay@Old Man Idle.fbx"` and `"be_ti@Breathing Idle.fbx"` into `Village_Demo.unity` under the parent hierarchy path: `Environment/_Environment/NPCs/`.
+    *   Renamed instances to `NPC_CuBay` and `NPC_BeTi`.
+    *   Set world coordinates to `(-14.20, 0.00, 4.95)` (Cụ Bảy near Shrine edge) and `(-2.72, 0.00, 5.00)` (Bé Tí near well area), grounding their feet flush with the terrain using raycast detection.
+    *   Created and bound looping Animator Controllers `CuBay_Controller` and `BeTi_Controller` using their respective idle clips.
+    *   Attached trigger BoxColliders size `(1.7, 1.7, 1.7)` to match the standard proximity range.
+*   **Context-Sensitive Dialogue FALLBACKS & Proximity Options**:
+    *   Extended `NPCCharacter.StoryCharacterType` enum in [NPCCharacter.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Community/NPCCharacter.cs) with `CuBay` and `BeTi` characters.
+    *   Wrote 5-phase fallback dialog responses reflecting local elder wisdom for Cụ Bảy and comforting comments for Bé Tí during storm floods.
+    *   Modified [NPCProximityOptionsUI.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/UI/NPCProximityOptionsUI.cs) to wire options.
+    *   Implemented the **Cứu trợ lương thực** option for Cụ Bảy (active only during Phase 3 Mưa Bão) which checks and consumes 5 total food items from `StorageManager` (Fresh Crops, Preserved Crops, or Noodles) and rewards +20 Nghĩa Tình.
+*   **Automated Smoke Test Verification**:
+    *   Executed an automated Editor C# validation script verifying Bep Gas bounds, Altar setup, NPC animators, colliders, and Phase 3 option stacks. **All tests successfully PASS**.
+
+
 
 

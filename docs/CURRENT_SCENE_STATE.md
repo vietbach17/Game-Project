@@ -98,9 +98,9 @@ Trong cảnh chơi `SampleScene.unity`, các đối tượng đang được xế
     *   `Player`: Player controller and Rigidbody/Collider.
     *   `Main Camera`: Camera follow script.
     *   `Lighting`: Contains lighting objects (`Directional Light`, `Global Volume`).
-    *   `Environment`: Land, fences, paths, and houses (`Houses` group contains the migrated 3D visual models for `Thanh_House`, `OTham_Shop`, and `BacNam_House`. `House_OTham_PLACEHOLDER` is deactivated).
+    *   `Environment`: Land, fences, paths, and houses (`Houses` group contains the migrated 3D visual models for `Thanh_House`, `OTham_Shop`, and `BacNam_House`. `House_OTham_PLACEHOLDER` is deactivated. Under `Environment/_Environment/NPCs/` we have `NPC_CuBay` and `NPC_BeTi` with Animator and trigger BoxCollider components).
     *   `FarmingArea`: Rectangular plot containing the `SoilCell` GameObjects.
-    *   `NPCs`: `NPC_BacNam` and `NPC_OTham`.
+    *   `NPCs` (Root): Contains `NPC_BacNam` and `NPC_OTham`.
     *   `InteractionZones`: `Shrine` (includes the migrated 3D `AltarModel`).
     *   `DisasterObjects`: Empty parent (for runtime instantiated flood water plane).
     *   `Audio`: Ambient and music sources.
@@ -108,6 +108,7 @@ Trong cảnh chơi `SampleScene.unity`, các đối tượng đang được xế
 *   **Key World Coordinates:**
     *   `Player`: `(0, 0.5, -6)`
     *   `Thanh_House`: `(0.0, 0.0, -15.5)` (Rotated Y = 180°, BoxCollider size = 8.0 x 5.57 x 9.59)
+    *   `bep_gas`: `(5.89, 0.21, -8.69)` (under `Thanh_House` porch, BoxCollider trigger size `0.03`, local scale `40`)
     *   `OTham_Shop`: `(8.0, 0.0, 10.28)`
     *   `BacNam_House`: `(-12.0, 0.0, 8.5)`
     *   `Village_Well`: `(0, 0, 3)`
@@ -115,6 +116,8 @@ Trong cảnh chơi `SampleScene.unity`, các đối tượng đang được xế
     *   `Shrine`: `(7, 0, -6)`
     *   `NPC_OTham`: `(3.53, 0.5, -9.49)` (Visual child scale = `1.30`, local Y position = `0.61`, height = `2.21m`)
     *   `NPC_BacNam`: `(-1.78, 0.5, -10.18)` (Visual child scale = `1.22`, local Y position = `0.54`, height = `2.074m`)
+    *   `NPC_CuBay`: `(-14.20, 0.00, 4.95)` (near Altar/Shrine entrance edge)
+    *   `NPC_BeTi`: `(-2.72, 0.00, 5.00)` (near Village_Well area)
     *   `SoilCells`: Arranged as a clean 2x2 grid near Thành House (SoilCell_1: `(-8, 0.02, -10)`, SoilCell_2: `(-6, 0.02, -10)`, SoilCell_3: `(-8, 0.02, -12)`, SoilCell_4: `(-6, 0.02, -12)`). Excess SoilCells are disabled. All active SoilCells are rotated X = 90 to lie flat on XZ plane.
     *   `FarmingPlot`: A visual brown soil bounding box under `FarmingArea` at `(-6, 0.01, -11)` to visually frame the SoilCells in Edit Mode.
     *   `Main Camera`: Controlled by `CameraFollow3D` script at runtime with Roblox-style third-person orbit settings: Default Distance = 4.5, pivotHeight = 1.35, Default Pitch = 10° (pitch range: 10°-55°), Zoom Range = 1.3-8.0, smoothTime = 0.02s, and SphereCast-based collision safety (ignoring the Player layer) enabled. Player visual remains perfectly centered horizontally and lower-center vertically in LateUpdate.
