@@ -966,7 +966,7 @@ namespace SownInStone.Core
                                         prompt = "[E] Thu hoạch khoai tươi";
                                     else if (emptySlots > 0)
                                         prompt = "[E] Gieo hạt giống khoai";
-                                    else if (soil.Moisture < 40f)
+                                    else if (dryCells > 0)
                                         prompt = "[E] Tưới nước cho đất ẩm";
                                     else
                                         prompt = "Đất đã được gieo hạt";

@@ -8,29 +8,29 @@ Tài liệu này vạch ra kế hoạch hành động chi tiết trong 2 tuần 
 
 ### Priority 0 - Must Finish (Bắt buộc phải hoàn thành)
 *   [x] **Update README and docs:** Cập nhật toàn bộ tài liệu hướng dẫn và mô tả game theo hướng đi mới.
-*   [ ] **Stable player movement:** Tinh chỉnh chuyển động nhân vật 3D mượt mà, sửa lỗi va chạm hoặc kẹt địa hình.
-*   [ ] **Stable camera:** Camera theo sau nhân vật mượt mà từ góc nhìn thứ ba, xoay chuyển không bị giật lag.
-*   [ ] **Basic farming loop:** Hoàn thiện dọn sỏi đá, cuốc đất, gieo hạt khoai lang, tưới nước và thu hoạch.
-*   [ ] **Basic inventory count:** Bảng đếm số lượng hạt giống, khoai tươi và khoai gieo khô đơn giản trong túi đồ.
+*   [x] **Stable player movement:** Tinh chỉnh chuyển động nhân vật 3D mượt mà, sửa lỗi va chạm hoặc kẹt địa hình.
+*   [x] **Stable camera:** Camera theo sau nhân vật mượt mà từ góc nhìn thứ ba, xoay chuyển không bị giật lag.
+*   [x] **Basic farming loop:** Hoàn thiện dọn sỏi đá, cuốc đất, gieo hạt khoai lang, tưới nước và thu hoạch.
+*   [x] **Basic inventory count:** Bảng đếm số lượng hạt giống, khoai tươi và khoai gieo khô đơn giản trong túi đồ.
 *   [x] **Nghĩa Tình UI:** Hiển thị điểm Nghĩa Tình trên HUD chính của người chơi.
-*   [ ] **At least 2 NPC interactions:** Tương tác thoại đơn giản bằng nút bấm UI với O Thắm (mua hạt giống/đổi công Vần công) và Bác Năm (đóng góp khoai cứu đói).
-*   [ ] **At least 3 community events:** Kích hoạt cảnh báo từ Loa phát thanh xã, đóng góp lương thực khi bão, và dọn dẹp sau bão.
+*   [x] **At least 2 NPC interactions:** Tương tác thoại đơn giản bằng nút bấm UI với O Thắm (mua hạt giống/đổi công Vần công) và Bác Năm (đóng góp khoai cứu đói).
+*   [x] **At least 3 community events:** Kích hoạt cảnh báo từ Loa phát thanh xã, đóng góp lương thực khi bão, và dọn dẹp sau bão.
 *   [x] **Phase transition UI:** Hiển thị Banner cinematic thông báo chuyển ngày/Phase thời tiết kèm thông tin thông báo khẩn từ Loa phát thanh xã.
 *   [x] **One ending screen:** Màn hình kết cục game hiển thị text/ảnh đánh giá dựa trên tổng điểm Nghĩa Tình đạt được ở cuối ngày thứ 4 (Phase 4).
 
 ### Priority 1 - Should Finish (Nên hoàn thành)
-*   [ ] **Weather visual polish:** Làm đẹp hệ thống hạt mưa chéo bám camera, hiệu ứng mờ sương (fog) và tông màu nắng nóng Gió Lào.
-*   [ ] **Flood visual polish:** Nước lũ dâng ngập mượt mà, phản chiếu ánh sáng và tạo cảm giác ngập lụt chân thực.
-*   [ ] **Silt soil mechanic:** Đất trồng ngập nước ở Phase 3 tự động chuyển thành đất phù sa màu mỡ (Silt Soil) ở Phase 4, nhân đôi sản lượng thu hoạch.
-*   [ ] **More Vietnamese environment props:** Đưa thêm các mô hình như lũy tre làng, cây chuối, bờ rào gỗ truyền thống vào bản đồ.
-*   [ ] **Sound effects:** Tiếng mưa rơi, gió rít Gió Lào, tiếng trống đình làng réo rắt báo bão, và tiếng loa phát thanh xã rè rè đặc trưng.
+*   [x] **Weather visual polish:** Làm đẹp hệ thống hạt mưa chéo bám camera, hiệu ứng mờ sương (fog) và tông màu nắng nóng Gió Lào.
+*   [x] **Flood visual polish:** Nước lũ dâng ngập mượt mà, phản chiếu ánh sáng và tạo cảm giác ngập lụt chân thực.
+*   [x] **Silt soil mechanic:** Đất trồng ngập nước ở Phase 3 tự động chuyển thành đất phù sa màu mỡ (Silt Soil) ở Phase 4, nhân đôi sản lượng thu hoạch.
+*   [x] **More Vietnamese environment props:** Đưa thêm các mô hình như lũy tre làng, cây chuối, bờ rào gỗ truyền thống vào bản đồ.
+*   [x] **Sound effects:** Tiếng mưa rơi, gió rít Gió Lào, tiếng trống đình làng réo rắt báo bão, và tiếng loa phát thanh xã rè rè đặc trưng.
 
 ### Priority 2 - Nice To Have (Có thể làm thêm nếu thừa thời gian)
 *   [ ] **Cụ Bảy / Bé Tí:** Thêm mô hình 3D NPC Trưởng thôn (Cụ Bảy) đứng gần đình làng và Bé Tí chạy việc vặt.
-*   [ ] **Ancestral Altar interaction:** Tương tác thắp nhang tại bàn thờ tổ tiên để hồi phục Tinh thần (giảm Stress).
+*   [x] **Ancestral Altar interaction:** Tương tác thắp nhang tại bàn thờ tổ tiên để hồi phục Tinh thần (giảm Stress).
 *   [ ] **More dialogue lines:** Thêm một vài dòng thoại đậm chất địa phương (Central Vietnam dialect) cho O Thắm, Bác Năm.
 *   [ ] **Multiple ending illustrations:** Vẽ/tạo 3 hình ảnh minh họa tương ứng cho 3 kết cục Nghĩa Tình (Đất sỏi đá cằn, Lá lành đùm lá rách, Đất cày nở hoa).
-*   [ ] **Simple main menu polish:** Làm đẹp Menu chính ("Về quê bám đất") bằng nhạc nền nhẹ nhàng và hình ảnh làng quê.
+*   [x] **Simple main menu polish:** Làm đẹp Menu chính ("Về quê bám đất") bằng nhạc nền nhẹ nhàng và hình ảnh làng quê.
 
 ### Do Not Prioritize (Tuyệt đối không làm để tránh trễ hạn)
 *   🚫 Hệ thống Save/Load phức tạp.

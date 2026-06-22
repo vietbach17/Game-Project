@@ -457,4 +457,45 @@ Bản mẫu hiện tại đạt khoảng **75% tiến độ sẵn sàng cho Demo
         *   **Stage 1**: localPosition = `(0f, -0.0083f, -0.00681f)`, localRotation = `(-180f, 0f, 0f)`, localScale = `(1f, 1f, 1f)`.
         *   **Stage 2**: localPosition = `(0f, -0.005f, -0.00402f)`, localRotation = `(-180f, 0f, 0f)`, localScale = `(1f, 1f, 1f)`.
 
+---
+
+## 39. Smart SoilCell Parent-Child Linkage & Watering Fix
+*   **watering Interaction Fixed**:
+    *   Resolved watering interaction lock where pressing [E] failed to water the soil when plants were present.
+    *   Corrected the automatic parent-child link logic in `Awake()` inside [SoilCell.cs](file:///d:/Game%20Project/Assets/Scripts/Agriculture/SoilCell.cs) to dynamically search and bind `parentField` and `childCells` based on relative XZ distances (< 6.0m) and name constraints (`!Contains("Grid")` for parent, `Contains("Grid")` for child). This resolves linkage issues caused by scene naming mismatches (e.g. `SoilCell_1` instead of `SoilCell_Large`).
+    *   Synchronized visual coloring updates inside `UpdateVisuals()` using the generic `IsParentField` property rather than relying on exact name matching.
+    *   Aligned the interaction prompt triggers inside [PlayerController.cs](file:///d:/Game%20Project/Assets/Scripts/Core/PlayerController.cs) (`UpdateInteractionPrompt`) to display the watering prompt based on dry cell counts (`dryCells > 0`), ensuring consistent UX when standing near parent or child colliders.
+
+---
+
+## 40. Stylized 3x3 Solid Farming Plot & Fence Arrangement
+*   **Solid 3x3 Plot Realized**:
+    *   Developed C# Editor script [SetupSolidRuongEditor.cs](file:///d:/Game%20Project/Assets/Scripts/Editor/SetupSolidRuongEditor.cs) with custom menu command `Sown In Stone/Setup Solid Ruong (3x3)`.
+    *   Redesigned the disjointed 12-cell (4x3) layout in `Village_Demo.unity` into a tight **3x3 solid grid (9 cells, 1.5m spacing)** centered at `(-8.0, 0.13, -10.0)`.
+    *   Automatically disposed of the remaining 3 redundant cells and reformatted BoxColliders, SpriteRenderers, and scale parameters on the 9 grid cells.
+*   **Fencing Reconstruction**:
+    *   The editor script automatically instantiates and arranges **12 fence segments** (linked to `Fence2.fbx`) under the `Fences` root object, boxing in the new 3x3 grid cleanly.
+    *   Aligns local rotations (0 degrees for South/North boundaries, 90 degrees for West/East boundaries) and bounds positions correctly around the farm borders.
+
+---
+
+## 41. Detailed Tutorial System Illustrations
+*   **Tutorial Texture Assets Integrated**:
+    *   Added 4 high-resolution, stylized 3D low-poly style PNG assets directly to `Assets/Resources/Textures/Tutorial/` to remove generic gray placeholders:
+        *   `tutorial_clear_rocks.png` (Illustrating rock clearing and soil prep)
+        *   `tutorial_plant_water.png` (Illustrating crop planting and soil watering)
+        *   `tutorial_npc_interact.png` (Illustrating village commerce and dialogue interaction)
+        *   `tutorial_flood_survival.png` (Illustrating seeking refuge on cottage roofs during rising storm floods)
+
+---
+
+## 42. Extended Settings Panel with Live Game Stats Tab
+*   **Live GameStats Tab Added**:
+    *   Extended [FrameworkMainMenuUI.cs](file:///d:/Game%20Project/Assets/Scripts/FrameworkMainMenuUI.cs) Settings with a third Sub-tab **"Thông số game"** (`SettingsSubTab.GameStats`) next to the NPC profile section.
+    *   Provides players with a comprehensive live breakdown of:
+        *   *Player Survival Indicators*: Health, Stamina, Morale, Cold Stress, Heat Stress, and Coins.
+        *   *Environmental Weather Data*: Real-time Temperature (°C), Humidity (%), Wind Speed (km/h), Rain Intensity (%), and active Flood Level (meters).
+        *   *World Clock & Progress*: Active Game Day, Hour, and Curent Story/Weather Phase (Lập nghiệp / Gió Lào / Bão lũ / Phù sa).
+
+
 
