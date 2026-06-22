@@ -60,20 +60,34 @@ namespace SownInStone.Agriculture
         private void Awake()
         {
             // Tự động tìm kiếm và liên kết ruộng Cha - Con tại runtime nếu chưa được cấu hình
-            if (gameObject.name == "SoilCell_Large")
+            // Nhận diện ruộng cha: Tên không chứa "Grid" và là SoilCell_Large, SoilCell_1 hoặc SoilCell
+            bool isParentCandidate = !gameObject.name.Contains("Grid") && 
+                                     (gameObject.name == "SoilCell_Large" || 
+                                      gameObject.name == "SoilCell" || 
+                                      gameObject.name.StartsWith("SoilCell_"));
+
+            if (isParentCandidate)
             {
                 childCells.Clear();
-                // Tìm tất cả các SoilCell con có tên chứa "SoilCell_Grid"
+                // Tìm tất cả các SoilCell con có tên chứa "Grid" hoặc bắt đầu bằng "SoilCell_Grid"
                 SoilCell[] allSoils = FindObjectsByType<SoilCell>();
                 foreach (var s in allSoils)
                 {
-                    if (s != this && s.gameObject.name.StartsWith("SoilCell_Grid"))
+                    if (s != this && (s.gameObject.name.Contains("Grid") || s.gameObject.name.StartsWith("SoilCell_Grid")))
                     {
-                        childCells.Add(s);
-                        s.parentField = this;
+                        // Kiểm tra khoảng cách địa lý 2D trên mặt phẳng XZ (ngưỡng 6 mét)
+                        float distXZ = Vector2.Distance(
+                            new Vector2(transform.position.x, transform.position.z),
+                            new Vector2(s.transform.position.x, s.transform.position.z)
+                        );
+                        if (distXZ < 6.0f)
+                        {
+                            childCells.Add(s);
+                            s.parentField = this;
+                        }
                     }
                 }
-                Debug.Log($"[SOIL] Tự động liên kết {childCells.Count} ô ruộng con cho SoilCell_Large.");
+                Debug.Log($"[SOIL] Tự động liên kết {childCells.Count} ô ruộng con cho ruộng cha {gameObject.name}.");
             }
         }
 
@@ -303,8 +317,8 @@ namespace SownInStone.Agriculture
                     soilSpriteRenderer.sprite = (Moisture > 35f) ? wetSoilSprite : drySoilSprite;
                 }
 
-                // Nếu là ô ruộng lớn làm nền, ta tô màu đậm hơn một chút để làm nổi bật 9 ô con cát bạc màu ở trên
-                if (gameObject.name == "SoilCell_Large")
+                // Nếu là ô ruộng lớn làm nền, ta tô màu đậm hơn một chút để làm nổi bật các ô con cát bạc màu ở trên
+                if (IsParentField)
                 {
                     soilSpriteRenderer.color = new Color(0.72f, 0.65f, 0.58f, 1.0f); // Màu đất cát tối hơn làm nền lót
                 }

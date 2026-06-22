@@ -252,6 +252,16 @@ namespace SownInStone.Core
             isRescuing = false;
         }
 
+        public void RestoreSaveState(float health, float stamina, float morale, int savedCoins)
+        {
+            currentHealth = health;
+            currentStamina = stamina;
+            currentMorale = morale;
+            coins = savedCoins;
+            TriggerChangeEvents();
+            Debug.Log($"[PLAYER STATS] Khôi phục chỉ số từ Save: Health={currentHealth}, Stamina={currentStamina}, Morale={currentMorale}, Coins={coins}");
+        }
+
         private void TriggerChangeEvents()
         {
             OnHealthChanged?.Invoke(currentHealth, maxHealth);

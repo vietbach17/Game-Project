@@ -188,6 +188,15 @@ namespace SownInStone.Core
             }
         }
 
+        public void RestoreSaveState(int day, GamePhase phase)
+        {
+            currentDay = day;
+            currentPhase = phase;
+            OnDayChanged?.Invoke(currentDay);
+            OnPhaseChanged?.Invoke(currentPhase);
+            Debug.Log($"[GAME MANAGER] Khôi phục tiến trình từ Save: Ngày {currentDay}, Giai đoạn {currentPhase}");
+        }
+
         #region GETTERS VÀ SETTERS CƠ BẢN
         public int CurrentDay => currentDay;
         public float CurrentHour => currentHour;
