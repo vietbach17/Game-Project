@@ -33,6 +33,33 @@ namespace SownInStone.Audio
         private List<AudioSource> sfxSources = new List<AudioSource>();
 
         private Dictionary<string, AudioClip> audioClips = new Dictionary<string, AudioClip>();
+        private HashSet<string> missingClips = new HashSet<string>();
+
+        private float musicVolume = 0.5f;
+        private float sfxVolume = 1f;
+
+        public float MusicVolume
+        {
+            get => musicVolume;
+            set
+            {
+                musicVolume = Mathf.Clamp01(value);
+                PlayerPrefs.SetFloat("MusicVolume", musicVolume);
+                PlayerPrefs.Save();
+                if (musicSource != null) musicSource.volume = musicVolume;
+            }
+        }
+
+        public float SFXVolume
+        {
+            get => sfxVolume;
+            set
+            {
+                sfxVolume = Mathf.Clamp01(value);
+                PlayerPrefs.SetFloat("SFXVolume", sfxVolume);
+                PlayerPrefs.Save();
+            }
+        }
 
         private void Awake()
         {
@@ -40,6 +67,11 @@ namespace SownInStone.Audio
             {
                 instance = this;
                 DontDestroyOnLoad(gameObject);
+                
+                // Load volumes
+                musicVolume = PlayerPrefs.GetFloat("MusicVolume", 0.5f);
+                sfxVolume = PlayerPrefs.GetFloat("SFXVolume", 1f);
+
                 InitializeSources();
             }
             else if (instance != this)
@@ -80,7 +112,7 @@ namespace SownInStone.Audio
             if (musicSource.clip == clip && musicSource.isPlaying) return;
 
             musicSource.clip = clip;
-            musicSource.volume = 0.5f; // Âm lượng nhạc nền vừa phải
+            musicSource.volume = musicVolume;
             musicSource.Play();
             Debug.Log($"[AUDIO] Đang phát Nhạc nền BGM: {clipName}");
         }
@@ -103,14 +135,14 @@ namespace SownInStone.Audio
 
             if (ambientSource.clip == clip && ambientSource.isPlaying)
             {
-                ambientSource.volume = volume;
+                ambientSource.volume = volume * musicVolume;
                 return;
             }
 
             ambientSource.clip = clip;
-            ambientSource.volume = volume;
+            ambientSource.volume = volume * musicVolume;
             ambientSource.Play();
-            Debug.Log($"[AUDIO] Đang phát Âm thanh môi trường Ambient: {clipName} (Âm lượng: {volume})");
+            Debug.Log($"[AUDIO] Đang phát Âm thanh môi trường Ambient: {clipName} (Âm lượng: {volume * musicVolume})");
         }
 
         /// <summary>
@@ -166,10 +198,10 @@ namespace SownInStone.Audio
             }
 
             source.clip = clip;
-            source.volume = volume;
+            source.volume = volume * sfxVolume;
             source.loop = false;
             source.Play();
-            Debug.Log($"[AUDIO] Đang phát SFX: {clipName} (Âm lượng: {volume})");
+            Debug.Log($"[AUDIO] Đang phát SFX: {clipName} (Âm lượng: {volume * sfxVolume})");
         }
 
         /// <summary>
@@ -192,7 +224,11 @@ namespace SownInStone.Audio
             }
             else
             {
-                Debug.LogError($"[AUDIO] THẤT BẠI! Không tìm thấy tệp âm thanh ở Assets/Resources/Audio/{clipName}. Hãy kiểm tra lại tệp.");
+                if (!missingClips.Contains(clipName))
+                {
+                    missingClips.Add(clipName);
+                    Debug.LogWarning($"[AUDIO] Cảnh báo: Không tìm thấy tệp âm thanh ở Assets/Resources/Audio/{clipName}. Âm thanh này sẽ bị bỏ qua.");
+                }
             }
             return clip;
         }

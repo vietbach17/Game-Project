@@ -14,9 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ItemID: item_mi_tom
   ItemName: "M\xEC T\xF4m C\u1EE9u Tr\u1EE3"
-  Description: "M\xEC t\xF4m \u0103n li\u1EC1n c\u1EE9u tr\u1EE3 kh\u1EA9n c\u1EA5p m\xF9a b\xE3o l\u0169, gi\xFAp l\xE0m \u1EA5m c\u01A1 th\u1EC3, h\u1ED3i ph\u1EE5c th\u1EC3 l\u1EF1c v\xE0 tinh th\u1EA7n nhanh ch\xF3ng."
+  Description: "M\xEC t\xF4m \u0103n li\u1EC1n c\u1EE9u tr\u1EE3 kh\u1EA9n c\u1EA5p
+    m\xF9a b\xE3o l\u0169, gi\xFAp l\xE0m \u1EA5m c\u01A1 th\u1EC3, h\u1ED3i ph\u1EE5c
+    th\u1EC3 l\u1EF1c v\xE0 tinh th\u1EA7n nhanh ch\xF3ng."
   type: 1
-  Icon: {fileID: 0}
+  Icon: {fileID: 21300000, guid: 983edf7264b8b674f8c9ec04f54294cb, type: 3}
   StaminaRestoreValue: 40
   MoraleRestoreValue: 20
   DecayRateInHumidity: 0

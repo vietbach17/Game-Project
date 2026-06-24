@@ -1,6 +1,7 @@
 using UnityEngine;
 using SownInStone.Core;
 using SownInStone.Weather;
+using SownInStone.Interactions;
 
 namespace SownInStone.Agriculture
 {
@@ -335,9 +336,32 @@ namespace SownInStone.Agriculture
             {
                 if (!cropData.CanSurviveFlooding)
                 {
-                    isRotted = true;
-                    Debug.LogWarning($"[AGRICULTURE] Cây {cropData.CropName} đã bị úng thối chết do ngập lũ!");
-                    return;
+                    // Check if protected by a flood barrier
+                    bool isProtected = false;
+                    FloodBarrier[] barriers = Object.FindObjectsByType<FloodBarrier>(FindObjectsSortMode.None);
+                    foreach (var barrier in barriers)
+                    {
+                        if (barrier != null && barrier.enabled)
+                        {
+                            float distance = Vector3.Distance(transform.position, barrier.transform.position);
+                            if (distance <= barrier.protectionRadius)
+                            {
+                                isProtected = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!isProtected)
+                    {
+                        isRotted = true;
+                        Debug.LogWarning($"[AGRICULTURE] Cây {cropData.CropName} đã bị úng thối chết do ngập lũ!");
+                        return;
+                    }
+                    else
+                    {
+                        Debug.Log($"[AGRICULTURE] Cây {cropData.CropName} được che chắn bởi bao cát / tấm chắn lũ!");
+                    }
                 }
             }
 
@@ -370,6 +394,24 @@ namespace SownInStone.Agriculture
                 isRotted = false;
                 UpdateVisualSprite();
             }
+        }
+
+        /// <summary>
+        /// Tiến cây thêm 1 giai đoạn sinh trưởng để debug/trình diễn.
+        /// </summary>
+        public void DebugGrowOneStage()
+        {
+            if (cropData == null) return;
+            int numStages = 3;
+            if (cropData.GrowthStageSprites != null && cropData.GrowthStageSprites.Length > 0)
+            {
+                numStages = cropData.GrowthStageSprites.Length;
+            }
+            float daysPerStage = cropData.DaysToMature / (float)(numStages - 1);
+            currentGrowthDays = Mathf.Min(currentGrowthDays + daysPerStage, cropData.DaysToMature);
+            isWithered = false;
+            isRotted = false;
+            UpdateVisualSprite();
         }
 
         /// <summary>

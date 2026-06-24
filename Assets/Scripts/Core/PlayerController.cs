@@ -22,14 +22,6 @@ namespace SownInStone.Core
     {
         public static PlayerController Instance { get; private set; }
 
-        [Header("--- TÙY BIẾN PHÍM BẤM ---")]
-        public KeyCode keyMoveUp = KeyCode.W;
-        public KeyCode keyMoveDown = KeyCode.S;
-        public KeyCode keyMoveLeft = KeyCode.A;
-        public KeyCode keyMoveRight = KeyCode.D;
-        public KeyCode keyInteract = KeyCode.E;
-        public KeyCode keyRun = KeyCode.LeftShift;
-
         [Header("--- THÔNG SỐ DI CHUYỂN ---")]
         [Tooltip("Tốc độ đi bộ của nhân vật.")]
         [SerializeField] private float walkSpeed = 3f;
@@ -66,7 +58,7 @@ namespace SownInStone.Core
 
         [Header("--- TƯƠNG TÁC PHÍM [E] ---")]
         [Tooltip("Bán kính hình cầu quét tìm vật thể có thể tương tác xung quanh nhân vật.")]
-        [SerializeField] private float interactRadius = 1.2f;
+        [SerializeField] private float interactRadius = 2.5f;
         
         [Tooltip("Lớp vật lý (Layer) chứa các đối tượng có thể tương tác (nên chọn Everything hoặc thiết lập riêng).")]
         [SerializeField] private LayerMask interactableLayers = ~0;
@@ -97,13 +89,57 @@ namespace SownInStone.Core
         private float initialVisualLocalZ = 0f;
 
         private System.Collections.Generic.HashSet<string> animatorParams = new System.Collections.Generic.HashSet<string>();
+        private SoilCell currentTargetSoil;
+        public SoilCell CurrentTargetSoilCell => currentTargetSoil;
+
+        [Header("--- PHÍM BẤM HỖ TRỢ TƯƠNG THÍCH ---")]
+        public KeyCode keyMoveUp = KeyCode.W;
+        public KeyCode keyMoveDown = KeyCode.S;
+        public KeyCode keyMoveLeft = KeyCode.A;
+        public KeyCode keyMoveRight = KeyCode.D;
+        public KeyCode keyInteract = KeyCode.E;
+        public KeyCode keyRun = KeyCode.LeftShift;
+
+        public void LoadKeyBindings()
+        {
+            keyMoveUp = (KeyCode)PlayerPrefs.GetInt("Key_MoveUp", (int)KeyCode.W);
+            keyMoveDown = (KeyCode)PlayerPrefs.GetInt("Key_MoveDown", (int)KeyCode.S);
+            keyMoveLeft = (KeyCode)PlayerPrefs.GetInt("Key_MoveLeft", (int)KeyCode.A);
+            keyMoveRight = (KeyCode)PlayerPrefs.GetInt("Key_MoveRight", (int)KeyCode.D);
+            keyInteract = (KeyCode)PlayerPrefs.GetInt("Key_Interact", (int)KeyCode.E);
+            keyRun = (KeyCode)PlayerPrefs.GetInt("Key_Run", (int)KeyCode.LeftShift);
+        }
+
+        public void TriggerRescueSequence()
+        {
+            Debug.Log("[PlayerController] TriggerRescueSequence compatibility stub called.");
+            // Hồi phục 30 Health / 30 Stamina / 20 Morale khi ngất xỉu
+            if (PlayerStats.Instance != null)
+            {
+                PlayerStats.Instance.ModifyHealth(30f);
+                PlayerStats.Instance.ModifyStamina(30f);
+                PlayerStats.Instance.ModifyMorale(20f);
+            }
+            
+            // Teleport về nhà Thành
+            if (rb != null)
+            {
+                rb.linearVelocity = Vector3.zero;
+            }
+            Vector3 homePos = new Vector3(0f, 0.5f, -6f);
+            transform.position = homePos;
+            if (rb != null)
+            {
+                rb.position = homePos;
+            }
+        }
 
         private void Awake()
         {
+            LoadKeyBindings();
             if (Instance == null)
             {
                 Instance = this;
-                LoadKeyBindings();
             }
             else
             {
@@ -146,7 +182,7 @@ namespace SownInStone.Core
 #if UNITY_EDITOR
             if (seedItem == null)
             {
-                seedItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_PreservedCrop.asset");
+                seedItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Seed.asset");
             }
             if (noodlesItem == null)
             {
@@ -154,79 +190,6 @@ namespace SownInStone.Core
             }
 #endif
         }
-
-        public void LoadKeyBindings()
-        {
-            keyMoveUp = (KeyCode)PlayerPrefs.GetInt("Key_MoveUp", (int)KeyCode.W);
-            keyMoveDown = (KeyCode)PlayerPrefs.GetInt("Key_MoveDown", (int)KeyCode.S);
-            keyMoveLeft = (KeyCode)PlayerPrefs.GetInt("Key_MoveLeft", (int)KeyCode.A);
-            keyMoveRight = (KeyCode)PlayerPrefs.GetInt("Key_MoveRight", (int)KeyCode.D);
-            keyInteract = (KeyCode)PlayerPrefs.GetInt("Key_Interact", (int)KeyCode.E);
-            keyRun = (KeyCode)PlayerPrefs.GetInt("Key_Run", (int)KeyCode.LeftShift);
-        }
-
-        public void SaveKeyBindings()
-        {
-            PlayerPrefs.SetInt("Key_MoveUp", (int)keyMoveUp);
-            PlayerPrefs.SetInt("Key_MoveDown", (int)keyMoveDown);
-            PlayerPrefs.SetInt("Key_MoveLeft", (int)keyMoveLeft);
-            PlayerPrefs.SetInt("Key_MoveRight", (int)keyMoveRight);
-            PlayerPrefs.SetInt("Key_Interact", (int)keyInteract);
-            PlayerPrefs.SetInt("Key_Run", (int)keyRun);
-            PlayerPrefs.Save();
-        }
-
-#if ENABLE_INPUT_SYSTEM
-        private bool IsKeyPressed(KeyCode keyCode)
-        {
-            if (Keyboard.current == null) return false;
-            
-            UnityEngine.InputSystem.Key key = ConvertKeyCodeToInputSystemKey(keyCode);
-            if (key != UnityEngine.InputSystem.Key.None)
-            {
-                return Keyboard.current[key].isPressed;
-            }
-            return false;
-        }
-
-        private bool IsKeyDown(KeyCode keyCode)
-        {
-            if (Keyboard.current == null) return false;
-            
-            UnityEngine.InputSystem.Key key = ConvertKeyCodeToInputSystemKey(keyCode);
-            if (key != UnityEngine.InputSystem.Key.None)
-            {
-                return Keyboard.current[key].wasPressedThisFrame;
-            }
-            return false;
-        }
-
-        private UnityEngine.InputSystem.Key ConvertKeyCodeToInputSystemKey(KeyCode keyCode)
-        {
-            switch (keyCode)
-            {
-                case KeyCode.W: return UnityEngine.InputSystem.Key.W;
-                case KeyCode.S: return UnityEngine.InputSystem.Key.S;
-                case KeyCode.A: return UnityEngine.InputSystem.Key.A;
-                case KeyCode.D: return UnityEngine.InputSystem.Key.D;
-                case KeyCode.E: return UnityEngine.InputSystem.Key.E;
-                case KeyCode.Space: return UnityEngine.InputSystem.Key.Space;
-                case KeyCode.LeftShift: return UnityEngine.InputSystem.Key.LeftShift;
-                case KeyCode.RightShift: return UnityEngine.InputSystem.Key.RightShift;
-                case KeyCode.UpArrow: return UnityEngine.InputSystem.Key.UpArrow;
-                case KeyCode.DownArrow: return UnityEngine.InputSystem.Key.DownArrow;
-                case KeyCode.LeftArrow: return UnityEngine.InputSystem.Key.LeftArrow;
-                case KeyCode.RightArrow: return UnityEngine.InputSystem.Key.RightArrow;
-                default:
-                    string name = keyCode.ToString();
-                    if (System.Enum.TryParse(name, true, out UnityEngine.InputSystem.Key result))
-                    {
-                        return result;
-                    }
-                    return UnityEngine.InputSystem.Key.None;
-            }
-        }
-#endif
 
         private void HandleFloodRoofSurvival()
         {
@@ -303,38 +266,23 @@ namespace SownInStone.Core
                 float moveX = 0f;
                 float moveY = 0f;
 
-                if (IsKeyPressed(keyMoveUp) || Keyboard.current.upArrowKey.isPressed) moveY = 1f;
-                else if (IsKeyPressed(keyMoveDown) || Keyboard.current.downArrowKey.isPressed) moveY = -1f;
+                if (Keyboard.current.wKey.isPressed || Keyboard.current.upArrowKey.isPressed) moveY = 1f;
+                else if (Keyboard.current.sKey.isPressed || Keyboard.current.downArrowKey.isPressed) moveY = -1f;
 
-                if (IsKeyPressed(keyMoveRight) || Keyboard.current.rightArrowKey.isPressed) moveX = 1f;
-                else if (IsKeyPressed(keyMoveLeft) || Keyboard.current.leftArrowKey.isPressed) moveX = -1f;
+                if (Keyboard.current.dKey.isPressed || Keyboard.current.rightArrowKey.isPressed) moveX = 1f;
+                else if (Keyboard.current.aKey.isPressed || Keyboard.current.leftArrowKey.isPressed) moveX = -1f;
 
                 moveInput = new Vector2(moveX, moveY);
 
-                // Nhận diện phím chạy nhanh
-                isRunning = IsKeyPressed(keyRun) || Keyboard.current.leftShiftKey.isPressed || Keyboard.current.rightShiftKey.isPressed;
+                // Nhận diện phím Shift để chạy nhanh
+                isRunning = Keyboard.current.leftShiftKey.isPressed || Keyboard.current.rightShiftKey.isPressed;
             }
 #else
-            float moveX = 0f;
-            float moveY = 0f;
+            moveInput.x = Input.GetAxisRaw("Horizontal");
+            moveInput.y = Input.GetAxisRaw("Vertical");
 
-            if (Input.GetKey(keyMoveUp)) moveY = 1f;
-            else if (Input.GetKey(keyMoveDown)) moveY = -1f;
-
-            if (Input.GetKey(keyMoveRight)) moveX = 1f;
-            else if (Input.GetKey(keyMoveLeft)) moveX = -1f;
-
-            // Fallback to traditional axes if custom keys aren't pressed
-            if (Mathf.Approximately(moveX, 0f) && Mathf.Approximately(moveY, 0f))
-            {
-                moveX = Input.GetAxisRaw("Horizontal");
-                moveY = Input.GetAxisRaw("Vertical");
-            }
-
-            moveInput = new Vector2(moveX, moveY);
-
-            // Nhận diện phím chạy nhanh
-            isRunning = Input.GetKey(keyRun) || Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+            // Nhận diện phím Shift để chạy nhanh
+            isRunning = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
 #endif
 
             // Bình thường hóa vector để tốc độ đi chéo không bị nhanh hơn đi thẳng
@@ -357,13 +305,13 @@ namespace SownInStone.Core
 #if ENABLE_INPUT_SYSTEM
             if (Keyboard.current != null)
             {
-                if (IsKeyDown(keyInteract) || Keyboard.current.eKey.wasPressedThisFrame || Keyboard.current.spaceKey.wasPressedThisFrame)
+                if (Keyboard.current.eKey.wasPressedThisFrame || Keyboard.current.spaceKey.wasPressedThisFrame)
                 {
                     TryPerformInteraction();
                 }
             }
 #else
-            if (Input.GetKeyDown(keyInteract) || Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.Space))
+            if (Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.Space))
             {
                 TryPerformInteraction();
             }
@@ -513,43 +461,48 @@ namespace SownInStone.Core
         }
 
         /// <summary>
+        /// Khóa di chuyển của người chơi trong khoảng thời gian nhất định.
+        /// </summary>
+        public void LockMovement(float duration)
+        {
+            StartCoroutine(LockMovementForSeconds(duration));
+        }
+
+        /// <summary>
         /// Quét tìm các đối tượng xung quanh trong bán kính quét và thực hiện tương tác.
         /// Ưu tiên đối tượng ở gần nhất.
         /// </summary>
         private void TryPerformInteraction()
         {
+            if (SownInStone.UI.SurvivalUIManager.Instance != null && SownInStone.UI.SurvivalUIManager.Instance.IsDialogueActive)
+            {
+                return;
+            }
+
             if (isPerformingAction) return;
 
             Debug.Log("[PLAYER] Bấm phím tương tác [E]!");
 
-            // Đóng nhanh bất kỳ đối thoại nào đang mở (nếu không có lựa chọn đang chờ)
-            if (SownInStone.UI.SurvivalUIManager.Instance != null && SownInStone.UI.SurvivalUIManager.Instance.IsDialogueActive)
-            {
-                if (!SownInStone.UI.SurvivalUIManager.Instance.IsChoiceActive)
-                {
-                    SownInStone.UI.SurvivalUIManager.Instance.CloseDialogue();
-                    SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
-                    // Khôi phục lại âm thanh thời tiết nền (đề phòng vừa tắt tiếng lửa nhà bác Năm)
-                    if (WeatherManager.Instance != null)
-                    {
-                        WeatherManager.Instance.RefreshWeatherAmbient();
-                    }
-                }
-                return;
-            }
-
-            // 0. Nếu đang ở trên nóc nhà
+            // 0. Nếu đang ở trên nóc nhà và không có đối thoại nào đang mở
             if (isOnRoof)
             {
                 if (SownInStone.UI.SurvivalUIManager.Instance != null)
                 {
+                    if (SownInStone.UI.SurvivalUIManager.Instance.IsDialogueActive)
+                    {
+                        if (!SownInStone.UI.SurvivalUIManager.Instance.IsChoiceActive)
+                        {
+                            SownInStone.UI.SurvivalUIManager.Instance.CloseDialogue();
+                        }
+                        return;
+                    }
+
                     // Mở hội thoại lựa chọn nghỉ ngơi trên nóc nhà
                     SownInStone.UI.SurvivalUIManager.Instance.ShowDialogueWithChoices(
                         "Sinh tồn trên nóc nhà",
                         "Bạn có muốn nghỉ ngơi trên nóc nhà để chờ nước lũ rút không? (Trôi qua 1 giờ, hồi phục 15 Thể lực, giảm 10 nhiễm lạnh, hồi phục 5 tinh thần)",
                         "Nghỉ ngơi (1 giờ)",
                         () => {
-                            SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
                             // Thực hiện nghỉ ngơi
                             if (GameManager.Instance != null)
                             {
@@ -581,118 +534,25 @@ namespace SownInStone.Core
                 }
             }
 
-            // Quét hình cầu vật lý 3D xung quanh người chơi
+            // Quét hình cầu vật lý 3D xung quanh người chơi và lấy đối tượng có thể tương tác gần nhất
             Collider[] colliders = Physics.OverlapSphere(transform.position, interactRadius, interactableLayers);
-            
-            Collider closestCollider = null;
-            float minDistance = float.MaxValue;
-
-            foreach (var col in colliders)
-            {
-                if (col.gameObject == gameObject) continue; // Bỏ qua bản thân người chơi
-
-                float dist = Vector3.Distance(transform.position, col.transform.position);
-                if (dist < minDistance)
-                {
-                    minDistance = dist;
-                    closestCollider = col;
-                }
-            }
+            Collider closestCollider = GetClosestInteractable(colliders);
 
             if (closestCollider != null)
             {
                 GameObject target = closestCollider.gameObject;
-                Debug.Log($"[PLAYER] Đã tìm thấy đối tượng gần nhất: {target.name}");
+                Debug.Log($"[PLAYER] Đã tìm thấy đối tượng tương tác gần nhất: {target.name}");
 
-                // 1. Tương tác với Dân làng (NPC Bác Năm, O Thắm)
+                // 1. Tương tác với Dân làng (NPC Bác Năm, O Thắm) - Đã vô hiệu hóa tương tác trực tiếp E/Space theo yêu cầu thiết kế mới
                 NPCCharacter npc = target.GetComponent<NPCCharacter>();
                 if (npc != null)
                 {
-                    // Mở hội thoại tương ứng
-                    if (SownInStone.UI.SurvivalUIManager.Instance != null)
+                    // Nếu khung đối thoại mới đang mở và không có lựa chọn đang chờ, nhấn E/Space vẫn có thể đóng nó lại
+                    if (SownInStone.UI.SurvivalUIManager.Instance != null && SownInStone.UI.SurvivalUIManager.Instance.IsDialogueActive)
                     {
-                        string greeting = $"\"Chào con, Thành! Hôm nay ghé qua bác/o chơi có việc chi không?\"";
-                        if (npc.characterType == NPCCharacter.StoryCharacterType.BacNam)
+                        if (!SownInStone.UI.SurvivalUIManager.Instance.IsChoiceActive)
                         {
-                            greeting = "\"Chào Thành! Việc cải tạo mảnh ruộng cát bạc màu gian khổ đến đâu rồi con?\"";
-                        }
-                        else if (npc.characterType == NPCCharacter.StoryCharacterType.OTham)
-                        {
-                            greeting = "\"Ủa Thành đó hả con! Ghé đại lý o chơi chút hén, hôm nay o Thắm nhập giống mới đây nè!\"";
-                        }
-
-                        if (npc.characterType == NPCCharacter.StoryCharacterType.OTham)
-                        {
-                            SownInStone.UI.SurvivalUIManager.Instance.ShowDialogueWithChoices(
-                                npc.NPCName,
-                                greeting,
-                                "Trò chuyện",
-                                () => {
-                                    SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
-                                    string dialogue = npc.GetDialogue();
-                                    SownInStone.UI.SurvivalUIManager.Instance.ShowDialogue(npc.NPCName, dialogue);
-                                    PlayerStats.Instance?.ModifyMorale(2f);
-                                    npc.ModifyAffection(1);
-                                },
-                                "Giúp việc (Vần công)",
-                                () => {
-                                    SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
-                                    float currentStamina = PlayerStats.Instance != null ? PlayerStats.Instance.CurrentStamina : 0f;
-                                    if (currentStamina >= 20f)
-                                    {
-                                        PlayerStats.Instance.ModifyStamina(-20f);
-                                        npc.ModifyVanCongCredits(1);
-                                        int affectionGain = (GameManager.Instance != null && GameManager.Instance.CurrentPhase == GamePhase.ChuanBiBao) ? 15 : 5;
-                                        npc.ModifyAffection(affectionGain);
-                                        string workDialog = npc.GetWorkDialogue(true);
-                                        SownInStone.UI.SurvivalUIManager.Instance.ShowDialogue(npc.NPCName, workDialog);
-                                    }
-                                    else
-                                    {
-                                        string workDialog = npc.GetWorkDialogue(false);
-                                        SownInStone.UI.SurvivalUIManager.Instance.ShowDialogue(npc.NPCName, workDialog);
-                                    }
-                                },
-                                "Giao dịch (Mua/Bán)",
-                                () => {
-                                    SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
-                                    OpenTradeMenu(npc);
-                                }
-                            );
-                        }
-                        else
-                        {
-                            SownInStone.UI.SurvivalUIManager.Instance.ShowDialogueWithChoices(
-                                npc.NPCName,
-                                greeting,
-                                "Trò chuyện",
-                                () => {
-                                    SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
-                                    string dialogue = npc.GetDialogue();
-                                    SownInStone.UI.SurvivalUIManager.Instance.ShowDialogue(npc.NPCName, dialogue);
-                                    PlayerStats.Instance?.ModifyMorale(2f);
-                                    npc.ModifyAffection(1);
-                                },
-                                "Giúp việc (Vần công)",
-                                () => {
-                                    SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
-                                    float currentStamina = PlayerStats.Instance != null ? PlayerStats.Instance.CurrentStamina : 0f;
-                                    if (currentStamina >= 20f)
-                                    {
-                                        PlayerStats.Instance.ModifyStamina(-20f);
-                                        npc.ModifyVanCongCredits(1);
-                                        int affectionGain = (GameManager.Instance != null && GameManager.Instance.CurrentPhase == GamePhase.ChuanBiBao) ? 15 : 5;
-                                        npc.ModifyAffection(affectionGain);
-                                        string workDialog = npc.GetWorkDialogue(true);
-                                        SownInStone.UI.SurvivalUIManager.Instance.ShowDialogue(npc.NPCName, workDialog);
-                                    }
-                                    else
-                                    {
-                                        string workDialog = npc.GetWorkDialogue(false);
-                                        SownInStone.UI.SurvivalUIManager.Instance.ShowDialogue(npc.NPCName, workDialog);
-                                    }
-                                }
-                            );
+                            SownInStone.UI.SurvivalUIManager.Instance.CloseDialogue();
                         }
                     }
                     return;
@@ -703,6 +563,30 @@ namespace SownInStone.Core
                 if (altar != null)
                 {
                     altar.ActionBurnIncense();
+                    return;
+                }
+
+                // 2.3. Tương tác qua Interface IInteractable (như Bếp ga, v.v.)
+                IInteractable interactable = target.GetComponent<IInteractable>();
+                if (interactable != null)
+                {
+                    interactable.Interact();
+                    return;
+                }
+
+                // 2.5. Tương tác với Thuyền thúng
+                Coracle boat = target.GetComponent<Coracle>();
+                if (boat != null)
+                {
+                    boat.Interact(this);
+                    return;
+                }
+
+                // 2.7. Tương tác với Vũng bùn lầy
+                MudPuddle mud = target.GetComponent<MudPuddle>();
+                if (mud != null)
+                {
+                    mud.Interact();
                     return;
                 }
 
@@ -752,8 +636,8 @@ namespace SownInStone.Core
                     PlayerStats.Instance.ModifyStamina(-actualCost);
                     SetAnimTrigger("Dig");
                     StartCoroutine(LockMovementForSeconds(digActionDuration));
-                    activeSoil.ActionClearRocks(999f);
                     SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_clear_rocks");
+                    activeSoil.ActionClearRocks(999f);
                     Debug.Log($"Cleared rocks on {cellsWithRocks} cell(s)");
                     PlayerStats.Instance.TriggerAlert($"Đã nhặt đá cải tạo {cellsWithRocks} ô ruộng!");
                 }
@@ -791,6 +675,7 @@ namespace SownInStone.Core
 
                 int totalYield = 0;
                 ItemData harvestItem = null;
+                bool isSilted = false;
 
                 if (activeSoil.IsParentField)
                 {
@@ -799,14 +684,26 @@ namespace SownInStone.Core
                         if (child != null && child.plantedCrop != null && child.plantedCrop.IsReadyToHarvest())
                         {
                             if (harvestItem == null) harvestItem = child.plantedCrop.cropData.HarvestedItem;
-                            totalYield += child.plantedCrop.ActionHarvest();
+                            int yield = child.plantedCrop.ActionHarvest();
+                            if (child.quality == SoilQuality.PhuSa || (GameManager.Instance != null && GameManager.Instance.CurrentPhase == GamePhase.PhuSa))
+                            {
+                                yield *= 2;
+                                isSilted = true;
+                            }
+                            totalYield += yield;
                         }
                     }
                 }
                 else
                 {
                     harvestItem = activeSoil.plantedCrop.cropData.HarvestedItem;
-                    totalYield = activeSoil.plantedCrop.ActionHarvest();
+                    int yield = activeSoil.plantedCrop.ActionHarvest();
+                    if (activeSoil.quality == SoilQuality.PhuSa || (GameManager.Instance != null && GameManager.Instance.CurrentPhase == GamePhase.PhuSa))
+                    {
+                        yield *= 2;
+                        isSilted = true;
+                    }
+                    totalYield = yield;
                 }
 
                 if (totalYield > 0 && StorageManager.Instance != null && harvestItem != null)
@@ -814,8 +711,21 @@ namespace SownInStone.Core
                     StorageManager.Instance.AddItem(harvestItem, totalYield);
                     Debug.Log($"[PLAYER] Thu hoạch thành công ruộng cây: {harvestItem.ItemName} x{totalYield}!");
                     string itemName = !string.IsNullOrEmpty(harvestItem.ItemName) ? harvestItem.ItemName : "Nông sản";
-                    string harvestMsg = $"Thu hoạch thành công: +{totalYield} {itemName}";
-                    PlayerStats.Instance.TriggerAlert(harvestMsg);
+                    
+                    if (isSilted)
+                    {
+                        string siltMsg = $"Đất phù sa màu mỡ giúp nhân đôi sản lượng! Bạn thu hoạch được +{totalYield} {itemName}.";
+                        if (SownInStone.UI.SurvivalUIManager.Instance != null)
+                        {
+                            SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast(siltMsg);
+                        }
+                        PlayerStats.Instance.TriggerAlert(siltMsg);
+                    }
+                    else
+                    {
+                        string harvestMsg = $"Thu hoạch thành công: +{totalYield} {itemName}";
+                        PlayerStats.Instance.TriggerAlert(harvestMsg);
+                    }
                 }
                 return;
             }
@@ -852,37 +762,30 @@ namespace SownInStone.Core
                         }
                     }
 
-                    int seedsToPlant = Mathf.Min(emptySlots, availableSeeds);
-
-                    if (seedsToPlant > 0)
+                    if (availableSeeds > 0)
                     {
-                        if (StorageManager.Instance.RemoveItem(seedItem, seedsToPlant))
-                        {
-                            if (activeSoil.IsParentField)
-                            {
-                                int planted = 0;
-                                foreach (var child in activeSoil.childCells)
-                                {
-                                    if (child != null && child.plantedCrop == null && planted < seedsToPlant)
-                                    {
-                                        if (child.ActionPlantCrop(testSeedData))
-                                        {
-                                            planted++;
-                                        }
-                                    }
-                                }
-                                PlayerStats.Instance.TriggerAlert($"Đã gieo {planted} hạt giống!");
-                            }
-                            else
-                            {
-                                activeSoil.ActionPlantCrop(testSeedData);
-                            }
+                        var plantable = GetPlantableCellsNear(activeSoil);
+                        int bulkCount = Mathf.Min(availableSeeds, plantable.Count);
 
-                            SetAnimTrigger("Plant");
-                            StartCoroutine(LockMovementForSeconds(plantActionDuration));
-                            SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_plant");
-                            Debug.Log("Plant success: seed consumed");
-                        }
+                        string title = "Gieo hạt giống";
+                        string msg = "Bạn muốn làm gì?";
+
+                        SownInStone.UI.SurvivalUIManager.Instance.ShowDialogueWithChoices(
+                            title,
+                            msg,
+                            $"Trồng hàng loạt ({bulkCount} ô)",
+                            () => {
+                                PerformBulkPlant(activeSoil, bulkCount);
+                            },
+                            "Chỉ trồng ô này",
+                            () => {
+                                PerformSinglePlant(activeSoil);
+                            },
+                            "Hủy",
+                            () => {
+                                SownInStone.UI.SurvivalUIManager.Instance.CloseDialogue();
+                            }
+                        );
                     }
                     else
                     {
@@ -920,8 +823,8 @@ namespace SownInStone.Core
                     PlayerStats.Instance.ModifyStamina(-actualCost);
                     SetAnimTrigger("Water");
                     StartCoroutine(LockMovementForSeconds(waterActionDuration));
-                    activeSoil.ActionWaterSoil(50f);
                     SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_water");
+                    activeSoil.ActionWaterSoil(50f);
                     Debug.Log($"Watered {dryCells} cell(s)");
                     PlayerStats.Instance.TriggerAlert($"Đã tưới nước cho {dryCells} ô ruộng!");
                 }
@@ -931,7 +834,7 @@ namespace SownInStone.Core
             Debug.Log("[PLAYER] Ô đất đang ở trạng thái tốt, không cần thao tác thêm.");
         }
 
-        private void OpenTradeMenu(NPCCharacter npc)
+        public void OpenTradeMenu(NPCCharacter npc)
         {
             if (SownInStone.UI.SurvivalUIManager.Instance == null) return;
             SownInStone.UI.SurvivalUIManager.Instance.ToggleShop(true);
@@ -991,27 +894,42 @@ namespace SownInStone.Core
         {
             if (SownInStone.UI.SurvivalUIManager.Instance == null) return;
 
-            string keyName = keyInteract.ToString();
-
             if (isOnRoof)
             {
-                SownInStone.UI.SurvivalUIManager.Instance.SetInteractionPrompt($"[{keyName}] Nghỉ ngơi trên nóc nhà");
+                if (currentTargetSoil != null)
+                {
+                    currentTargetSoil.SetHighlight(false);
+                    currentTargetSoil = null;
+                }
+                SownInStone.UI.SurvivalUIManager.Instance.SetInteractionPrompt("[E] Nghỉ ngơi trên nóc nhà");
                 return;
             }
 
+            // Quét hình cầu vật lý 3D xung quanh người chơi và lấy đối tượng tương tác gần nhất
             Collider[] colliders = Physics.OverlapSphere(transform.position, interactRadius, interactableLayers);
-            Collider closestCollider = null;
-            float minDistance = float.MaxValue;
+            Collider closestCollider = GetClosestInteractable(colliders);
 
-            foreach (var col in colliders)
+            SoilCell targetSoil = null;
+            if (closestCollider != null)
             {
-                if (col.gameObject == gameObject) continue;
-                float dist = Vector3.Distance(transform.position, col.transform.position);
-                if (dist < minDistance)
+                targetSoil = closestCollider.GetComponent<SoilCell>();
+            }
+
+            if (currentTargetSoil != targetSoil)
+            {
+                if (currentTargetSoil != null)
                 {
-                    minDistance = dist;
-                    closestCollider = col;
+                    currentTargetSoil.SetHighlight(false);
                 }
+                currentTargetSoil = targetSoil;
+                if (currentTargetSoil != null)
+                {
+                    currentTargetSoil.SetHighlight(true);
+                }
+            }
+            else if (currentTargetSoil != null)
+            {
+                currentTargetSoil.SetHighlight(true);
             }
 
             if (closestCollider != null)
@@ -1020,61 +938,85 @@ namespace SownInStone.Core
                 NPCCharacter npc = closestCollider.GetComponent<NPCCharacter>();
                 if (npc != null)
                 {
-                    prompt = $"[{keyName}] Trò chuyện với {npc.NPCName}";
+                    prompt = "";
                 }
                 else
                 {
                     AncestralAltar altar = closestCollider.GetComponent<AncestralAltar>();
                     if (altar != null)
                     {
-                        prompt = $"[{keyName}] Thắp nhang bàn thờ";
+                        prompt = "[E] Thắp nhang bàn thờ";
                     }
                     else
                     {
-                        SoilCell soil = closestCollider.GetComponent<SoilCell>();
-                        if (soil != null)
+                        KitchenHearth hearth = closestCollider.GetComponent<KitchenHearth>();
+                        if (hearth != null)
                         {
-                            SoilCell activeSoil = soil.parentField != null ? soil.parentField : soil;
-
-                            int cellsWithRocks = 0;
-                            int emptySlots = 0;
-                            bool hasReadyCrops = false;
-                            int dryCells = 0;
-
-                            if (activeSoil.IsParentField)
+                            prompt = "[E] Nấu nướng / Chế biến";
+                        }
+                        else
+                        {
+                            Coracle boat = closestCollider.GetComponent<Coracle>();
+                            if (boat != null)
                             {
-                                foreach (var child in activeSoil.childCells)
+                            prompt = $"[{keyInteract}] Lên thuyền thúng";
+                        }
+                        else
+                        {
+                            MudPuddle mud = closestCollider.GetComponent<MudPuddle>();
+                            if (mud != null)
+                            {
+                                prompt = $"[{keyInteract}] Dọn dẹp bùn đất";
+                            }
+                            else
+                            {
+                                SoilCell soil = closestCollider.GetComponent<SoilCell>();
+                                if (soil != null)
                                 {
-                                    if (child != null)
+                                    SoilCell activeSoil = soil.parentField != null ? soil.parentField : soil;
+
+                                    int cellsWithRocks = 0;
+                                    int emptySlots = 0;
+                                    bool hasReadyCrops = false;
+                                    int dryCells = 0;
+
+                                    if (activeSoil.IsParentField)
                                     {
-                                        if (child.RockDensity > 0f) cellsWithRocks++;
-                                        if (child.plantedCrop == null) emptySlots++;
-                                        if (child.plantedCrop != null && child.plantedCrop.IsReadyToHarvest()) hasReadyCrops = true;
-                                        if (child.Moisture < 40f) dryCells++;
+                                        foreach (var child in activeSoil.childCells)
+                                        {
+                                            if (child != null)
+                                            {
+                                                if (child.RockDensity > 0f) cellsWithRocks++;
+                                                if (child.plantedCrop == null) emptySlots++;
+                                                if (child.plantedCrop != null && child.plantedCrop.IsReadyToHarvest()) hasReadyCrops = true;
+                                                if (child.Moisture < 40f) dryCells++;
+                                            }
+                                        }
                                     }
+                                    else
+                                    {
+                                        if (activeSoil.RockDensity > 0f) cellsWithRocks = 1;
+                                        if (activeSoil.plantedCrop == null) emptySlots = 1;
+                                        if (activeSoil.plantedCrop != null && activeSoil.plantedCrop.IsReadyToHarvest()) hasReadyCrops = true;
+                                        if (activeSoil.Moisture < 40f) dryCells = 1;
+                                    }
+
+                                    if (cellsWithRocks > 0)
+                                        prompt = "[E] Dọn đá cải tạo ruộng";
+                                    else if (hasReadyCrops)
+                                        prompt = "[E] Thu hoạch khoai tươi";
+                                    else if (emptySlots > 0)
+                                        prompt = "[E] Gieo hạt giống khoai";
+                                    else if (dryCells > 0)
+                                        prompt = "[E] Tưới nước cho đất ẩm";
+                                    else
+                                        prompt = "Đất đã được gieo hạt";
                                 }
                             }
-                            else
-                            {
-                                if (activeSoil.RockDensity > 0f) cellsWithRocks = 1;
-                                if (activeSoil.plantedCrop == null) emptySlots = 1;
-                                if (activeSoil.plantedCrop != null && activeSoil.plantedCrop.IsReadyToHarvest()) hasReadyCrops = true;
-                                if (activeSoil.Moisture < 40f) dryCells = 1;
-                            }
-
-                            if (cellsWithRocks > 0)
-                                prompt = $"[{keyName}] Dọn đá cải tạo ruộng";
-                            else if (hasReadyCrops)
-                                prompt = $"[{keyName}] Thu hoạch khoai tươi";
-                            else if (emptySlots > 0)
-                                prompt = $"[{keyName}] Gieo hạt giống khoai";
-                            else if (soil.Moisture < 40f)
-                                prompt = $"[{keyName}] Tưới nước cho đất ẩm";
-                            else
-                                prompt = "Đất đã được gieo hạt";
                         }
                     }
                 }
+            }
 
                 SownInStone.UI.SurvivalUIManager.Instance.SetInteractionPrompt(prompt);
             }
@@ -1082,6 +1024,56 @@ namespace SownInStone.Core
             {
                 SownInStone.UI.SurvivalUIManager.Instance.SetInteractionPrompt("");
             }
+        }
+
+        [Header("--- TRANG PHỤC & THIẾT BỊ ---")]
+        public bool isWearingNonLa = false;
+        private GameObject activeHatVisual;
+
+        public void EquipNonLa(GameObject hatPrefab)
+        {
+            isWearingNonLa = true;
+            
+            // Destroy existing hat visual if any
+            if (activeHatVisual != null)
+            {
+                Destroy(activeHatVisual);
+            }
+
+            if (hatPrefab != null)
+            {
+                // Find head bone or parent to visual
+                Transform headBone = FindHeadBone(characterVisual != null ? characterVisual : transform);
+                activeHatVisual = Instantiate(hatPrefab);
+                activeHatVisual.name = "Equipped_NonLa";
+                
+                if (headBone != null)
+                {
+                    activeHatVisual.transform.SetParent(headBone, false);
+                    activeHatVisual.transform.localPosition = new Vector3(0f, 0.15f, 0f); // Slight offset above head bone
+                    activeHatVisual.transform.localRotation = Quaternion.Euler(-90f, 0f, 0f); // Align standard FBX import
+                    activeHatVisual.transform.localScale = Vector3.one * 0.8f;
+                }
+                else
+                {
+                    // Fallback to parent transform head level
+                    activeHatVisual.transform.SetParent(transform, false);
+                    activeHatVisual.transform.localPosition = new Vector3(0f, 1.6f, 0f);
+                    activeHatVisual.transform.localRotation = Quaternion.identity;
+                    activeHatVisual.transform.localScale = Vector3.one * 0.8f;
+                }
+            }
+        }
+
+        private Transform FindHeadBone(Transform current)
+        {
+            if (current.name.ToLower().Contains("head") || current.name.ToLower().Contains("bip001 head")) return current;
+            for (int i = 0; i < current.childCount; i++)
+            {
+                Transform found = FindHeadBone(current.GetChild(i));
+                if (found != null) return found;
+            }
+            return null;
         }
 
         private void SetAnimFloat(string paramName, float value)
@@ -1092,90 +1084,11 @@ namespace SownInStone.Core
             }
         }
 
-        private void SetAnimTrigger(string paramName)
+        public void SetAnimTrigger(string paramName)
         {
             if (animator != null && animatorParams.Contains(paramName))
             {
                 animator.SetTrigger(paramName);
-            }
-        }
-
-        /// <summary>
-        /// Kích hoạt chuỗi sự kiện cứu hộ khi người chơi kiệt sức hoàn toàn (Sức khỏe hoặc Tinh thần về 0).
-        /// Teleport người chơi về cạnh nhà Bác Năm, hồi phục chỉ số, trừ tiền và tăng Nghĩa tình.
-        /// </summary>
-        public void TriggerRescueSequence()
-        {
-            // Phát hiệu ứng ngất xỉu
-            SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_faint");
-
-            // Đưa người chơi về cạnh nhà Bác Năm (Y = 0.5f)
-            isOnRoof = false;
-            
-            if (rb != null)
-            {
-                rb.linearVelocity = Vector3.zero;
-            }
-            Vector3 rescuePosition = new Vector3(6.5f, 0.5f, 9.0f);
-            transform.position = rescuePosition;
-            if (rb != null)
-            {
-                rb.position = rescuePosition;
-            }
-
-            // Phạt tiền và hồi phục chỉ số sinh lý
-            if (PlayerStats.Instance != null)
-            {
-                PlayerStats.Instance.ModifyCoins(-15);
-
-                // Lấy giá trị tối đa để hồi phục 50%
-                float maxHealth = 100f;
-                var maxHealthField = typeof(PlayerStats).GetField("maxHealth", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                if (maxHealthField != null) maxHealth = (float)maxHealthField.GetValue(PlayerStats.Instance);
-
-                float maxMorale = 100f;
-                var maxMoraleField = typeof(PlayerStats).GetField("maxMorale", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                if (maxMoraleField != null) maxMorale = (float)maxMoraleField.GetValue(PlayerStats.Instance);
-
-                float maxStamina = 100f;
-                var maxStaminaField = typeof(PlayerStats).GetField("maxStamina", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                if (maxStaminaField != null) maxStamina = (float)maxStaminaField.GetValue(PlayerStats.Instance);
-
-                float healthToRestore = Mathf.Max(0f, maxHealth * 0.5f - PlayerStats.Instance.CurrentHealth);
-                if (healthToRestore > 0f) PlayerStats.Instance.ModifyHealth(healthToRestore);
-
-                float moraleToRestore = Mathf.Max(0f, maxMorale * 0.5f - PlayerStats.Instance.CurrentMorale);
-                if (moraleToRestore > 0f) PlayerStats.Instance.ModifyMorale(moraleToRestore);
-
-                float staminaToRestore = Mathf.Max(0f, maxStamina * 0.5f - PlayerStats.Instance.CurrentStamina);
-                if (staminaToRestore > 0f) PlayerStats.Instance.ModifyStamina(staminaToRestore);
-
-                PlayerStats.Instance.ApplyHeatStress(-100f);
-                PlayerStats.Instance.ApplyColdStress(-100f);
-
-                PlayerStats.Instance.TriggerAlert("Bạn kiệt sức và được bà con cứu! (-15 Xu, +15 Tình nghĩa)");
-            }
-
-            // Tăng 15 điểm Nghĩa Tình cho Bác Năm và O Thắm
-            NPCCharacter[] npcs = UnityEngine.Object.FindObjectsByType<NPCCharacter>();
-            foreach (var npc in npcs)
-            {
-                if (npc.characterType == NPCCharacter.StoryCharacterType.BacNam || 
-                    npc.characterType == NPCCharacter.StoryCharacterType.OTham)
-                {
-                    npc.ModifyAffection(15);
-                }
-            }
-
-            // Hiển thị Dialogue cốt truyện ấm áp
-            if (SownInStone.UI.SurvivalUIManager.Instance != null)
-            {
-                SownInStone.UI.SurvivalUIManager.Instance.ShowDialogue(
-                    "Bác Năm",
-                    "May mà o Thắm chèo xuồng phát hiện kịp, kéo con lên rồi bưng qua nhà bác sưởi ấm bên bếp lửa... Con kiệt sức rồi, cứ nghỉ ngơi đi. Ruộng vườn để đó bà con chòm xóm dọn giúp một tay!"
-                );
-                // Phát tiếng bếp lửa sưởi ấm nhà Bác Năm
-                SownInStone.Audio.AudioManager.Instance?.PlayAmbient("sfx_fire", 0.6f);
             }
         }
 
@@ -1184,8 +1097,9 @@ namespace SownInStone.Core
 
         private void OnGUI()
         {
+            if (FrameworkDebugUI.Instance == null || !FrameworkDebugUI.Instance.isUIVisible) return;
+
             GUI.color = Color.red;
-            GUI.Box(new Rect(10, 150, 270, 220), "--- PLAYER MOVEMENT DEBUG ---");
             GUI.Box(new Rect(10, 150, 270, 220), "--- PLAYER MOVEMENT DEBUG ---");
             GUI.Label(new Rect(20, 170, 250, 20), $"Pos: {transform.position}");
             GUI.Label(new Rect(20, 190, 250, 20), $"RB Pos: {(rb != null ? rb.position : Vector3.zero)}");
@@ -1197,6 +1111,104 @@ namespace SownInStone.Core
             GUI.Label(new Rect(20, 310, 250, 20), $"Constraints: {(rb != null ? rb.constraints : RigidbodyConstraints.None)}");
             GUI.Label(new Rect(20, 330, 250, 20), $"Cam: {(Camera.main != null ? Camera.main.name : "null")}");
             GUI.Label(new Rect(20, 350, 250, 20), $"RootMotion: {(animator != null ? animator.applyRootMotion.ToString() : "null")}");
+        }
+
+        private System.Collections.Generic.List<SownInStone.Agriculture.SoilCell> GetPlantableCellsNear(SownInStone.Agriculture.SoilCell targetCell)
+        {
+            var list = new System.Collections.Generic.List<SownInStone.Agriculture.SoilCell>();
+            var allSoils = UnityEngine.Object.FindObjectsByType<SownInStone.Agriculture.SoilCell>(UnityEngine.FindObjectsSortMode.None);
+            foreach (var sc in allSoils)
+            {
+                if (sc != null && sc.gameObject.activeInHierarchy && sc.enabled && !sc.IsParentField)
+                {
+                    if (sc.RockDensity <= 0f && sc.plantedCrop == null)
+                    {
+                        list.Add(sc);
+                    }
+                }
+            }
+
+            // Sắp xếp ô mục tiêu hiện tại lên đầu tiên, các ô còn lại theo khoảng cách tăng dần
+            list.Sort((a, b) => {
+                if (a == targetCell) return -1;
+                if (b == targetCell) return 1;
+                float distA = UnityEngine.Vector3.Distance(a.transform.position, targetCell.transform.position);
+                float distB = UnityEngine.Vector3.Distance(b.transform.position, targetCell.transform.position);
+                return distA.CompareTo(distB);
+            });
+
+            return list;
+        }
+
+        private void PerformSinglePlant(SownInStone.Agriculture.SoilCell cell)
+        {
+            if (StorageManager.Instance != null && seedItem != null && testSeedData != null)
+            {
+                if (StorageManager.Instance.RemoveItem(seedItem, 1))
+                {
+                    cell.ActionPlantCrop(testSeedData);
+                    SetAnimTrigger("Plant");
+                    StartCoroutine(LockMovementForSeconds(plantActionDuration));
+                    PlayerStats.Instance.TriggerAlert("Đã gieo 1 hạt giống!");
+                    SownInStone.UI.SurvivalUIManager.Instance?.CloseDialogue();
+                }
+            }
+        }
+
+        private void PerformBulkPlant(SownInStone.Agriculture.SoilCell targetCell, int count)
+        {
+            if (StorageManager.Instance != null && seedItem != null && testSeedData != null)
+            {
+                var plantable = GetPlantableCellsNear(targetCell);
+                int actualCount = Mathf.Min(count, plantable.Count);
+                if (actualCount > 0)
+                {
+                    if (StorageManager.Instance.RemoveItem(seedItem, actualCount))
+                    {
+                        int planted = 0;
+                        for (int i = 0; i < actualCount; i++)
+                        {
+                            if (plantable[i].ActionPlantCrop(testSeedData))
+                            {
+                                planted++;
+                            }
+                        }
+                        SetAnimTrigger("Plant");
+                        StartCoroutine(LockMovementForSeconds(plantActionDuration));
+                        PlayerStats.Instance.TriggerAlert($"Đã gieo {planted} hạt giống!");
+                        SownInStone.UI.SurvivalUIManager.Instance?.CloseDialogue();
+                    }
+                }
+            }
+        }
+
+        private Collider GetClosestInteractable(Collider[] colliders)
+        {
+            Collider closest = null;
+            float minDistance = float.MaxValue;
+            foreach (var col in colliders)
+            {
+                if (col.gameObject == gameObject) continue;
+
+                // Kiểm tra xem đối tượng có chứa bất kỳ Script tương tác nào không
+                bool isInteractable = col.GetComponent<IInteractable>() != null ||
+                                      col.GetComponent<NPCCharacter>() != null ||
+                                      col.GetComponent<AncestralAltar>() != null ||
+                                      col.GetComponent<Coracle>() != null ||
+                                      col.GetComponent<SoilCell>() != null ||
+                                      col.GetComponent<MudPuddle>() != null;
+
+                if (isInteractable)
+                {
+                    float dist = Vector3.Distance(transform.position, col.transform.position);
+                    if (dist < minDistance)
+                    {
+                        minDistance = dist;
+                        closest = col;
+                    }
+                }
+            }
+            return closest;
         }
 
         private void OnDrawGizmosSelected()

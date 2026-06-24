@@ -13,10 +13,11 @@ MonoBehaviour:
   m_Name: Item_Seed
   m_EditorClassIdentifier: 
   ItemID: item_seed_khoai
-  ItemName: "Hat Giong Khoai"
-  Description: "Hat giong khoai lang chiu han dung de gieo trong tai thiet sau con lu."
+  ItemName: Hat Giong Khoai
+  Description: Hat giong khoai lang chiu han dung de gieo trong tai thiet sau con
+    lu.
   type: 5
-  Icon: {fileID: 0}
+  Icon: {fileID: 21300000, guid: 438ebe6e17d0659468cc1d160ad7901d, type: 3}
   StaminaRestoreValue: 0
   MoraleRestoreValue: 0
   DecayRateInHumidity: 0

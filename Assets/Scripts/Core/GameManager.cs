@@ -50,6 +50,9 @@ namespace SownInStone.Core
         [Tooltip("Số ngày bước vào để chuyển sang Phù Sa (Đầu ngày này sẽ chuyển).")]
         [SerializeField] private int muaBaoDaysLimit = 23;
 
+        [Tooltip("Số ngày bước vào để kết thúc game và hiện Ending screen.")]
+        [SerializeField] private int endingDayLimit = 8;
+
         // Sự kiện thông báo khi chuyển giai đoạn, đổi ngày mới, đổi giờ
         public event Action<GamePhase> OnPhaseChanged;
         public event Action<int> OnDayChanged;
@@ -123,6 +126,14 @@ namespace SownInStone.Core
             {
                 TransitionToPhase(GamePhase.PhuSa);
             }
+
+            if (currentDay >= endingDayLimit)
+            {
+                if (SownInStone.UI.EndingManager.Instance != null)
+                {
+                    SownInStone.UI.EndingManager.Instance.ShowEnding();
+                }
+            }
         }
 
         /// <summary>
@@ -131,8 +142,37 @@ namespace SownInStone.Core
         public void TransitionToPhase(GamePhase newPhase)
         {
             currentPhase = newPhase;
+            
+            // Cập nhật ngày tương ứng với giai đoạn để đồng bộ UI và progression
+            if (newPhase == GamePhase.LapNghiep) currentDay = 1;
+            else if (newPhase == GamePhase.GioLao) currentDay = 3;
+            else if (newPhase == GamePhase.MuaBao) currentDay = 5;
+            else if (newPhase == GamePhase.PhuSa) currentDay = 7;
+
+            OnDayChanged?.Invoke(currentDay);
             OnPhaseChanged?.Invoke(currentPhase);
-            Debug.Log($"[GAME MANAGER] Chuyển sang Giai Đoạn: {newPhase.ToString()}");
+
+            // Tự động phủ phù sa cho toàn bộ ruộng đất khi chuyển sang GĐ Phù Sa
+            if (newPhase == GamePhase.PhuSa)
+            {
+                var soils = FindObjectsByType<SownInStone.Agriculture.SoilCell>(FindObjectsInactive.Exclude);
+                foreach (var s in soils)
+                {
+                    if (s != null)
+                    {
+                        s.quality = SownInStone.Agriculture.SoilQuality.PhuSa;
+                        s.Nutrients = 100f;
+                        s.RockDensity = 0f;
+                        s.UpdateVisuals();
+                    }
+                }
+                Debug.Log($"[GAME MANAGER] Đã tự động bồi đắp PHÙ SA và dọn sạch sỏi đá cho {soils.Length} ô đất.");
+            }
+            
+            // Play phase change warning chime
+            SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_warning");
+
+            Debug.Log($"[GAME MANAGER] Chuyển sang Giai Đoạn: {newPhase.ToString()}, Ngày: {currentDay}");
         }
 
         /// <summary>
@@ -163,6 +203,15 @@ namespace SownInStone.Core
                     OnHourChanged?.Invoke(newHourInt);
                 }
             }
+        }
+
+        public void RestoreSaveState(int day, GamePhase phase)
+        {
+            currentDay = day;
+            currentPhase = phase;
+            OnDayChanged?.Invoke(currentDay);
+            OnPhaseChanged?.Invoke(currentPhase);
+            Debug.Log($"[GAME MANAGER] Khôi phục tiến trình từ Save: Ngày {currentDay}, Giai đoạn {currentPhase}");
         }
 
         #region GETTERS VÀ SETTERS CƠ BẢN

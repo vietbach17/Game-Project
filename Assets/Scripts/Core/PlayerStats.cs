@@ -92,7 +92,7 @@ namespace SownInStone.Core
                 ModifyStamina(-2f * Time.deltaTime);
                 ModifyHealth(-1f * Time.deltaTime);
                 if (UnityEngine.Random.value < 0.001f)
-                    OnPlayerAlert?.Invoke("Cơ thể đang quá nóng! Hãy vào bóng râm uống bát nước chè xanh!");
+                    TriggerAlert("Cơ thể đang quá nóng! Hãy vào bóng râm uống bát nước chè xanh!");
             }
 
             // Nếu bị lạnh buốt do dầm mưa bão lâu (>70), tụt tinh thần và trừ dần máu
@@ -101,7 +101,7 @@ namespace SownInStone.Core
                 ModifyMorale(-1.5f * Time.deltaTime);
                 ModifyHealth(-0.8f * Time.deltaTime);
                 if (UnityEngine.Random.value < 0.001f)
-                    OnPlayerAlert?.Invoke("Cơ thể nhiễm lạnh! Bạn cần sưởi ấm hoặc ăn khoai gieo nóng!");
+                    TriggerAlert("Cơ thể nhiễm lạnh! Bạn cần sưởi ấm hoặc ăn khoai gieo nóng!");
             }
         }
 
@@ -176,21 +176,21 @@ namespace SownInStone.Core
             // Kiểm tra khả năng tiêu thụ (có giá trị hồi phục thể lực hoặc tinh thần)
             if (item.StaminaRestoreValue <= 0f && item.MoraleRestoreValue <= 0f)
             {
-                OnPlayerAlert?.Invoke($"Vật phẩm {item.ItemName} không thể tiêu thụ trực tiếp!");
+                TriggerAlert($"Vật phẩm {item.ItemName} không thể tiêu thụ trực tiếp!");
                 return false;
             }
 
             // Nhang cúng chỉ được thắp tại bàn thờ
             if (item.type == ItemType.Incense)
             {
-                OnPlayerAlert?.Invoke("Nhang nên được thắp tại Bàn thờ Gia tiên để cầu nguyện bình an!");
+                TriggerAlert("Nhang nên được thắp tại Bàn thờ Gia tiên để cầu nguyện bình an!");
                 return false;
             }
 
             // Hạt giống chỉ để gieo trồng
             if (item.type == ItemType.HatGiong)
             {
-                OnPlayerAlert?.Invoke("Hạt giống dùng để gieo trồng cải tạo ruộng vườn!");
+                TriggerAlert("Hạt giống dùng để gieo trồng cải tạo ruộng vườn!");
                 return false;
             }
 
@@ -227,7 +227,7 @@ namespace SownInStone.Core
                     }
                     logMsg += "!";
 
-                    OnPlayerAlert?.Invoke(logMsg);
+                    TriggerAlert(logMsg);
                     return true;
                 }
             }
@@ -241,6 +241,7 @@ namespace SownInStone.Core
             if (isRescuing) return;
             isRescuing = true;
 
+            SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_faint");
             OnPlayerAlert?.Invoke("Bạn đã kiệt sức hoàn toàn và ngất xỉu!");
             
             if (PlayerController.Instance != null)
@@ -249,6 +250,16 @@ namespace SownInStone.Core
             }
 
             isRescuing = false;
+        }
+
+        public void RestoreSaveState(float health, float stamina, float morale, int savedCoins)
+        {
+            currentHealth = health;
+            currentStamina = stamina;
+            currentMorale = morale;
+            coins = savedCoins;
+            TriggerChangeEvents();
+            Debug.Log($"[PLAYER STATS] Khôi phục chỉ số từ Save: Health={currentHealth}, Stamina={currentStamina}, Morale={currentMorale}, Coins={coins}");
         }
 
         private void TriggerChangeEvents()

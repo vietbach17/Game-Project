@@ -14,7 +14,9 @@ namespace SownInStone.Community
         {
             Custom,
             BacNam,    // Bác Năm: Lão nông cố vấn kỹ thuật và thời tiết dân gian
-            OTham      // O Thắm: Người phụ nữ bộc trực chủ đại lý phân bón giàu lòng nhân ái
+            OTham,     // O Thắm: Người phụ nữ bộc trực chủ đại lý phân bón giàu lòng nhân ái
+            CuBay,     // Cụ Bảy
+            BeTi       // Bé Tí
         }
 
         [Header("--- THIẾT LẬP NHÂN VẬT ---")]
@@ -35,8 +37,24 @@ namespace SownInStone.Community
         [Tooltip("Số ngày công tích lũy đổi công (Tục Vần Công) với người chơi.")]
         [SerializeField] private int vanCongCredits = 0;
 
+        private bool hasTalkedThisSession = false;
+
+        public bool CanReceiveTalkReward()
+        {
+            return !hasTalkedThisSession;
+        }
+
+        public void MarkTalkedToday()
+        {
+            hasTalkedThisSession = true;
+        }
+
+        private Quaternion defaultRotation;
+
         private void Start()
         {
+            defaultRotation = transform.rotation;
+
             // Tự động đặt tên GameObject tương ứng trong Hierarchy để Designer dễ quản lý
             if (characterType == StoryCharacterType.BacNam)
             {
@@ -45,6 +63,14 @@ namespace SownInStone.Community
             else if (characterType == StoryCharacterType.OTham)
             {
                 gameObject.name = "NPC_OTham (O Thắm)";
+            }
+            else if (characterType == StoryCharacterType.CuBay)
+            {
+                gameObject.name = "NPC_CuBay (Cụ Bảy)";
+            }
+            else if (characterType == StoryCharacterType.BeTi)
+            {
+                gameObject.name = "NPC_BeTi (Bé Tí)";
             }
             else if (npcData != null)
             {
@@ -99,9 +125,23 @@ namespace SownInStone.Community
                 modelObj.name = "Visual";
                 
                 // Căn chỉnh vị trí, góc xoay và tỉ lệ giống như thiết lập chuẩn
-                modelObj.transform.localPosition = new Vector3(0f, -0.5f, 0f);
                 modelObj.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
-                modelObj.transform.localScale = Vector3.one;
+                
+                float scaleVal = 1.0f;
+                float localY = -0.5f;
+                if (characterType == StoryCharacterType.BacNam)
+                {
+                    scaleVal = 1.22f;
+                    localY = 0.54f;
+                }
+                else if (characterType == StoryCharacterType.OTham)
+                {
+                    scaleVal = 1.30f;
+                    localY = 0.61f;
+                }
+                
+                modelObj.transform.localPosition = new Vector3(0f, localY, 0f);
+                modelObj.transform.localScale = new Vector3(scaleVal, scaleVal, scaleVal);
 
                 // Cập nhật lại BoxCollider nếu cần thiết
                 BoxCollider boxCol = GetComponent<BoxCollider>();
@@ -138,6 +178,8 @@ namespace SownInStone.Community
             {
                 if (characterType == StoryCharacterType.BacNam) return "Bác Năm";
                 if (characterType == StoryCharacterType.OTham) return "O Thắm";
+                if (characterType == StoryCharacterType.CuBay) return "Cụ Bảy";
+                if (characterType == StoryCharacterType.BeTi) return "Bé Tí";
                 return npcData != null ? npcData.NPCName : "Người dân làng";
             }
         }
@@ -229,6 +271,38 @@ namespace SownInStone.Community
                         return "\"Lũ tan rồi, ruộng đồng ngập ngụa bùn non phù sa. O Thắm chuẩn bị giống mới giá rẻ cho bà con tái thiết mùa sau đây!\"";
                 }
             }
+            else if (characterType == StoryCharacterType.CuBay)
+            {
+                switch (phase)
+                {
+                    case GamePhase.LapNghiep:
+                        return "\"Con à, đất lội thì nghèo, đất cát thì heo hút. Nhưng bám trụ Trường Sơn gieo khoai gieo ném thì có hạt ăn hạt gieo.\"";
+                    case GamePhase.GioLao:
+                        return "\"Cái Gió Lào Trường Sơn này nó thiêu đốt cỏ cây. Lấy rơm rạ hay lá cọ phủ gốc khoai mới giữ được ẩm đó con.\"";
+                    case GamePhase.ChuanBiBao:
+                        return "\"Chim bay về núi là bão sắp đổ bộ rồi. Lo chèn bao cát chắc chắn lên mái tranh kẻo gió cuốn bay tuốt.\"";
+                    case GamePhase.MuaBao:
+                        return "\"Bão lũ trắng trời thế này nguy hiểm quá con ơi. Ráng giữ an toàn ở nơi cao ráo nghe con.\"";
+                    case GamePhase.PhuSa:
+                        return "\"Bùn sa bồi đắp sau lũ trù phú lắm. Đừng lo con ơi, phù sa này sẽ gánh cho vụ mùa sau xanh mướt đất làng.\"";
+                }
+            }
+            else if (characterType == StoryCharacterType.BeTi)
+            {
+                switch (phase)
+                {
+                    case GamePhase.LapNghiep:
+                        return "\"Chú Thành ơi, con đói quá... Nhưng con vẫn giúp mẹ nhặt củi khô ở góc vườn nè!\"";
+                    case GamePhase.GioLao:
+                        return "\"Nắng to quá chú Thành ơi, chân con giẫm lên cát nóng bỏng rát luôn. Con cầu trời mau mưa xuống chú trồng khoai lang nha.\"";
+                    case GamePhase.ChuanBiBao:
+                        return "\"Mây đen thui che kín trời rồi chú Thành ơi. Con sợ tiếng sấm lắm, chú dắt con vô nhà trú bão với nha!\"";
+                    case GamePhase.MuaBao:
+                        return "\"Chú Thành ơi, gió thổi mạnh làm nhà con lung lay quá, con sợ lắm chú ơi... Chú nắm tay con được hông?\"";
+                    case GamePhase.PhuSa:
+                        return "\"Lũ lụt trôi hết đồ chơi của con rồi... Nhưng chú Thành ơi, chú cháu mình trồng khoai vụ mới nha, con phụ chú tưới nước chịu hông?\"";
+                }
+            }
 
             return $"\"Chào con, Thành. Đất cày dẫu lên sỏi đá, cố gắng bám trụ làm nông sinh tồn con nghe.\"";
         }
@@ -318,6 +392,76 @@ namespace SownInStone.Community
             }
 
             return true;
+        }
+
+        private Coroutine lookAtCoroutine;
+
+        public void LookAtPlayer(Transform player)
+        {
+            if (player == null) return;
+            if (lookAtCoroutine != null)
+            {
+                StopCoroutine(lookAtCoroutine);
+            }
+            lookAtCoroutine = StartCoroutine(LookAtCoroutine(player));
+        }
+
+        private System.Collections.IEnumerator LookAtCoroutine(Transform player)
+        {
+            float duration = 0.15f;
+            float elapsed = 0f;
+            Quaternion startRot = transform.rotation;
+            
+            Vector3 dir = player.position - transform.position;
+            dir.y = 0;
+            if (dir.sqrMagnitude > 0.01f)
+            {
+                Quaternion targetRot = Quaternion.LookRotation(dir);
+                while (elapsed < duration)
+                {
+                    elapsed += Time.deltaTime;
+                    transform.rotation = Quaternion.Slerp(startRot, targetRot, elapsed / duration);
+                    yield return null;
+                }
+                transform.rotation = targetRot;
+            }
+            lookAtCoroutine = null;
+        }
+
+        public void ReturnToDefaultRotation()
+        {
+            if (SownInStone.UI.SurvivalUIManager.Instance != null && SownInStone.UI.SurvivalUIManager.Instance.IsDialogueActive)
+            {
+                return;
+            }
+
+            if (lookAtCoroutine != null)
+            {
+                StopCoroutine(lookAtCoroutine);
+            }
+            lookAtCoroutine = StartCoroutine(ReturnToDefaultCoroutine());
+        }
+
+        private System.Collections.IEnumerator ReturnToDefaultCoroutine()
+        {
+            float duration = 0.35f;
+            float elapsed = 0f;
+            Quaternion startRot = transform.rotation;
+
+            while (elapsed < duration)
+            {
+                if (SownInStone.UI.SurvivalUIManager.Instance != null && SownInStone.UI.SurvivalUIManager.Instance.IsDialogueActive)
+                {
+                    lookAtCoroutine = null;
+                    yield break;
+                }
+
+                elapsed += Time.deltaTime;
+                transform.rotation = Quaternion.Slerp(startRot, defaultRotation, elapsed / duration);
+                yield return null;
+            }
+            transform.rotation = defaultRotation;
+            lookAtCoroutine = null;
         }
     }
 }

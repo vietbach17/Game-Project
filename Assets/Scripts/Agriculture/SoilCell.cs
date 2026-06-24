@@ -49,25 +49,45 @@ namespace SownInStone.Agriculture
         [SerializeField] private Sprite wetSoilSprite;
         [SerializeField] private Sprite siltSoilSprite; // Sprite đất phù sa bồi đắp màu đậm
 
+        [Header("--- 3D VISUALS ---")]
+        [SerializeField] public GameObject rockySoilVisual;
+        [SerializeField] public GameObject cleanSoilVisual;
+        [SerializeField] public GameObject tilledSoilVisual;
+        [SerializeField] public GameObject wetSoilVisual;
+
         private bool wasFloodedDuringStorm = false;
 
         private void Awake()
         {
             // Tự động tìm kiếm và liên kết ruộng Cha - Con tại runtime nếu chưa được cấu hình
-            if (gameObject.name == "SoilCell_Large")
+            // Nhận diện ruộng cha: Tên không chứa "Grid" và là SoilCell_Large, SoilCell_1 hoặc SoilCell
+            bool isParentCandidate = !gameObject.name.Contains("Grid") && 
+                                     (gameObject.name == "SoilCell_Large" || 
+                                      gameObject.name == "SoilCell" || 
+                                      gameObject.name.StartsWith("SoilCell_"));
+
+            if (isParentCandidate)
             {
                 childCells.Clear();
-                // Tìm tất cả các SoilCell con có tên chứa "SoilCell_Grid"
+                // Tìm tất cả các SoilCell con có tên chứa "Grid" hoặc bắt đầu bằng "SoilCell_Grid"
                 SoilCell[] allSoils = FindObjectsByType<SoilCell>();
                 foreach (var s in allSoils)
                 {
-                    if (s != this && s.gameObject.name.StartsWith("SoilCell_Grid"))
+                    if (s != this && (s.gameObject.name.Contains("Grid") || s.gameObject.name.StartsWith("SoilCell_Grid")))
                     {
-                        childCells.Add(s);
-                        s.parentField = this;
+                        // Kiểm tra khoảng cách địa lý 2D trên mặt phẳng XZ (ngưỡng 6 mét)
+                        float distXZ = Vector2.Distance(
+                            new Vector2(transform.position.x, transform.position.z),
+                            new Vector2(s.transform.position.x, s.transform.position.z)
+                        );
+                        if (distXZ < 6.0f)
+                        {
+                            childCells.Add(s);
+                            s.parentField = this;
+                        }
                     }
                 }
-                Debug.Log($"[SOIL] Tự động liên kết {childCells.Count} ô ruộng con cho SoilCell_Large.");
+                Debug.Log($"[SOIL] Tự động liên kết {childCells.Count} ô ruộng con cho ruộng cha {gameObject.name}.");
             }
         }
 
@@ -150,11 +170,11 @@ namespace SownInStone.Agriculture
         /// </summary>
         private void OnPhaseChanged(GamePhase newPhase)
         {
-            if (newPhase == GamePhase.PhuSa && wasFloodedDuringStorm)
+            if (newPhase == GamePhase.PhuSa)
             {
                 quality = SoilQuality.PhuSa;
                 Nutrients = 100f; // Dinh dưỡng tối đa
-                RockDensity = Mathf.Max(0f, RockDensity - 30f); // Che phủ sỏi đá
+                RockDensity = 0f; // Tự động dọn sạch sỏi đá
                 wasFloodedDuringStorm = false;
                 Debug.Log($"[SOIL] Ô đất {gameObject.name} đã được bồi đắp PHÙ SA trù phú sau lũ!");
                 UpdateVisuals();
@@ -274,6 +294,7 @@ namespace SownInStone.Agriculture
             plantedCrop.Initialize(seedData, this);
 
             Debug.Log($"[SOIL] Gieo thành công hạt giống {seedData.CropName}!");
+            UpdateVisuals(); // Update visual state when planted
             return true;
         }
 
@@ -284,27 +305,199 @@ namespace SownInStone.Agriculture
         /// </summary>
         public void UpdateVisuals()
         {
-            if (soilSpriteRenderer == null) return;
-
-            if (quality == SoilQuality.PhuSa)
+            if (soilSpriteRenderer != null)
             {
-                soilSpriteRenderer.sprite = siltSoilSprite;
+                if (quality == SoilQuality.PhuSa)
+                {
+                    soilSpriteRenderer.sprite = siltSoilSprite;
+                }
+                else
+                {
+                    // Thay đổi giữa Sprite Đất Ướt hay Đất Khô dựa trên độ ẩm ẩm (Mốc 35%)
+                    soilSpriteRenderer.sprite = (Moisture > 35f) ? wetSoilSprite : drySoilSprite;
+                }
+
+                // Nếu là ô ruộng lớn làm nền, ta tô màu đậm hơn một chút để làm nổi bật các ô con cát bạc màu ở trên
+                if (IsParentField)
+                {
+                    soilSpriteRenderer.color = new Color(0.72f, 0.65f, 0.58f, 1.0f); // Màu đất cát tối hơn làm nền lót
+                }
+                else
+                {
+                    soilSpriteRenderer.color = Color.white;
+                }
+            }
+
+            // Cập nhật hiển thị 3D Visuals
+            if (rockySoilVisual != null) rockySoilVisual.SetActive(false);
+            if (cleanSoilVisual != null) cleanSoilVisual.SetActive(false);
+            if (tilledSoilVisual != null) tilledSoilVisual.SetActive(false);
+            if (wetSoilVisual != null) wetSoilVisual.SetActive(false);
+
+            GameObject activeVisual = null;
+            if (RockDensity > 0f)
+            {
+                activeVisual = rockySoilVisual;
+            }
+            else if (Moisture >= 35f || quality == SoilQuality.PhuSa)
+            {
+                activeVisual = wetSoilVisual;
+            }
+            else if (plantedCrop != null)
+            {
+                activeVisual = tilledSoilVisual;
             }
             else
             {
-                // Thay đổi giữa Sprite Đất Ướt hay Đất Khô dựa trên độ ẩm ẩm (Mốc 35%)
-                soilSpriteRenderer.sprite = (Moisture > 35f) ? wetSoilSprite : drySoilSprite;
+                activeVisual = cleanSoilVisual;
             }
 
-            // Nếu là ô ruộng lớn làm nền, ta tô màu đậm hơn một chút để làm nổi bật 9 ô con cát bạc màu ở trên
-            if (gameObject.name == "SoilCell_Large")
+            if (activeVisual != null)
             {
-                soilSpriteRenderer.color = new Color(0.72f, 0.65f, 0.58f, 1.0f); // Màu đất cát tối hơn làm nền lót
+                activeVisual.SetActive(true);
+            }
+        }
+
+        private GameObject highlightObj;
+
+        public void SetHighlight(bool active)
+        {
+            if (active)
+            {
+                if (highlightObj == null)
+                {
+                    // Nếu là 2D mode (SpriteRenderer của đất đang hoạt động)
+                    if (soilSpriteRenderer != null && soilSpriteRenderer.enabled)
+                    {
+                        highlightObj = new GameObject("SoilHighlight");
+                        highlightObj.transform.SetParent(this.transform, false);
+                        highlightObj.transform.localPosition = new Vector3(0f, 0f, -0.05f);
+                        highlightObj.transform.localRotation = Quaternion.identity;
+                        highlightObj.transform.localScale = Vector3.one;
+
+                        SpriteRenderer hr = highlightObj.AddComponent<SpriteRenderer>();
+                        if (soilSpriteRenderer.sprite != null)
+                        {
+                            hr.sprite = soilSpriteRenderer.sprite;
+                        }
+                        hr.color = new Color(0.95f, 0.85f, 0.1f, 0.35f);
+                    }
+                    else
+                    {
+                        // 3D mode: Tạo khung viền màu vàng gold nổi bật bằng 4 thanh Cube dẹt
+                        highlightObj = new GameObject("TargetHighlightFrame");
+                        highlightObj.transform.SetParent(this.transform, false);
+                        highlightObj.transform.localPosition = new Vector3(0f, 0.03f, 0f); // Cao hơn mặt đất 3cm
+                        highlightObj.transform.localRotation = Quaternion.identity;
+                        highlightObj.transform.localScale = Vector3.one;
+
+                        Material goldMat = new Material(Shader.Find("Unlit/Color"));
+                        if (goldMat != null)
+                        {
+                            goldMat.color = new Color(1f, 0.85f, 0.0f, 1f); // Màu vàng gold tươi sáng
+                        }
+
+                        float thickness = 0.06f;
+                        float size = 2.0f; // Khớp với kích thước ô đất 2.0m
+
+                        // North
+                        GameObject north = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                        DestroyImmediate(north.GetComponent<Collider>());
+                        north.transform.SetParent(highlightObj.transform, false);
+                        north.transform.localPosition = new Vector3(0f, 0f, size / 2f);
+                        north.transform.localScale = new Vector3(size + thickness, 0.02f, thickness);
+                        if (goldMat != null) north.GetComponent<Renderer>().sharedMaterial = goldMat;
+                        north.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                        north.GetComponent<Renderer>().receiveShadows = false;
+
+                        // South
+                        GameObject south = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                        DestroyImmediate(south.GetComponent<Collider>());
+                        south.transform.SetParent(highlightObj.transform, false);
+                        south.transform.localPosition = new Vector3(0f, 0f, -size / 2f);
+                        south.transform.localScale = new Vector3(size + thickness, 0.02f, thickness);
+                        if (goldMat != null) south.GetComponent<Renderer>().sharedMaterial = goldMat;
+                        south.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                        south.GetComponent<Renderer>().receiveShadows = false;
+
+                        // East
+                        GameObject east = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                        DestroyImmediate(east.GetComponent<Collider>());
+                        east.transform.SetParent(highlightObj.transform, false);
+                        east.transform.localPosition = new Vector3(size / 2f, 0f, 0f);
+                        east.transform.localScale = new Vector3(thickness, 0.02f, size + thickness);
+                        if (goldMat != null) east.GetComponent<Renderer>().sharedMaterial = goldMat;
+                        east.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                        east.GetComponent<Renderer>().receiveShadows = false;
+
+                        // West
+                        GameObject west = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                        DestroyImmediate(west.GetComponent<Collider>());
+                        west.transform.SetParent(highlightObj.transform, false);
+                        west.transform.localPosition = new Vector3(-size / 2f, 0f, 0f);
+                        west.transform.localScale = new Vector3(thickness, 0.02f, size + thickness);
+                        if (goldMat != null) west.GetComponent<Renderer>().sharedMaterial = goldMat;
+                        west.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                        west.GetComponent<Renderer>().receiveShadows = false;
+                    }
+                }
+                else
+                {
+                    highlightObj.SetActive(true);
+                }
             }
             else
             {
-                soilSpriteRenderer.color = Color.white;
+                if (highlightObj != null && highlightObj.activeSelf)
+                {
+                    highlightObj.SetActive(false);
+                }
             }
+        }
+
+        // --- CÁC PHƯƠNG THỨC HỖ TRỢ TRÌNH DIỄN (DEMO SHORTCUTS) ---
+
+        public void DebugGrowOneStage()
+        {
+            if (plantedCrop != null)
+            {
+                plantedCrop.DebugGrowOneStage();
+            }
+        }
+
+        public void DebugForceReadyToHarvest()
+        {
+            if (plantedCrop != null)
+            {
+                plantedCrop.DebugMature();
+            }
+        }
+
+        public void DebugMakeWet()
+        {
+            Moisture = 75f;
+            UpdateVisuals();
+        }
+
+        public void DebugClearRocks()
+        {
+            RockDensity = 0f;
+            quality = SoilQuality.TrungBinh;
+            UpdateVisuals();
+        }
+
+        public void DebugResetSoil()
+        {
+            Moisture = 10f;
+            Nutrients = 15f;
+            RockDensity = 80f;
+            quality = SoilQuality.BacMau;
+            if (plantedCrop != null)
+            {
+                Destroy(plantedCrop.gameObject);
+                plantedCrop = null;
+            }
+            UpdateVisuals();
         }
     }
 }
