@@ -747,7 +747,7 @@ namespace SownInStone.Core
                 if (canPlant) emptySlots = 1;
             }
 
-            if (canPlant)
+            if (canPlant && !(TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive && TutorialManager.Instance.subTask2Completed))
             {
                 if (testSeedData != null && seedItem != null)
                 {
@@ -1005,7 +1005,7 @@ namespace SownInStone.Core
                                         prompt = "[E] Dọn đá cải tạo ruộng";
                                     else if (hasReadyCrops)
                                         prompt = "[E] Thu hoạch khoai tươi";
-                                    else if (emptySlots > 0)
+                                    else if (emptySlots > 0 && !(TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive && TutorialManager.Instance.subTask2Completed))
                                         prompt = "[E] Gieo hạt giống khoai";
                                     else if (dryCells > 0)
                                         prompt = "[E] Tưới nước cho đất ẩm";

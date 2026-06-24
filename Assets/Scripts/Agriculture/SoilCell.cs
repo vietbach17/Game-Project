@@ -197,6 +197,10 @@ namespace SownInStone.Agriculture
                 RockDensity = 0f;
                 quality = SoilQuality.TrungBinh;
                 UpdateVisuals();
+                if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
+                {
+                    TutorialManager.Instance.OnRockCleared();
+                }
                 return;
             }
 
@@ -211,6 +215,10 @@ namespace SownInStone.Agriculture
                 Debug.Log("[SOIL] Đất đã tơi xốp hơn, nâng lên hạng Đất Trung Bình.");
             }
             UpdateVisuals();
+            if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
+            {
+                TutorialManager.Instance.OnRockCleared();
+            }
         }
 
         /// <summary>
@@ -226,11 +234,19 @@ namespace SownInStone.Agriculture
                 }
                 Moisture = amount;
                 UpdateVisuals();
+                if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
+                {
+                    TutorialManager.Instance.OnSoilWatered();
+                }
                 return;
             }
 
             Moisture = Mathf.Clamp(Moisture + amount, 0f, 100f);
             UpdateVisuals();
+            if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
+            {
+                TutorialManager.Instance.OnSoilWatered();
+            }
         }
 
         /// <summary>
@@ -275,6 +291,10 @@ namespace SownInStone.Agriculture
                         }
                     }
                 }
+                if (anyPlanted && TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
+                {
+                    TutorialManager.Instance.OnCropPlanted();
+                }
                 return anyPlanted;
             }
 
@@ -295,6 +315,11 @@ namespace SownInStone.Agriculture
 
             Debug.Log($"[SOIL] Gieo thành công hạt giống {seedData.CropName}!");
             UpdateVisuals(); // Update visual state when planted
+
+            if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
+            {
+                TutorialManager.Instance.OnCropPlanted();
+            }
             return true;
         }
 

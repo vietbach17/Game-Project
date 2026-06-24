@@ -417,6 +417,11 @@ namespace SownInStone.Community
             if (dir.sqrMagnitude > 0.01f)
             {
                 Quaternion targetRot = Quaternion.LookRotation(dir);
+                if (characterType == StoryCharacterType.OTham || characterType == StoryCharacterType.BacNam)
+                {
+                    targetRot *= Quaternion.Euler(0, 180, 0);
+                }
+
                 while (elapsed < duration)
                 {
                     elapsed += Time.deltaTime;

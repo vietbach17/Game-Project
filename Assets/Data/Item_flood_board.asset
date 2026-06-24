@@ -18,7 +18,7 @@ MonoBehaviour:
     \u0111\u1EADp ng\u0103n d\xF2ng n\u01B0\u1EDBc l\u1EE5t tr\xE0n qua s\xE2n v\u01B0\u1EDDn,
     b\u1EA3o v\u1EC7 hoa m\xE0u."
   type: 4
-  Icon: {fileID: 0}
+  Icon: {fileID: 21300000, guid: 27e8252d85896b84d990ab90dcd518fc, type: 3}
   StaminaRestoreValue: 0
   MoraleRestoreValue: 0
   DecayRateInHumidity: 0

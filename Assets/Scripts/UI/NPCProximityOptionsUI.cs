@@ -464,6 +464,10 @@ namespace SownInStone.UI
         {
             string dialogue = npc.GetDialogue();
             SurvivalUIManager.Instance.ShowDialogue(npc.NPCName, dialogue);
+            if (TutorialManager.Instance != null)
+            {
+                TutorialManager.Instance.RegisterTalkStart(npc.NPCName);
+            }
             PlayerStats.Instance?.ModifyMorale(2f);
             npc.ModifyAffection(1);
             if (npc.CanReceiveTalkReward())

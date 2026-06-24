@@ -134,6 +134,7 @@ namespace SownInStone.UI
         public bool IsDialogueActive => isDialogueActive;
         public bool IsChoiceActive => isChoiceActive;
         public bool IsShopOpen => isShopOpen;
+        public TextMeshProUGUI SpeakerNameText => speakerNameText;
 
         private void Awake()
         {
@@ -919,6 +920,11 @@ namespace SownInStone.UI
             if (choiceContainer != null)
             {
                 choiceContainer.SetActive(false);
+            }
+
+            if (TutorialManager.Instance != null && speakerNameText != null)
+            {
+                TutorialManager.Instance.OnDialogueClosed(speakerNameText.text);
             }
         }
 

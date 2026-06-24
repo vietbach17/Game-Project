@@ -47,18 +47,29 @@ namespace SownInStone.Editor
             // 2. Định nghĩa vị trí 9 ô con (3x3 solid)
             // Tâm ruộng cha: x = -8.0, z = -10.0
             // Khoảng cách 1.5 mét
-            Vector3[] newPositions = new Vector3[]
+            // Y được lấy từ Terrain tại mỗi toạ độ (X, Z), cộng thêm offset 0.13 cho ô con
+            float[,] cellXZ = new float[,]
             {
-                new Vector3(-9.5f, 0.13f, -11.5f), // SoilCell_Grid1
-                new Vector3(-8.0f, 0.13f, -11.5f), // SoilCell_Grid2
-                new Vector3(-6.5f, 0.13f, -11.5f), // SoilCell_Grid3
-                new Vector3(-9.5f, 0.13f, -10.0f), // SoilCell_Grid4
-                new Vector3(-8.0f, 0.13f, -10.0f), // SoilCell_Grid5
-                new Vector3(-6.5f, 0.13f, -10.0f), // SoilCell_Grid6
-                new Vector3(-9.5f, 0.13f, -8.5f),  // SoilCell_Grid7
-                new Vector3(-8.0f, 0.13f, -8.5f),  // SoilCell_Grid8
-                new Vector3(-6.5f, 0.13f, -8.5f)   // SoilCell_Grid9
+                { -9.5f, -11.5f }, // SoilCell_Grid1
+                { -8.0f, -11.5f }, // SoilCell_Grid2
+                { -6.5f, -11.5f }, // SoilCell_Grid3
+                { -9.5f, -10.0f }, // SoilCell_Grid4
+                { -8.0f, -10.0f }, // SoilCell_Grid5
+                { -6.5f, -10.0f }, // SoilCell_Grid6
+                { -9.5f,  -8.5f }, // SoilCell_Grid7
+                { -8.0f,  -8.5f }, // SoilCell_Grid8
+                { -6.5f,  -8.5f }, // SoilCell_Grid9
             };
+
+            const float SOIL_GRID_OFFSET   = 0.13f;
+
+            Vector3[] newPositions = new Vector3[9];
+            for (int k = 0; k < 9; k++)
+            {
+                float cx = cellXZ[k, 0];
+                float cz = cellXZ[k, 1];
+                newPositions[k] = new Vector3(cx, GetTerrainY(cx, cz) + SOIL_GRID_OFFSET, cz);
+            }
 
             // Sắp xếp các ô con cũ theo tên để dễ ánh xạ
             childSoils.Sort((a, b) => a.gameObject.name.CompareTo(b.gameObject.name));
@@ -118,7 +129,8 @@ namespace SownInStone.Editor
 
             // Đồng bộ ruộng cha
             Undo.RecordObject(parentSoil.transform, "Align Parent transform");
-            parentSoil.transform.position = new Vector3(-8f, 0.02f, -10f);
+            float parentX = -8f, parentZ = -10f;
+            parentSoil.transform.position = new Vector3(parentX, GetTerrainY(parentX, parentZ) + 0.02f, parentZ);
             parentSoil.transform.localScale = new Vector3(0.8f, 0.8f, 1f);
             
             BoxCollider parentCollider = parentSoil.GetComponent<BoxCollider>();
@@ -165,24 +177,24 @@ namespace SownInStone.Editor
                 // z khoảng cách: -11.66, -10.0, -8.33
                 
                 // Nam (dưới) z = -12.2f (sát mép ruộng)
-                CreateFenceSegment(fenceModel, fencesRoot.transform, new Vector3(-9.66f, 0.02f, -12.2f), Quaternion.Euler(0f, 0f, 0f));
-                CreateFenceSegment(fenceModel, fencesRoot.transform, new Vector3(-8.00f, 0.02f, -12.2f), Quaternion.Euler(0f, 0f, 0f));
-                CreateFenceSegment(fenceModel, fencesRoot.transform, new Vector3(-6.33f, 0.02f, -12.2f), Quaternion.Euler(0f, 0f, 0f));
+                CreateFenceSegment(fenceModel, fencesRoot.transform, new Vector3(-9.66f, GetTerrainY(-9.66f, -12.2f) + 0.02f, -12.2f), Quaternion.Euler(0f, 0f, 0f));
+                CreateFenceSegment(fenceModel, fencesRoot.transform, new Vector3(-8.00f, GetTerrainY(-8.00f, -12.2f) + 0.02f, -12.2f), Quaternion.Euler(0f, 0f, 0f));
+                CreateFenceSegment(fenceModel, fencesRoot.transform, new Vector3(-6.33f, GetTerrainY(-6.33f, -12.2f) + 0.02f, -12.2f), Quaternion.Euler(0f, 0f, 0f));
 
                 // Bắc (trên) z = -7.8f (sát mép ruộng)
-                CreateFenceSegment(fenceModel, fencesRoot.transform, new Vector3(-9.66f, 0.02f, -7.8f), Quaternion.Euler(0f, 0f, 0f));
-                CreateFenceSegment(fenceModel, fencesRoot.transform, new Vector3(-8.00f, 0.02f, -7.8f), Quaternion.Euler(0f, 0f, 0f));
-                CreateFenceSegment(fenceModel, fencesRoot.transform, new Vector3(-6.33f, 0.02f, -7.8f), Quaternion.Euler(0f, 0f, 0f));
+                CreateFenceSegment(fenceModel, fencesRoot.transform, new Vector3(-9.66f, GetTerrainY(-9.66f, -7.8f) + 0.02f, -7.8f), Quaternion.Euler(0f, 0f, 0f));
+                CreateFenceSegment(fenceModel, fencesRoot.transform, new Vector3(-8.00f, GetTerrainY(-8.00f, -7.8f) + 0.02f, -7.8f), Quaternion.Euler(0f, 0f, 0f));
+                CreateFenceSegment(fenceModel, fencesRoot.transform, new Vector3(-6.33f, GetTerrainY(-6.33f, -7.8f) + 0.02f, -7.8f), Quaternion.Euler(0f, 0f, 0f));
 
                 // Tây (trái) x = -10.2f
-                CreateFenceSegment(fenceModel, fencesRoot.transform, new Vector3(-10.2f, 0.02f, -11.66f), Quaternion.Euler(0f, 90f, 0f));
-                CreateFenceSegment(fenceModel, fencesRoot.transform, new Vector3(-10.2f, 0.02f, -10.00f), Quaternion.Euler(0f, 90f, 0f));
-                CreateFenceSegment(fenceModel, fencesRoot.transform, new Vector3(-10.2f, 0.02f, -8.33f), Quaternion.Euler(0f, 90f, 0f));
+                CreateFenceSegment(fenceModel, fencesRoot.transform, new Vector3(-10.2f, GetTerrainY(-10.2f, -11.66f) + 0.02f, -11.66f), Quaternion.Euler(0f, 90f, 0f));
+                CreateFenceSegment(fenceModel, fencesRoot.transform, new Vector3(-10.2f, GetTerrainY(-10.2f, -10.00f) + 0.02f, -10.00f), Quaternion.Euler(0f, 90f, 0f));
+                CreateFenceSegment(fenceModel, fencesRoot.transform, new Vector3(-10.2f, GetTerrainY(-10.2f, -8.33f) + 0.02f, -8.33f), Quaternion.Euler(0f, 90f, 0f));
 
                 // Đông (phải) x = -5.8f
-                CreateFenceSegment(fenceModel, fencesRoot.transform, new Vector3(-5.8f, 0.02f, -11.66f), Quaternion.Euler(0f, 90f, 0f));
-                CreateFenceSegment(fenceModel, fencesRoot.transform, new Vector3(-5.8f, 0.02f, -10.00f), Quaternion.Euler(0f, 90f, 0f));
-                CreateFenceSegment(fenceModel, fencesRoot.transform, new Vector3(-5.8f, 0.02f, -8.33f), Quaternion.Euler(0f, 90f, 0f));
+                CreateFenceSegment(fenceModel, fencesRoot.transform, new Vector3(-5.8f, GetTerrainY(-5.8f, -11.66f) + 0.02f, -11.66f), Quaternion.Euler(0f, 90f, 0f));
+                CreateFenceSegment(fenceModel, fencesRoot.transform, new Vector3(-5.8f, GetTerrainY(-5.8f, -10.00f) + 0.02f, -10.00f), Quaternion.Euler(0f, 90f, 0f));
+                CreateFenceSegment(fenceModel, fencesRoot.transform, new Vector3(-5.8f, GetTerrainY(-5.8f, -8.33f) + 0.02f, -8.33f), Quaternion.Euler(0f, 90f, 0f));
 
                 Debug.Log("[SETUP RUONG] Đã tái tạo 12 thanh hàng rào bao quanh mảnh ruộng.");
             }
@@ -205,6 +217,16 @@ namespace SownInStone.Editor
                 go.transform.rotation = rot;
                 go.transform.localScale = new Vector3(1f, 1f, 1f);
             }
+        }
+
+        /// <summary>
+        /// Returns the world-space Y height of the active Terrain at (x, z).
+        /// Delegates to LowPolyTerrainDeformer for a single source of truth.
+        /// Falls back to 0 if no Terrain is present.
+        /// </summary>
+        private static float GetTerrainY(float x, float z)
+        {
+            return LowPolyTerrainDeformer.GetTerrainY(x, z);
         }
     }
 }

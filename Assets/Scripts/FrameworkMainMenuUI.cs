@@ -554,6 +554,11 @@ namespace SownInStone
                 Debug.Log("[MAIN MENU] Cuộc hành trình trở về bám đất Trường Sơn chính thức BẮT ĐẦU!");
                 PlayerStats.Instance?.ModifyMorale(20f); // Tặng thêm 20 Morale làm động lực khởi nghiệp
                 hasStartedJourney = true;
+                
+                if (TutorialManager.Instance != null)
+                {
+                    TutorialManager.Instance.InitializeTutorial();
+                }
             }
         }
 
