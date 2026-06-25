@@ -5,7 +5,7 @@ Tài liệu này định hình các quy tắc lập trình cốt lõi và giới
 ---
 
 ## 1. Current Target (Mục tiêu hiện tại)
-Đưa dự án trở thành một bản **chơi thử (Demo) dài khoảng 10-15 phút được đánh bóng tỉ mỉ dành cho môn học PRU213**, xoay quanh câu chuyện giúp đỡ một ngôi làng nghèo ở miền Trung Việt Nam chống chọi và hồi sinh sau thiên tai (Gió Lào, hạn hán, giông bão, lũ lụt).
+Đưa dự án trở thành một bản **chơi thử (Demo) dài khoảng 10-15 phút được đánh bóng tỉ mỉ dành cho môn học PRU213**, xoay quanh câu chuyện giúp đỡ một ngôi làng nghèo ở miền Trung Việt Nam chống chọi và hồi sinh sau thiên tai bão lũ miền Trung.
 
 ---
 

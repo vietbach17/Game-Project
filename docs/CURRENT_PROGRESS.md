@@ -179,9 +179,9 @@ Bản mẫu hiện tại đạt khoảng **75% tiến độ sẵn sàng cho Demo
 *   **Phase-Based Events Implementation**:
     *   Added event completion tracking boolean flags (`eventOThamFoodCompleted`, `eventBacNamStormCompleted`, `eventVillageRecoveryCompleted`) in [CommunityManager.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Community/CommunityManager.cs).
     *   Integrated dynamic context-based choices inside [PlayerController.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Core/PlayerController.cs):
-        *   **Phase 2 - Gió Lào ("Hỗ trợ O Thắm")**: Appears on O Thắm. Requires `2 food items` (Fresh Crop, Preserved Crop, or Noodles). Rewards `+10 Nghĩa Tình` with toast notice.
-        *   **Phase 3 - Mưa Bão ("Chằng chống nhà Bác Năm")**: Appears on Bác Năm. Requires `1 Vần công` credit. Deducts credit, rewards `+15 Nghĩa Tình` with toast notice.
-        *   **Phase 4 - Phù Sa ("Tái thiết ruộng")**: Appears on both O Thắm and Bác Năm. Requires `2 seeds` or `2 food items`. Deducts items, rewards `+20 Nghĩa Tình` with toast notice.
+        *   **Phase 1 - Trước Bão ("Hỗ trợ O Thắm")**: Appears on O Thắm. Requires `2 food items` (Fresh Crop, Preserved Crop, or Noodles). Rewards `+10 Nghĩa Tình` with toast notice.
+        *   **Phase 1 - Trước Bão ("Chằng chống nhà Bác Năm")**: Appears on Bác Năm. Requires `1 Vần công` credit. Deducts credit, rewards `+15 Nghĩa Tình` with toast notice.
+        *   **Phase 2 - Sau Bão ("Tái thiết ruộng")**: Appears on both O Thắm and Bác Năm. Requires `2 seeds` or `2 food items`. Deducts items, rewards `+20 Nghĩa Tình` with toast notice.
     *   **Single-Completion Constraint**: Every event can only be completed once per session, validated by state checks before presenting menu options.
 *   **Verification**:
     *   Compiled and passed EditMode and PlayMode test runs. Checked that resources are consumed and insufficient resources correctly prevent completion.
@@ -189,7 +189,7 @@ Bản mẫu hiện tại đạt khoảng **75% tiến độ sẵn sàng cho Demo
 ## 15. Presentation Demo Controls (F1 Debug Panel)
 *   **F1 Debug Controls Upgrade**:
     *   Reconfigured the developer control area in [FrameworkDebugUI.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/FrameworkDebugUI.cs) into a clean, dedicated **PRESENTATION DEMO CONTROLS** panel.
-    *   **Phase Jumps (Buttons 1-4)**: Adds `Jump to Phase 1/2/3/4` buttons. Jumps invoke `GameManager.Instance.TransitionToPhase()`, which automatically updates the `currentDay` to `1`/`3`/`5`/`7` respectively, updating the Day/Phase UI and triggering the corresponding `VillageSpeakerBanner` announcement.
+    *   **Phase Jumps (Buttons 1-2)**: Adds `Jump to Phase 1/2` buttons. Jumps invoke `GameManager.Instance.TransitionToPhase()`, which automatically updates the `currentDay` to `1`/`5` respectively, updating the Day/Phase UI and triggering the corresponding `VillageSpeakerBanner` announcement.
     *   **Resource Management (Buttons 5-6)**: Adds `Add +5 Seeds` and `Add +5 Food` buttons to quickly seed the storage container for agricultural or event testing.
     *   **Reputation Adjustments (Buttons 7-9)**: Adds `Set Nghĩa Tình = 20/50/80` buttons. These calculate the delta against the current GlobalKarma score and adjust it immediately, refreshing the Nghĩa Tình UI.
     *   **Trigger Ending (Button 10)**: Adds a `Show Ending` button to immediately trigger the game over sequence and display the ending panel reflecting the current reputation level.
@@ -215,8 +215,8 @@ Bản mẫu hiện tại đạt khoảng **75% tiến độ sẵn sàng cho Demo
     *   **Screen Bounds Clamping**: Clamps the screen coordinates of the panel to prevent the UI from moving off-screen.
     *   **Overlapping Prevention**: Dynamically hides the legacy centered interaction prompt `[E] Trò chuyện với...` when the proximity options list is active, keeping farming prompts unaffected.
 *   **NPC-Specific Choices**:
-    *   **O Thắm**: Shows "Trò chuyện (+5 Nghĩa Tình)", "Giúp việc (20 Thể lực -> +1 Vần công, +10 NT)" (which changes to "Hỗ trợ mùa Gió Lào" event in Phase 2), and "Giao dịch / Cửa hàng" (which changes to "Tái thiết ruộng" event in Phase 4).
-    *   **Bác Năm**: Shows "Trò chuyện (+5 Nghĩa Tình)", "Giúp việc (20 Thể lực -> +1 Vần công, +10 NT)" (which changes to "Chằng chống nhà" event in Phase 3), and "Chia sẻ lương thực (+15 NT)" (which changes to "Tái thiết ruộng" event in Phase 4).
+    *   **O Thắm**: Shows "Trò chuyện (+5 Nghĩa Tình)", "Giúp việc (20 Thể lực -> +1 Vần công, +10 NT)" (which changes to "Hỗ trợ chuẩn bị bão" event in Phase 1), and "Giao dịch / Cửa hàng" (which changes to "Tái thiết ruộng" event in Phase 2).
+    *   **Bác Năm**: Shows "Trò chuyện (+5 Nghĩa Tình)", "Giúp việc (20 Thể lực -> +1 Vần công, +10 NT)" (which changes to "Chằng chống nhà" event in Phase 1), and "Chia sẻ lương thực (+15 NT)" (which changes to "Tái thiết ruộng" event in Phase 2).
 *   **Flexible Trigger Methods**:
     *   Players can activate these choices either by clicking the buttons on screen or by pressing number keys `1`/`2`/`3` (using `Keyboard.current` from the new Unity Input System package) when near the NPC.
     *   Walking away hides the panel automatically.
@@ -468,13 +468,13 @@ Bản mẫu hiện tại đạt khoảng **75% tiến độ sẵn sàng cho Demo
 
 ---
 
-## 40. Stylized 3x3 Solid Farming Plot & Fence Arrangement
-*   **Solid 3x3 Plot Realized**:
-    *   Developed C# Editor script [SetupSolidRuongEditor.cs](file:///d:/Game%20Project/Assets/Scripts/Editor/SetupSolidRuongEditor.cs) with custom menu command `Sown In Stone/Setup Solid Ruong (3x3)`.
-    *   Redesigned the disjointed 12-cell (4x3) layout in `Village_Demo.unity` into a tight **3x3 solid grid (9 cells, 1.5m spacing)** centered at `(-8.0, 0.13, -10.0)`.
-    *   Automatically disposed of the remaining 3 redundant cells and reformatted BoxColliders, SpriteRenderers, and scale parameters on the 9 grid cells.
+## 40. Stylized 4x3 Solid Farming Plot & Fence Arrangement
+*   **Solid 4x3 Plot Realized**:
+    *   Developed C# Editor script [SetupSolidRuongEditor.cs](file:///d:/Game%20Project/Assets/Scripts/Editor/SetupSolidRuongEditor.cs) with custom menu command `Sown In Stone/Setup Solid Ruong (4x3)`.
+    *   Redesigned the layout in `Village_Demo.unity` into a tight **4x3 solid grid (12 cells, 1.5m spacing)** centered at `(-8.0, 0.13, -10.0)`.
+    *   Automatically formatted BoxColliders, SpriteRenderers, and scale parameters on the 12 grid cells.
 *   **Fencing Reconstruction**:
-    *   The editor script automatically instantiates and arranges **12 fence segments** (linked to `Fence2.fbx`) under the `Fences` root object, boxing in the new 3x3 grid cleanly.
+    *   The editor script automatically instantiates and arranges **12 fence segments** (linked to `Fence2.fbx`) under the `Fences` root object, boxing in the 4x3 grid cleanly.
     *   Aligns local rotations (0 degrees for South/North boundaries, 90 degrees for West/East boundaries) and bounds positions correctly around the farm borders.
 
 ---
@@ -495,7 +495,7 @@ Bản mẫu hiện tại đạt khoảng **75% tiến độ sẵn sàng cho Demo
     *   Provides players with a comprehensive live breakdown of:
         *   *Player Survival Indicators*: Health, Stamina, Morale, Cold Stress, Heat Stress, and Coins.
         *   *Environmental Weather Data*: Real-time Temperature (°C), Humidity (%), Wind Speed (km/h), Rain Intensity (%), and active Flood Level (meters).
-        *   *World Clock & Progress*: Active Game Day, Hour, and Curent Story/Weather Phase (Lập nghiệp / Gió Lào / Bão lũ / Phù sa).
+        *   *World Clock & Progress*: Active Game Day, Hour, and Current Story/Weather Phase (Trước Bão / Sau Bão).
 
 ---
 

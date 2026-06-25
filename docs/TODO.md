@@ -1,65 +1,105 @@
-# TODO: 2-Week Solo Development Plan
+# TODO: Development Status & Remaining Tasks
 
-Tài liệu này vạch ra kế hoạch hành động chi tiết trong 2 tuần cuối của dự án. Mặc dù nhóm có 5 thành viên, việc triển khai mã nguồn Unity thực tế được xử lý bởi một người chính (Solo Developer). Kế hoạch này tập trung tối đa vào yếu tố thẩm mỹ, tính hấp dẫn và bản sắc văn hóa Việt Nam để ghi điểm cao nhất với giảng viên hướng dẫn.
-
----
-
-## 1. Development Priorities
-
-### Priority 0 - Must Finish (Bắt buộc phải hoàn thành)
-*   [x] **Update README and docs:** Cập nhật toàn bộ tài liệu hướng dẫn và mô tả game theo hướng đi mới.
-*   [x] **Stable player movement:** Tinh chỉnh chuyển động nhân vật 3D mượt mà, sửa lỗi va chạm hoặc kẹt địa hình.
-*   [x] **Stable camera:** Camera theo sau nhân vật mượt mà từ góc nhìn thứ ba, xoay chuyển không bị giật lag.
-*   [x] **Basic farming loop:** Hoàn thiện dọn sỏi đá, cuốc đất, gieo hạt khoai lang, tưới nước và thu hoạch.
-*   [x] **Basic inventory count:** Bảng đếm số lượng hạt giống, khoai tươi và khoai gieo khô đơn giản trong túi đồ.
-*   [x] **Nghĩa Tình UI:** Hiển thị điểm Nghĩa Tình trên HUD chính của người chơi.
-*   [x] **At least 2 NPC interactions:** Tương tác thoại đơn giản bằng nút bấm UI với O Thắm (mua hạt giống/đổi công Vần công) và Bác Năm (đóng góp khoai cứu đói).
-*   [x] **At least 3 community events:** Kích hoạt cảnh báo từ Loa phát thanh xã, đóng góp lương thực khi bão, và dọn dẹp sau bão.
-*   [x] **Phase transition UI:** Hiển thị Banner cinematic thông báo chuyển ngày/Phase thời tiết kèm thông tin thông báo khẩn từ Loa phát thanh xã.
-*   [x] **One ending screen:** Màn hình kết cục game hiển thị text/ảnh đánh giá dựa trên tổng điểm Nghĩa Tình đạt được ở cuối ngày thứ 4 (Phase 4).
-
-### Priority 1 - Should Finish (Nên hoàn thành)
-*   [x] **Weather visual polish:** Làm đẹp hệ thống hạt mưa chéo bám camera, hiệu ứng mờ sương (fog) và tông màu nắng nóng Gió Lào.
-*   [x] **Flood visual polish:** Nước lũ dâng ngập mượt mà, phản chiếu ánh sáng và tạo cảm giác ngập lụt chân thực.
-*   [x] **Silt soil mechanic:** Đất trồng ngập nước ở Phase 3 tự động chuyển thành đất phù sa màu mỡ (Silt Soil) ở Phase 4, nhân đôi sản lượng thu hoạch.
-*   [x] **More Vietnamese environment props:** Đưa thêm các mô hình như lũy tre làng, cây chuối, bờ rào gỗ truyền thống vào bản đồ.
-*   [x] **Sound effects:** Tiếng mưa rơi, gió rít Gió Lào, tiếng trống đình làng réo rắt báo bão, và tiếng loa phát thanh xã rè rè đặc trưng.
-
-### Priority 2 - Nice To Have (Có thể làm thêm nếu thừa thời gian)
-*   [x] **Cụ Bảy / Bé Tí:** Thêm mô hình 3D NPC Trưởng thôn (Cụ Bảy) đứng gần đình làng và Bé Tí chạy việc vặt.
-*   [x] **Ancestral Altar interaction:** Tương tác thắp nhang tại bàn thờ tổ tiên để hồi phục Tinh thần (giảm Stress).
-*   [ ] **More dialogue lines:** Thêm một vài dòng thoại đậm chất địa phương (Central Vietnam dialect) cho O Thắm, Bác Năm.
-*   [ ] **Multiple ending illustrations:** Vẽ/tạo 3 hình ảnh minh họa tương ứng cho 3 kết cục Nghĩa Tình (Đất sỏi đá cằn, Lá lành đùm lá rách, Đất cày nở hoa).
-*   [x] **Simple main menu polish:** Làm đẹp Menu chính ("Về quê bám đất") bằng nhạc nền nhẹ nhàng và hình ảnh làng quê.
-
-### Do Not Prioritize (Tuyệt đối không làm để tránh trễ hạn)
-*   🚫 Hệ thống Save/Load phức tạp.
-*   🚫 Cây hội thoại phân nhánh sâu (Dialogue Trees).
-*   🚫 Kinh tế thị trường/Giao dịch làm giàu phức tạp.
-*   🚫 Quá nhiều loại cây trồng khác nhau (chỉ tập trung vào Khoai Lang).
-*   🚫 Chế tạo trang bị/Nông cụ phức tạp.
-*   🚫 Hệ thống cây kỹ năng (Skill tree) hoặc Chiến đấu (Combat).
+Tài liệu này tổng hợp tình trạng phát triển hiện tại và các nhiệm vụ còn lại. Cập nhật lần cuối: **2026-06-26**.
 
 ---
 
-## 2. Daily 14-Day Execution Plan
+## 1. Tình trạng tổng thể
 
-### Tuần 1: Củng cố core loop và UI cốt lõi
+**Demo Readiness: ~92%** — Gameplay core loop và tất cả systems chính đã hoàn thiện và ổn định. Phần còn lại là polish và nội dung visual.
 
-*   **Ngày 1 (Hôm nay):** Hoàn thành rà soát và cập nhật toàn bộ tài liệu dự án (`README`, `PROJECT_OVERVIEW`, `GAME_DESIGN`, `GAMEPLAY_SYSTEMS`).
-*   **Ngày 2:** Kiểm tra và tinh chỉnh `PlayerController` 3D cùng `Camera Follow`. Loại bỏ triệt để các collider vô hình chặn đường đi trên bản đồ.
-*   **Ngày 3:** Hoàn thiện cơ chế Farming gốc trên `SoilCell`: đảm bảo gieo hạt trừ đúng 1 hạt giống từ kho, tưới nước cập nhật ẩm mượt mà.
-*   **Ngày 4:** Thiết kế giao diện HUD tối giản: Tích hợp thanh điểm Nghĩa Tình, số lượng Khoai tươi/Khoai gieo khô trực quan trên màn hình.
-*   **Ngày 5:** Triển khai logic hội thoại đơn giản cho NPC O Thắm và Bác Năm (UI Popup có 3 nút bấm phân nhánh đơn giản).
-*   **Ngày 6:** Viết code logic tích lũy điểm Nghĩa Tình và đổi công Vần công, lưu trữ tạm thời trong class `PlayerStats`/`CommunityManager`.
-*   **Ngày 7:** Xây dựng màn hình kết thúc game (Ending Panel) tự động hiển thị đánh giá kết cục dựa trên điểm Nghĩa Tình khi hết Phase 4.
+---
 
-### Tuần 2: Thiên tai, Âm thanh và Đánh giá Thẩm mỹ
+## 2. Priority 0 — Bắt buộc (ĐÃ HOÀN THÀNH ✓)
 
-*   **Ngày 8:** Liên kết hệ thống chuyển Phase thời gian (`GameManager`) với `WeatherManager` để nội suy mượt mà qua các ngày 1, 2, 3, 4.
-*   **Ngày 9:** Hoàn thiện cơ chế bão lũ dâng mực nước lũ (`waterLevel`) và kiểm tra ngập úng làm chết khoai lang tươi.
-*   **Ngày 10:** Lập trình cơ chế đất phù sa (Silt Soil) ở Phase 4: tự động đổi texture đất, dọn sỏi đá và nhân đôi sản lượng thu hoạch.
-*   **Ngày 11:** Trang trí thêm Assets môi trường (lũy tre, cây chuối, lu nước truyền thống Việt Nam) để tăng tính thẩm mỹ và bản sắc văn hóa.
-*   **Ngày 12:** Tích hợp âm thanh môi trường (tiếng mưa bão rầm rì, tiếng loa phát thanh xã mở đầu ngày, tiếng trống dồn dập).
-*   **Ngày 13:** Kiểm tra tổng thể (Stress test), cân bằng tốc độ mất thể lực dưới nắng Gió Lào và bão lũ để game có độ khó hấp dẫn.
-*   **Ngày 14:** Xuất bản đóng gói Demo (Build Game), ghi hình video Gameplay Walkthrough và chuẩn bị tài liệu thuyết trình báo cáo trước giảng viên.
+*   [x] Stable player movement 3D camera-relative + Roblox camera orbit
+*   [x] Basic farming loop: dọn đá → gieo hạt → tưới nước → thu hoạch
+*   [x] Smart Bulk Planting dialog (hàng loạt/từng ô)
+*   [x] Inventory (StorageManager + Inventory UI panel)
+*   [x] Nghĩa Tình HUD (NghiaTinhPanel slider đổi màu)
+*   [x] NPC interactions: O Thắm + Bác Năm (Proximity Panel Roblox-style)
+*   [x] NPC interactions: Cụ Bảy + Bé Tí (đã đặt scene + Proximity Panel)
+*   [x] Community events: Phase 1 chuẩn bị trước bão, Phase 2 ngập lũ và tái thiết sau lũ
+*   [x] Phase transition UI: Banner Loa phát thanh xã Việt hóa
+*   [x] Ending system: 3 kết cục Sad/Normal/Best dựa trên Nghĩa Tình
+*   [x] Weather system: Mưa Bão flood, Phù Sa soil upgrade
+*   [x] Flood Roof Survival: Teleport lên nóc nhà, mì tôm cứu trợ, nghỉ ngơi trên nóc
+*   [x] Tutorial system 2 giai đoạn: IntroQuests (gặp cả 4 NPC) + FarmingTutorial với HUD quest panel
+*   [x] Tutorial slideshow images (4 PNG assets)
+*   [x] Ancestral Altar interaction (thắp nhang +10 Morale)
+*   [x] Kitchen Hearth (bếp ga): sấy khoai + nấu ăn
+*   [x] Coracle (thuyền thúng): di chuyển trên nước lũ
+*   [x] MudPuddle: làm chậm di chuyển
+*   [x] Item Icons (8 icon PNG) bind vào ItemData assets
+*   [x] Toast Notifications với Regex highlight màu
+*   [x] HUD layout đầy đủ: Time/Nghĩa Tình/Resource/Controls/Quest/Toast/Proximity
+*   [x] F1 Debug panel với 10 nút + Farming debug column
+*   [x] Shop UI (O Thắm): Buy/Sell với icon
+*   [x] Village_Demo scene: tọa độ chuẩn hóa, 4 NPC, 3 nhà, well, shrine, speaker
+*   [x] 4x3 SoilCell grid (12 SoilCells) với 3D visuals (Rocky/Clean/Tilled/Wet)
+*   [x] SoilCell Highlight (viền vàng gold)
+*   [x] SweetPotato crop visual 2 stages
+*   [x] Silt Soil mechanic (Phù Sa) Phase 2 (harvest ×2)
+*   [x] NPC Quest Marker (dấu ! bounce)
+*   [x] NPC Look-at + Return-to-Idle rotation
+
+---
+
+## 3. Priority 1 — Nên hoàn thành (CÒN LẠI)
+
+*   [ ] **Tutorial auto-start**: Kết nối `TutorialManager.InitializeTutorial()` từ GameManager khi game bắt đầu (hiện phải trigger thủ công).
+*   [ ] **Multiple ending illustrations**: Tạo 3 ảnh minh họa cho 3 kết cục (Đất sỏi đá cằn, Lá lành đùm lá rách, Đất cày nở hoa) — hiện chỉ có text.
+*   [ ] **More dialogue lines**: Thêm thoại địa phương miền Trung cho O Thắm, Bác Năm, Cụ Bảy, Bé Tí theo từng Phase (hiện còn ít thoại).
+*   [ ] **Flood Board / Sandbag mechanic**: `item_flood_board` và `item_sandbag` đã có data asset nhưng `FloodBarrier.cs` chưa được kết nối gameplay đầy đủ.
+*   [ ] **Nón Lá mechanic**: `item_non_la` đã có data + icon nhưng chưa có hiệu ứng gameplay (giảm stress thời tiết khi trang bị ngoài trời).
+
+---
+
+## 4. Priority 2 — Nice to have (TÙY THỜI GIAN)
+
+*   [ ] **Ending Panel ảnh minh họa**: 3 kết cục có ảnh đẹp.
+*   [ ] **Ambient sound polish**: Tiếng mưa bão, tiếng gió rít, tiếng trống đình làng réo rắt.
+*   [ ] **Camera angle preset**: Nút bấm reset về góc nhìn mặc định khi bị xoay lạc.
+*   [ ] **Menu Settings InputAction**: Cập nhật FrameworkMainMenuUI đọc từ InputAction thay vì KeyCode legacy.
+*   [ ] **BoundaryElement fix**: Thay MeshCollider nhỏ bằng BoxCollider bao quanh rìa map.
+*   [ ] **Village decorations**: Thêm lu nước, thúng khoai, các prop truyền thống Việt Nam.
+
+---
+
+## 5. KHÔNG LÀM (Tuyệt đối không để tránh trễ hạn)
+
+*   🚫 Hệ thống Save/Load phức tạp
+*   🚫 Cây hội thoại phân nhánh sâu (Dialogue Trees)
+*   🚫 Kinh tế thị trường / làm giàu phức tạp
+*   🚫 Nhiều loại cây trồng (chỉ Khoai Lang)
+*   🚫 Chế tạo nông cụ / Skill tree / Combat
+*   🚫 Multiplayer
+
+---
+
+## 6. Known Issues cần theo dõi
+
+| Issue | Mức độ | Giải pháp hiện tại |
+|-------|--------|-------------------|
+| BoundaryElement scale nhỏ | Low | Hoạt động như tường vô hình, chấp nhận được cho demo |
+| Camera SphereCast giật mái nhà | Low | Cài smoothTime đủ chậm để ít thấy |
+| Menu KeyCode legacy | Low | Chờ P1 fix sau |
+| TutorialManager auto-start | Medium | Cần wiring vào GameManager.Start() |
+| FloodBarrier chưa gameplay | Low | Item data đã sẵn sàng, chờ implement |
+
+---
+
+## 7. Files cần bảo vệ (KHÔNG SỬA BỪA BÃI)
+
+| File | Lý do |
+|------|-------|
+| `PlayerController.cs` | Core movement + farming interactions |
+| `SurvivalUIManager.cs` | Toàn bộ HUD runtime generation |
+| `TutorialManager.cs` | Tutorial flow delicate |
+| `NPCProximityOptionsUI.cs` | NPC interaction UI |
+| `NPCCharacter.cs` | NPC logic + event tracking |
+| `CommunityManager.cs` | Nghĩa Tình scoring |
+| `SoilCell.cs` | Farming state machine |
+| `GameManager.cs` | Phase/day cycle |
+| `WeatherManager.cs` | Weather + flood |
+| `Village_Demo.unity` | Scene chính, inspector references |
