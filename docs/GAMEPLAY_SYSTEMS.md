@@ -63,7 +63,7 @@ Hệ thống tutorial **2 giai đoạn** với HUD quest tracker:
 - **Nhiệm vụ**: Dọn đá (subTask1) + Gieo hạt (subTask2) + Tưới nước (subTask3).
 - Callbacks: `SoilCell.ActionClearRocks()` → `OnRockCleared()`, `SoilCell.ActionPlantCrop()` → `OnCropPlanted()`, `SoilCell.ActionWaterSoil()` → `OnSoilWatered()`.
 - Fallback: Scan `CropInstance[]` mỗi frame, nếu có cây đang lớn (growthDays > 0.01f) → hoàn thành tutorial.
-- Hoàn thành → `CompleteTutorial()` → Toast + `GameManager.TransitionToPhase(Phase1_BeforeTheStorm)`.
+- Hoàn thành → `CompleteTutorial()` → Toast + `GameManager.TransitionToPhase(GamePhase.LapNghiep)`. Về mặt design, đây là điểm bắt đầu **Phase 1: Before the Storm**.
 
 ### `TutorialQuestPanel` HUD
 - Tạo động bởi TutorialManager, Top-Left `(20, -220)`, size `280x150`.
@@ -245,8 +245,8 @@ Hệ thống thời tiết và thiên tai được chia làm **2 giai đoạn ch
 
 | Phase | Enum | Ngày | Sự kiện chính |
 |-------|------|------|--------------|
-| Trước Bão | `BeforeTheStorm` | 1–4 | Trải nghiệm yên bình, làm quen dân làng, trồng trọt chuẩn bị đối phó bão. |
-| Sau Bão | `After the Storm` | 5+ | Lũ lụt đổ bộ, sinh tồn trên nóc nhà, nước rút bồi đắp phù sa, tái thiết và tổng kết kết cục game. |
+| Trước Bão | Design phase `Before the Storm`; runtime mốc `LapNghiep`, `GioLao`, `ChuanBiBao` | Ngày 1–4 trong demo | Trải nghiệm yên bình, gió Lào/báo bão, làm quen dân làng, trồng trọt chuẩn bị đối phó bão. |
+| Sau Bão | Design phase `After the Storm`; runtime mốc `MuaBao`, `PhuSa` | Ngày 5+ trong demo | Lũ lụt đổ bộ, sinh tồn trên nóc nhà, nước rút bồi đắp phù sa, tái thiết và tổng kết kết cục game. |
 
 ---
 

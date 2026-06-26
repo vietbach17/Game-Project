@@ -11,7 +11,8 @@ Tài liệu này cung cấp báo cáo ngữ cảnh mã nguồn toàn diện củ
 *   **Namespace chính**: `SownInStone`, `SownInStone.Core`, `SownInStone.Agriculture`, `SownInStone.Community`, `SownInStone.UI`, `SownInStone.Storage`, `SownInStone.Weather`, `SownInStone.Audio`, `SownInStone.Interactions`
 *   **Current Main Demo Scene**: [Village_Demo.unity](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scenes/Village_Demo.unity) (Build Index 0)
 *   **Input System**: Unity New Input System (`ENABLE_INPUT_SYSTEM`). **Cấm dùng `UnityEngine.Input` legacy** ngoại trừ trong GUI nội bộ.
-*   **Current Gameplay Direction**: Canh tác nông sản làm lương thực cứu tế, giúp đỡ bà con chòm xóm (Vần công), thắt chặt tình nghĩa làng xã (Nghĩa Tình score) để vượt qua 2 giai đoạn thiên tai chính.
+*   **Current Gameplay Direction**: Canh tác nông sản làm lương thực cứu tế, giúp đỡ bà con chòm xóm (Vần công), thắt chặt tình nghĩa làng xã (Nghĩa Tình score) để vượt qua **2 phase chính ở tầng thiết kế**: Phase 1 `Before the Storm` và Phase 2 `After the Storm`.
+*   **Runtime phase enum note**: Code hiện tại vẫn dùng các mốc enum chi tiết `LapNghiep`, `GioLao`, `ChuanBiBao`, `MuaBao`, `PhuSa`. Khi viết docs/design, hãy gom chúng vào 2 phase chính: `LapNghiep` + `GioLao` + `ChuanBiBao` = **Phase 1: Before the Storm**; `MuaBao` + `PhuSa` = **Phase 2: After the Storm**.
 
 ---
 
@@ -35,7 +36,7 @@ Tài liệu này cung cấp báo cáo ngữ cảnh mã nguồn toàn diện củ
 |--------|-------|
 | [PlayerController.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Core/PlayerController.cs) | Singleton. Di chuyển camera-relative, xoay nhân vật mượt, tương tác `[E]`, farming, flood roof survival, bulk planting dialog. interactRadius=2.5f. |
 | [CameraFollow3D.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Core/CameraFollow3D.cs) | Roblox-style orbit: RMB xoay, scroll zoom (3–9), SphereCast collision, SmoothDamp. Pitch 12°–55°, default 25°. |
-| [GameManager.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Core/GameManager.cs) | Singleton. Chu kỳ ngày/đêm, chuyển Phase, sự kiện `OnDayChanged` / `OnPhaseChanged`. 2 Phase: BeforeTheStorm / AfterTheStorm. |
+| [GameManager.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Core/GameManager.cs) | Singleton. Chu kỳ ngày/đêm, chuyển các mốc runtime `LapNghiep`, `GioLao`, `ChuanBiBao`, `MuaBao`, `PhuSa`, sự kiện `OnDayChanged` / `OnPhaseChanged`. Các mốc này được gom thành 2 phase chính trong design. |
 | [PlayerStats.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Core/PlayerStats.cs) | Singleton. Health, Stamina, Morale, Coins, HeatStress, ColdStress. |
 | [WanderingAnimal.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Core/WanderingAnimal.cs) | Hành vi đi loanh quanh ngẫu nhiên cho gà/chó. |
 
@@ -88,7 +89,7 @@ Tài liệu này cung cấp báo cáo ngữ cảnh mã nguồn toàn diện củ
 ### 3.8 `Assets/Scripts/Weather/`
 | Script | Mô tả |
 |--------|-------|
-| [WeatherManager.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Weather/WeatherManager.cs) | Singleton. Lerp Weather (BeforeTheStorm/AfterTheStorm), Temperature, Humidity, RainIntensity, FloodLevel, hạt mưa bám camera. 3D_Water_Plane instantiate runtime tại Y=-1.5f. |
+| [WeatherManager.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Weather/WeatherManager.cs) | Singleton. Lerp Weather theo các mốc runtime trong 2 phase chính, Temperature, Humidity, RainIntensity, FloodLevel, hạt mưa bám camera. 3D_Water_Plane instantiate runtime tại Y=-1.5f. |
 
 ### 3.9 `Assets/Scripts/Audio/`
 | Script | Mô tả |

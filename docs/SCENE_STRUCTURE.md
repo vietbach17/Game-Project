@@ -30,9 +30,9 @@ GameObject rỗng chứa tất cả Singleton managers:
 
 | Component Script | Namespace | Chức năng |
 |-----------------|-----------|-----------|
-| `GameManager` | `SownInStone.Core` | Chu kỳ ngày/đêm, chuyển Phase (BeforeTheStorm / AfterTheStorm), OnDayChanged, OnPhaseChanged |
+| `GameManager` | `SownInStone.Core` | Chu kỳ ngày/đêm, chuyển các mốc runtime `LapNghiep`, `GioLao`, `ChuanBiBao`, `MuaBao`, `PhuSa`, OnDayChanged, OnPhaseChanged. Design gom thành 2 phase chính: Before the Storm / After the Storm |
 | `PlayerStats` | `SownInStone.Core` | Health, Stamina, Morale, Coins, HeatStress, ColdStress |
-| `WeatherManager` | `SownInStone.Weather` | BeforeTheStorm / AfterTheStorm lerp, FloodLevel, hạt mưa |
+| `WeatherManager` | `SownInStone.Weather` | Lerp thời tiết theo các mốc runtime trong 2 phase chính, FloodLevel, hạt mưa |
 | `StorageManager` | `SownInStone.Storage` | Kho đồ: AddItem/RemoveItem, decay nông sản tươi |
 | `CommunityManager` | `SownInStone.Community` | GlobalKarma (Nghĩa Tình), VanCong, event completion tracking |
 | `EndingManager` | `SownInStone.UI` | IsEndingShown, 3 kết cục dựa trên Nghĩa Tình |

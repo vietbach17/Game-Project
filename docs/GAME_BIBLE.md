@@ -47,6 +47,8 @@ Sinh tồn ngập lũ & Tái thiết sau lũ (Phase 2: Sau Bão - Trồng vụ m
 ## 5. Phase Progression (Chu kỳ thiên tai 2 giai đoạn)
 *Tỷ lệ thời gian: 1 ngày game = 5 phút thực tế.*
 
+> **Quy ước hiện tại:** Ở tầng thiết kế và tài liệu gameplay, game chỉ có **2 phase chính**: `Before the Storm` và `After the Storm`. Ở tầng code, enum `GamePhase` vẫn chia nhỏ thành các mốc runtime `LapNghiep`, `GioLao`, `ChuanBiBao`, `MuaBao`, `PhuSa`; các mốc này chỉ là nhịp nội bộ để điều khiển thời tiết/sự kiện, không phải 5 phase thiết kế riêng biệt.
+
 1.  **Phase 1: Before the Storm (Trước Bão) [Ngày 1 - 4]:** Trải nghiệm ôn hòa của những ngày đầu lập nghiệp. Người chơi cuốc đất dọn đá trên lưới 4x3, gieo hạt, tưới nước bù ẩm, trò chuyện với cả 4 NPC (O Thắm, Bác Năm, Cụ Bảy, Bé Tí) để hoàn thành các mục tiêu hướng dẫn ban đầu, tích lũy công Vần công, gia cố nhà cửa và chuẩn bị lương thực dự trữ chống bão.
 2.  **Phase 2: After the Storm (Sau Bão) [Ngày 5+]:** Mưa bão cuồng phong và lũ lụt dâng cao ngập ruộng vườn. Người chơi phải leo lên nóc nhà để sinh tồn lánh nạn, ăn mì cứu trợ. Sau khi lũ rút, lớp đất Phù Sa màu mỡ tự động bồi đắp bồi dưỡng ruộng vườn (xóa đá, nâng cao dinh dưỡng) để người chơi cùng dân làng tái thiết và gieo trồng bội thu vụ mới (yield x2), đồng thời quyết định kết cục của câu chuyện.
 
