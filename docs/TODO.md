@@ -86,6 +86,7 @@ Tài liệu này tổng hợp tình trạng phát triển hiện tại và các 
 | Menu KeyCode legacy | Low | Chờ P1 fix sau |
 | TutorialManager auto-start | Medium | Cần wiring vào GameManager.Start() |
 | FloodBarrier chưa gameplay | Low | Item data đã sẵn sàng, chờ implement |
+| Cockfighting minigame mới merge | Medium | Cần quyết định giữ/bỏ. Hiện coi là experimental, không mở rộng nếu chưa chứng minh phục vụ trực tiếp Morale/cultural identity mà không làm lệch scope demo |
 
 ---
 

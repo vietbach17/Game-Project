@@ -73,6 +73,8 @@ Tài liệu này cung cấp báo cáo ngữ cảnh mã nguồn toàn diện củ
 | [Coracle.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Interactions/Coracle.cs) | Thuyền thúng: lên/xuống thuyền, di chuyển 2.5f, constraint biên lũ. |
 | [MudPuddle.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Interactions/MudPuddle.cs) | Vũng bùn: làm chậm tốc độ di chuyển. |
 | [FloodBarrier.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Interactions/FloodBarrier.cs) | Bao cát/tấm chắn lũ. |
+| [CockfightingZone.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Interactions/CockfightingZone.cs) | **Experimental / cần quyết định scope.** Khu vực prompt đá gà gần gà/Bé Tí, tự tạo `CockfightingMinigame` nếu thiếu. Không phải core loop sinh tồn cộng đồng. |
+| [CockfightingMinigame.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Interactions/CockfightingMinigame.cs) | **Experimental / cần quyết định scope.** Mini-game đá gà 3 hiệp bằng OnGUI, pause `Time.timeScale`, thắng +5 Morale. Cần cân nhắc vì dễ lệch khỏi guideline không combat/không minigame ngoài farming-cộng đồng-thiên tai. |
 
 ### 3.6 `Assets/Scripts/Interaction/` (Interface-based)
 | Script | Mô tả |
@@ -178,6 +180,7 @@ Dự án sử dụng **Unity New Input System** (`ENABLE_INPUT_SYSTEM`).
 *   **Camera góc hẹp**: SphereCast có thể thu ngắn camera đột ngột sát mái Thanh_House.
 *   **Menu Settings legacy KeyCode**: FrameworkMainMenuUI hiển thị gán phím dạng KeyCode thay vì InputAction.
 *   **Dialogue E/Space conflict**: [E] hiện chỉ đóng dialogue NPC, không mở. Tương tác NPC chỉ qua Proximity Panel.
+*   **Cockfighting experimental scope**: `CockfightingZone` / `CockfightingMinigame` đã tồn tại trong code sau merge remote, nhưng chưa được xác nhận là thuộc demo scope. Nếu giữ, nên đổi framing thành trò chơi dân gian phi bạo lực/hoạt động tinh thần rất nhỏ; nếu không, không mở rộng thêm và không đưa vào checklist demo chính.
 
 ---
 
