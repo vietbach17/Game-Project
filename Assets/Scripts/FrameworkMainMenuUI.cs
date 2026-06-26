@@ -94,6 +94,10 @@ namespace SownInStone
                 SownInStone.Audio.AudioManager.Instance?.PlayMusic("bgm_menu");
                 SownInStone.Audio.AudioManager.Instance?.StopAmbient();
 
+                // Đảm bảo con trỏ chuột luôn hiện ở màn hình sảnh
+                Cursor.lockState = CursorLockMode.None;
+                Cursor.visible   = true;
+
                 // Đảm bảo ẩn bảng điều khiển sinh tồn khi menu đang mở
 #if UNITY_2023_1_OR_NEWER
                 FrameworkDebugUI debugUI = FindAnyObjectByType<FrameworkDebugUI>();
