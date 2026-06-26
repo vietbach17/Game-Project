@@ -526,6 +526,11 @@ namespace SownInStone
             SownInStone.Audio.AudioManager.Instance?.StopAmbient();
             SownInStone.Audio.AudioManager.Instance?.PlayMusic("bgm_main");
 
+            // Khóa lại con trỏ chuột theo mode camera hiện tại khi vào game
+            SownInStone.Core.CameraFollow3D.Instance?.SetCameraMode(
+                SownInStone.Core.CameraFollow3D.Instance.CurrentMode
+            );
+
             // Kích hoạt phát âm thanh thời tiết thực tế sau khi vào game
             if (SownInStone.Weather.WeatherManager.Instance != null)
             {
@@ -572,6 +577,9 @@ namespace SownInStone
             SownInStone.Audio.AudioManager.Instance?.StopAmbient();
             SownInStone.Audio.AudioManager.Instance?.PlayMusic("bgm_menu");
             if (ambientWindAudio != null) ambientWindAudio.Play();
+
+            // Trả lại con trỏ chuột khi mở menu
+            SownInStone.Core.CameraFollow3D.Instance?.ReleaseCursor();
 
             // Ẩn UI sinh tồn để không bị đè lên Menu
             if (SownInStone.UI.SurvivalUIManager.Instance != null)
@@ -748,6 +756,71 @@ namespace SownInStone
                     PlayerPrefs.Save();
                 }
                 GUILayout.EndHorizontal();
+
+                // ── GÓC NHÌN CAMERA ───────────────────────────────────────
+                GUILayout.Space(10);
+                GUILayout.Label("<b>GÓC NHÌN CAMERA</b>", headerStyle);
+                GUILayout.Space(5);
+
+                GUIStyle camBtnStyle = new GUIStyle(GUI.skin.button);
+                camBtnStyle.fontSize    = 12;
+                camBtnStyle.fontStyle   = FontStyle.Bold;
+                camBtnStyle.fixedHeight = 32;
+
+                int savedCamMode = PlayerPrefs.GetInt("CameraMode", 0);
+
+                string[] camModeLabels = new string[]
+                {
+                    "📷 Góc nhìn thứ 3",
+                    "🎥 Góc nhìn cố định",
+                    "👁 Góc nhìn thứ nhất"
+                };
+                string[] camModeDesc = new string[]
+                {
+                    "Nhìn từ sau lưng Thành, kéo chuột phải để xoay.",
+                    "Camera đứng yên nhìn xuống theo góc isometric.",
+                    "Nhìn từ mắt Thành, chuột để xoay hướng nhìn."
+                };
+
+                GUILayout.BeginHorizontal();
+                for (int i = 0; i < 3; i++)
+                {
+                    bool isActive = (savedCamMode == i);
+                    GUI.backgroundColor = isActive ? new Color(0.9f, 0.7f, 0.2f, 1f) : Color.white;
+                    GUIStyle thisBtnStyle = new GUIStyle(camBtnStyle);
+                    if (isActive)
+                    {
+                        thisBtnStyle.normal.textColor  = Color.black;
+                        thisBtnStyle.fontStyle         = FontStyle.Bold;
+                    }
+                    if (GUILayout.Button(camModeLabels[i], thisBtnStyle))
+                    {
+                        SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
+                        PlayerPrefs.SetInt("CameraMode", i);
+                        PlayerPrefs.Save();
+                        // Áp dụng ngay lập tức nếu đang chơi
+                        if (SownInStone.Core.CameraFollow3D.Instance != null)
+                        {
+                            SownInStone.Core.CameraFollow3D.Instance.SetCameraMode(
+                                (SownInStone.Core.CameraFollow3D.CameraMode)i
+                            );
+                        }
+                    }
+                }
+                GUI.backgroundColor = Color.white;
+                GUILayout.EndHorizontal();
+
+                // Mô tả mode đang chọn
+                GUIStyle camDescStyle = new GUIStyle(labelStyle);
+                camDescStyle.fontStyle = FontStyle.Italic;
+                camDescStyle.normal.textColor = new Color(0.75f, 0.75f, 0.75f);
+                GUILayout.Label($"  ➤ {camModeDesc[savedCamMode]}", camDescStyle);
+
+                GUIStyle hintStyle = new GUIStyle(labelStyle);
+                hintStyle.normal.textColor = new Color(0.6f, 0.8f, 0.6f);
+                hintStyle.fontSize = 12;
+                GUILayout.Label("  Phím tắt [V] trong lúc chơi để chuyển góc nhìn nhanh.", hintStyle);
+                // ── KẾT THÚC GÓC NHÌN CAMERA ─────────────────────────────
 
                 GUILayout.Space(10);
                 GUILayout.Label("<b>TIẾN TRÌNH CHƠI</b>", headerStyle);
