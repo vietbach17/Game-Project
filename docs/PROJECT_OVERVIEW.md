@@ -1,52 +1,91 @@
 # Project Overview: Đất Cày Lên Sỏi Đá
 
-Dự án này là tài liệu tổng quan giới thiệu cấu trúc, định hướng thiết kế và giới hạn phạm vi phát triển của trò chơi dành cho Giảng viên hướng dẫn, thành viên trong nhóm, hoặc các AI Agent tiếp quản lập trình trong tương lai.
+Cập nhật: **2026-06-27**. Tài liệu này mô tả hướng đi và phạm vi hiện tại của source Unity sau các lần merge gần đây.
 
 ---
 
 ## 1. Academic Context & Project Goal
-* **Bối cảnh học thuật:** Dự án được phát triển dưới dạng bản Demo thử nghiệm môn học **PRU213** (Lập trình game với Unity).
-* **Mục tiêu dự án:** Phát triển một bản chơi thử (playable demo) chạy mượt mà trong vòng 2 tuần, chứng minh được vòng lặp gameplay cốt lõi (core loop) và truyền tải được thông điệp nghệ thuật - nhân văn sâu sắc.
-* **Điểm số tối ưu:** **Điểm nhấn chấm điểm mạnh nhất của trò chơi không nằm ở sự phức tạp của hệ thống kỹ thuật (system complexity), mà nằm ở bản sắc văn hóa Việt Nam rõ nét được diễn tả trực tiếp qua gameplay** (Nghĩa Tình, Vần công, Loa phát thanh xã, biến động bão lũ miền Trung).
+
+- **Bối cảnh:** Demo môn PRU213, phát triển bằng Unity 6.
+- **Mục tiêu:** Tạo playable demo ngắn về sinh tồn cộng đồng miền Trung: làm nông, tích trữ lương thực, giúp dân làng vượt thiên tai, tái thiết sau lũ.
+- **Điểm nhấn:** Bản sắc văn hóa Việt Nam trong gameplay: Nghĩa Tình, Vần công, loa phát thanh xã, bão lũ, bàn thờ tổ tiên, khoai gieo khô.
 
 ---
 
 ## 2. High Concept & Genre
-* **Tên trò chơi:** Đất Cày Lên Sỏi Đá / Sown in Stone
-* **Thể loại:** Narrative Community Survival Game with farming elements (Mô phỏng sinh tồn cộng đồng theo cốt truyện kết hợp yếu tố làm nông đơn giản).
-* **Tóm tắt cốt truyện:** Trò chơi kể về Thành, một người con xa xứ quay trở về quê hương miền Trung sau biến cố gia đình. Thay vì làm nông để làm giàu, người chơi phải cải tạo ruộng vườn cằn cỗi trên lưới 4x3 để thu hoạch lương thực cứu đói, giúp đỡ bà con chòm xóm vượt qua các giai đoạn thiên tai khắc nghiệt (mưa bão, lũ lụt), và chung tay tái thiết làng quê sau cơn lũ dữ.
+
+- **Tên game:** Đất Cày Lên Sỏi Đá / Sown in Stone
+- **Thể loại:** Narrative community survival game with farming elements.
+- **Vai trò người chơi:** Thành trở về quê miền Trung, cải tạo ruộng vườn và giúp bà con chống bão lũ.
+- **Core fantasy:** Không phải làm nông để làm giàu, mà làm nông để tích cốc phòng cơ và giữ làng qua thiên tai.
 
 ---
 
-## 3. Core Cultural Values
-Trò chơi lấy các giá trị văn hóa Việt Nam làm trung tâm điều phối cơ chế gameplay:
-* **Tình làng nghĩa xóm (Nghĩa Tình):** Đo lường sự tin tưởng của dân làng, tăng lên khi người chơi chia sẻ lương thực hoặc giúp việc tương trợ.
-* **Vần công:** Phương thức đổi công lao động truyền thống. Dùng công sức hỗ trợ hàng xóm lúc bình thường để đổi lấy sự chung tay giúp đỡ của cả cộng đồng khi hoạn nạn đổ bộ.
-* **Loa phát thanh xã:** Âm thanh cầu nối tin tức quen thuộc ở các vùng nông thôn, điều hướng nhịp sống và cảnh báo rủi ro thiên tai hằng ngày cho người chơi.
+## 3. Current Source Reality
+
+Source hiện tại đã có nhiều hệ thống gameplay và UI, nhưng một số phần đang ở trạng thái **prototype/compatibility** sau merge:
+
+### Đã có trong source
+
+- `GameManager`: ngày/giờ, enum phase runtime, event `OnDayChanged` / `OnPhaseChanged`, trigger bão qua `TriggerStormCrisis()`.
+- `WeatherManager`: `WeatherType`, nhiệt độ/độ ẩm/mưa/gió/mực nước lũ, lerp theo phase, spawn water plane nếu có prefab.
+- `SoilCell` + `CropInstance`: đất, độ ẩm, dinh dưỡng, sỏi đá, trồng cây, tăng trưởng theo ngày, úng/héo, thu hoạch.
+- `StorageManager` + `ItemData`: kho đồ runtime, add/remove item, decay nông sản tươi theo độ ẩm, chế biến đồ khô.
+- `CommunityManager` + `NPCCharacter`: Nghĩa Tình, Vần công, NPC theo loại nhân vật, thoại fallback theo phase, affection.
+- `SurvivalUIManager`: HUD, inventory, dialogue, choice buttons, toast, shop, weather/community panels, overlays.
+- `TutorialManager`: gate nói chuyện 4 NPC, checklist tutorial, callbacks dọn đá/gieo hạt/tưới nước.
+- Interactions: `AncestralAltar`, `KitchenHearth`, `Coracle`, `MudPuddle`, `FloodBarrier`.
+- Experimental: `CockfightingZone` / `CockfightingMinigame` đã tồn tại nhưng chưa thuộc core scope.
+
+### Đang thiếu hoặc chưa hoàn chỉnh
+
+- `PlayerController` hiện tại chủ yếu là flow sơ tán và compatibility wrappers; phần di chuyển/farming scan đầy đủ không còn nằm trong file này ở trạng thái hiện tại.
+- `WeatherManager` là bản tối giản: chưa có rain particle/ambient đầy đủ, chưa gắn world damage zones.
+- Save/load chỉ lưu một phần nhỏ qua menu; chưa lưu kho đồ, đất/cây, NPC, tutorial, flood barriers.
+- Các node roof refuge / wall repair / sandbag placement được docs cũ nhắc nhiều, nhưng source hiện tại chưa có hệ thống tương tác node hoàn chỉnh.
+- `CommunityManager.TriggerStormHelpSequence()` có logic nhưng chưa thấy wiring trực tiếp từ `GameManager` phase transition.
+- Tutorial slideshow trong `SurvivalUIManager` hiện là fallback toast/callback, chưa phải slideshow ảnh đầy đủ.
 
 ---
 
-## 4. Current Gameplay Direction
-Vòng lặp chơi thử tập trung kiểm nghiệm **2 giai đoạn thời tiết (Phases)** chính tương ứng với chu kỳ trải nghiệm (1 ngày game = 5 phút thực):
-1. **Phase 1: Before the Storm (Trước Bão) [Ngày 1–4]:** Làm quen với dân làng (hoàn thành IntroQuests gặp 4 NPC), cuốc đất dọn đá cải tạo lưới đất 4x3 (12 SoilCells), trồng trọt gieo hạt vụ khoai đầu tiên và gia cố nhà cửa để chuẩn bị đối phó bão.
-2. **Phase 2: After the Storm (Sau Bão) [Ngày 5+]:** Nước lũ dâng cao gây ngập úng ruộng vườn, Thành phải leo lên nóc nhà sinh tồn tránh lũ và nhận cứu trợ. Sau khi lũ rút, lớp đất Phù Sa màu mỡ tự động bồi đắp bồi dưỡng ruộng vườn (xóa đá, nâng cao dinh dưỡng) giúp tái thiết và trồng vụ khoai bội thu (sản lượng x2), đồng thời quyết định kết cục của trò chơi.
+## 4. Runtime Phase Model
+
+Code hiện dùng enum chi tiết:
+
+- `LapNghiep`
+- `GioLao`
+- `ChuanBiBao`
+- `MuaBao`
+- `PhuSa`
+- `EndGame`
+
+Thiết kế có thể gom lại thành 2 phase lớn để thuyết trình:
+
+- **Before the Storm:** `LapNghiep`, `GioLao`, `ChuanBiBao`
+- **Storm / After the Storm:** `MuaBao`, `PhuSa`
+
+Lưu ý: `GameManager.Update()` hiện chỉ tự chuyển `LapNghiep -> ChuanBiBao` vào ngày 3. `GioLao` tồn tại trong enum và UI/weather, nhưng chưa có lịch tự động trong `GameManager` hiện tại.
 
 ---
 
-## 5. Main Systems (Implemented or Planned)
-* **Player Controller 3D (Đã triển khai):** Di chuyển nhân vật, chạy nhanh tiêu hao thể lực, action locks khi thực hiện cuốc đất/tưới nước.
-* **Farming System (Đã triển khai):** Cuốc đất dọn đá cằn, gieo hạt tiêu hao tài nguyên hòm đồ trên lưới 4x3 (12 ô SoilCells), tưới nước ẩm đất và thu hoạch khoai tươi chín theo thời gian thực.
-* **Weather & Water Level Lerping (Đã triển khai):** Thay đổi thời tiết mượt mà, hạt mưa bão bám camera và mực nước lũ dâng ngập thực tế trong scene 3D ở Phase 2.
-* **Nghĩa Tình & Vần Công System (Đã triển khai mẫu):** Hệ thống tích lũy công đổi công và điểm cộng đồng quyết định kết cục trò chơi.
-* **Storage & Decay (Đã triển khai):** Kho chứa thực phẩm hỗ trợ cơ chế thối nông sản ẩm (fresh crop decay) dưới độ ẩm cao và chế biến khoai gieo khô dự trữ.
-* **NPC Dialogue & Interactive HUD (Đã triển khai):** Tương tác với cả 4 NPC (O Thắm, Bác Năm, Cụ Bảy, Bé Tí) mở menu thoại UI, thông báo HUD Toast khi thu hoạch hoặc có biến động thời tiết.
+## 5. Scope Guidelines
+
+Nên tập trung sửa cho demo chạy ổn thay vì mở rộng:
+
+- Ưu tiên compile sạch và scene mở được trong Unity.
+- Ưu tiên khôi phục `PlayerController` movement/farming interaction nếu đang mất do merge.
+- Giữ farming chỉ quanh khoai lang/hạt giống/khoai tươi/khoai khô.
+- Không mở rộng combat/minigame ngoài scope; cockfighting đang là experimental, không đưa vào core demo nếu chưa có quyết định.
+- Không xây save/load phức tạp trước khi core loop chạy lại đầy đủ.
 
 ---
 
-## 6. Scope Guidelines (What NOT to Overbuild)
-Để đảm bảo tiến độ hoàn thành đúng hạn trong phạm vi dự án PRU213, **tuyệt đối không mở rộng hoặc xây dựng quá phức tạp** các tính năng sau:
-* **Không làm Dialogue Trees phức tạp:** Chỉ sử dụng các đoạn hội thoại tuyến tính đơn giản hoặc bảng chọn nút bấm UI gọn nhẹ (Trò chuyện / Giúp đỡ / Trao đổi).
-* **Không làm hệ thống Save/Load đồ sộ:** Bản Demo chạy liên tục trong khoảng 20 phút chơi, không yêu cầu lưu trữ dữ liệu đa tầng giữa các lần chơi.
-* **Không thiết kế quá nhiều loại cây trồng:** Tập trung duy nhất vào cây Khoai Lang (Khoai tươi và Khoai gieo khô) để phục vụ cốt truyện cứu trợ.
-* **Không làm cơ chế Crafting lớn:** Không cần hệ thống ghép đồ phức tạp kiểu chế tạo vũ khí/nông cụ. Các tương tác chế biến nông sản (phơi sấy khoai khô) được thực hiện qua các nút bấm tương tác nhanh tại Bếp lò.
-* **Không xây dựng kinh tế phức tạp:** Tiền xu (Xu) chỉ giữ vai trò thứ cấp dùng để đổi công hoặc mua hạt giống ban đầu, loại bỏ các cơ chế đầu cơ, mua đi bán lại làm giàu.
+## 6. Recommended Demo Narrative
+
+1. Thành về quê, gặp dân làng.
+2. Dọn ruộng, gieo khoai, tưới nước, thu hoạch.
+3. Chế biến/tích trữ lương thực.
+4. Thắp nhang cầu an, bão/lũ kích hoạt.
+5. Sơ tán dân làng hoặc trú ẩn.
+6. Lũ rút, đất phù sa cải thiện ruộng.
+7. Kết cục dựa trên Nghĩa Tình.
