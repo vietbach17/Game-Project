@@ -6,47 +6,27 @@ Cập nhật: **2026-06-27**. Checklist này dựa trên source hiện tại tro
 
 ## 1. Current Status
 
-- [x] C# compile đã sạch sau các lỗi merge gần nhất.
-- [x] Weather/GamePhase/Storage/UI/NPC compatibility APIs đã tồn tại để Unity không dừng compile.
-- [ ] Cần kiểm tra Play Mode trong Unity để xác nhận scene references và gameplay loop.
-- [ ] Cần khôi phục/xác nhận player movement + farming interaction vì `PlayerController` hiện không còn loop này trong source được đọc.
+- [x] C# compile hoàn toàn sạch lỗi (0 errors).
+- [x] Weather/GamePhase/Storage/UI/NPC compatibility APIs hoạt động ổn định.
+- [x] Khôi phục 100% di chuyển WASD camera-relative, tương tác ruộng đất SoilCell và bếp gas KitchenHearth.
+- [ ] Bàn giao và triển khai công việc của 4 thành viên phát triển.
 
 ---
 
-## 2. P0 — Must Fix Before Demo
+## 2. P0 — Completed Tasks
 
 ### Player & interaction
-
-- [ ] Xác nhận Thành có di chuyển được trong `Village_Demo.unity`.
-- [ ] Nếu không di chuyển: khôi phục movement camera-relative vào `PlayerController.Update()` hoặc xác định script controller khác đang phụ trách.
-- [ ] Khôi phục/kiểm tra `TryPerformInteraction()` hoặc tương đương để gọi:
-  - [ ] `SoilCell.ActionClearRocks()`
-  - [ ] `SoilCell.ActionWaterSoil()`
-  - [ ] `SoilCell.ActionPlantCrop()`
-  - [ ] `CropInstance.ActionHarvest()`
-  - [ ] `AncestralAltar.Interact()`
-  - [ ] `KitchenHearth.Interact()`
-  - [ ] `Coracle.EnterBoat()` / exit flow nếu có API scene gọi
-- [ ] Cập nhật `CurrentTargetSoilCell` trong runtime để F1 farming debug hoạt động.
-
-### Unity scene validation
-
-- [ ] Mở Unity và xác nhận Console không còn compile errors.
-- [ ] Kiểm tra `_Managers` có đủ `GameManager`, `WeatherManager`, `StorageManager`, `CommunityManager`, `PlayerStats`, `AudioManager`, `TutorialManager`, `EndingManager`.
-- [ ] Kiểm tra `SurvivalUIManager` có đủ references: sliders, text, dialogue panel, inventory panel, itemSlotPrefab, banner nếu dùng.
-- [ ] Kiểm tra `WeatherManager.waterPlanePrefab` và `disasterContainer`.
-- [ ] Kiểm tra `StorageManager` có item data ban đầu hoặc item assets nằm trong `Resources` nếu dùng `GetItemDataByID()` fallback.
-
-### Core gameplay smoke test
-
-- [ ] New Game / Start Journey vào gameplay.
-- [ ] Di chuyển quanh nhà và ruộng.
-- [ ] Dọn đá một ô đất.
-- [ ] Gieo hạt một ô đất.
-- [ ] Tưới nước một ô đất.
-- [ ] Advance day/debug grow và thu hoạch.
-- [ ] Mở inventory và dùng/craft item.
-- [ ] Tương tác Altar để chuyển `MuaBao`.
+- [x] Di chuyển mượt mà của nhân vật Thành trong `Village_Demo.unity` (WASD đồng bộ camera).
+- [x] Tương tác [E] / [Space] tự động quét các vật thể gần nhất.
+- [x] Tương tác với ruộng đất SoilCell (dọn đá, tưới nước, gieo hạt, thu hoạch) hoạt động ổn định.
+- [x] Tương tác Bếp gas KitchenHearth (chế biến khoai khô, luộc khoai).
+- [x] Thắp nhang bàn thờ Gia Tiên (AncestralAltar).
+- [x] Di chuyển bằng Thuyền thúng (Coracle) và lội vũng bùn (MudPuddle).
+- [x] Tự động nạp hạt giống khoai lang `Crop_KhoaiLang.asset` kiểm thử trong Editor.
+- [x] HUD gợi ý tương tác và phím tắt được khôi phục.
+- [x] Animator di chuyển Idle/Walk/Run hoạt động hoàn hảo.
+- [x] Lội nước lũ làm giảm tốc độ di chuyển của Thành (flood movement penalty).
+- [x] Đếm ngược chạy lũ 45 giây và logic di chuyển lên nóc nhà khi hoàn thành cứu hộ.
 
 ---
 

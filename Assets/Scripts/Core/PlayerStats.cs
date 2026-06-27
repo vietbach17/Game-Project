@@ -135,8 +135,6 @@ namespace SownInStone.Core
             }
         }
 
-        public void RestoreMorale(float amount) => ModifyMorale(amount);
-
         /// <summary>
         /// Tăng hoặc giảm điểm stress nhiệt độ.
         /// </summary>

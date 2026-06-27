@@ -172,8 +172,6 @@ namespace SownInStone.Community
             Debug.Log($"[VẦN CÔNG] Thay đổi công nợ đổi công với {NPCName}: {vanCongCredits} công.");
         }
 
-        public StoryCharacterType CharacterType => characterType;
-
         public string NPCName
         {
             get

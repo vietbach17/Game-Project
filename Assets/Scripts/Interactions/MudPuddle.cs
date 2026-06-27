@@ -17,7 +17,7 @@ namespace SownInStone.Interactions
         {
             if (GameManager.Instance != null)
             {
-                GameManager.OnPhaseChanged += OnPhaseChangedHandler;
+                GameManager.Instance.OnPhaseChanged += OnPhaseChangedHandler;
                 UpdateVisibility(GameManager.Instance.CurrentPhase);
             }
             else
@@ -30,7 +30,7 @@ namespace SownInStone.Interactions
         {
             if (GameManager.Instance != null)
             {
-                GameManager.OnPhaseChanged -= OnPhaseChangedHandler;
+                GameManager.Instance.OnPhaseChanged -= OnPhaseChangedHandler;
             }
         }
 

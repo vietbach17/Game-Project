@@ -1,7 +1,6 @@
 using UnityEngine;
 using SownInStone.Core;
 using SownInStone.Weather;
-using SownInStone.UI;
 
 namespace SownInStone.Agriculture
 {
@@ -97,8 +96,8 @@ namespace SownInStone.Agriculture
             // Lắng nghe ngày mới trôi qua để cập nhật sinh học của đất
             if (GameManager.Instance != null)
             {
-                GameManager.OnDayChanged += OnNewDay;
-                GameManager.OnPhaseChanged += OnPhaseChanged;
+                GameManager.Instance.OnDayChanged += OnNewDay;
+                GameManager.Instance.OnPhaseChanged += OnPhaseChanged;
             }
             UpdateVisuals();
         }
@@ -107,8 +106,8 @@ namespace SownInStone.Agriculture
         {
             if (GameManager.Instance != null)
             {
-                GameManager.OnDayChanged -= OnNewDay;
-                GameManager.OnPhaseChanged -= OnPhaseChanged;
+                GameManager.Instance.OnDayChanged -= OnNewDay;
+                GameManager.Instance.OnPhaseChanged -= OnPhaseChanged;
             }
         }
 

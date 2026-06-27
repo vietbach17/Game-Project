@@ -50,7 +50,7 @@ namespace SownInStone.Storage
         {
             if (GameManager.Instance != null)
             {
-                GameManager.OnDayChanged += OnNewDayDecayCheck;
+                GameManager.Instance.OnDayChanged += OnNewDayDecayCheck;
             }
         }
 
@@ -58,7 +58,7 @@ namespace SownInStone.Storage
         {
             if (GameManager.Instance != null)
             {
-                GameManager.OnDayChanged -= OnNewDayDecayCheck;
+                GameManager.Instance.OnDayChanged -= OnNewDayDecayCheck;
             }
         }
 
@@ -105,22 +105,6 @@ namespace SownInStone.Storage
         }
 
         public List<InventorySlot> GetStorageSlots() => storageSlots;
-
-        public ItemData GetItemDataByID(string itemID)
-        {
-            InventorySlot slot = storageSlots.Find(s => s.item != null && s.item.ItemID == itemID);
-            if (slot != null) return slot.item;
-
-            ItemData[] items = Resources.LoadAll<ItemData>(string.Empty);
-            return System.Array.Find(items, item => item != null && item.ItemID == itemID);
-        }
-
-        public int GetItemQuantity(ItemData item)
-        {
-            if (item == null) return 0;
-            InventorySlot slot = storageSlots.Find(s => s.item != null && s.item.ItemID == item.ItemID);
-            return slot != null ? slot.quantity : 0;
-        }
 
         #endregion
 

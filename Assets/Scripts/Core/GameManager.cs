@@ -1,42 +1,64 @@
 using System;
 using UnityEngine;
-using SownInStone.UI;
-using SownInStone.Weather;
-
-namespace System.Runtime.CompilerServices
-{
-    internal class IsExternalInit { }
-}
 
 namespace SownInStone.Core
 {
+    /// <summary>
+    /// Các giai đoạn chính của cốt truyện và gameplay mô phỏng sinh tồn miền Trung.
+    /// </summary>
     public enum GamePhase
     {
-        LapNghiep,      // Mốc bắt đầu làm nông (Phase 1)
-        GioLao,         // Mốc nắng hạn gió Lào (Phase 2)
-        ChuanBiBao,     // Mốc nhận biết thời tiết xấu (Phase 2)
-        MuaBao,         // Siêu sự kiện bão lũ dâng cao + Chạy lũ (Chuyển tiếp)
-        PhuSa,          // Nước rút, tái thiết trên đất phù sa (Phase 2)
-        EndGame         // Kết thúc đánh giá Nghĩa Tình
+        LapNghiep,  // Giai đoạn 1: Khởi đầu phục hồi bờ cõi, cải tạo đất
+        GioLao,     // Giai đoạn 2: Nắng cháy, Gió Tây Nam cực độ hạn hán
+        ChuanBiBao, // Giai đoạn trung gian: Chuẩn bị bão, loa phát thanh báo bão
+        MuaBao,     // Giai đoạn 3: Bão lũ cuồng phong, nước sông dâng cô lập
+        PhuSa       // Giai đoạn 4: Phù sa sau lũ, tái thiết và mừng công
     }
 
+    /// <summary>
+    /// Điều phối chính toàn bộ vòng lặp thời gian (Ngày/Giờ), quản lý giai đoạn game
+    /// và thông báo các thay đổi quan trọng đến hệ thống khác.
+    /// </summary>
     public class GameManager : MonoBehaviour
     {
         public static GameManager Instance { get; private set; }
 
-        [Header("Time Configurations")]
+        [Header("--- THỜI GIAN TRONG GAME ---")]
+        [Tooltip("Số ngày hiện tại đã trôi qua kể từ khi trở về quê.")]
         [SerializeField] private int currentDay = 1;
-        [SerializeField] private float timeOfDay = 8f; // 8h sáng
-        [SerializeField] private float dayLengthInSeconds = 300f; // 1 ngày = 5 phút thực
+        
+        [Tooltip("Giờ hiện tại trong ngày (0 - 23).")]
+        [SerializeField] private float currentHour = 6f; // Bắt đầu lúc 6:00 sáng
+        
+        [Tooltip("Tốc độ trôi thời gian (Số giây ngoài đời thực cho 1 giờ trong game). Cài đặt 12.5f giây tương ứng 1 ngày = 5 phút thực tế.")]
+        [SerializeField] private float secondsPerGameHour = 12.5f; 
 
-        [Header("Phase Settings")]
+        [Header("--- GIAI ĐOẠN GAME ---")]
+        [Tooltip("Giai đoạn game hiện tại.")]
         [SerializeField] private GamePhase currentPhase = GamePhase.LapNghiep;
 
-        // Sự kiện thông báo toàn hệ thống
-        public static event Action<int> OnDayChanged;
-        public static event Action<GamePhase> OnPhaseChanged;
+        [Header("--- THIẾT LẬP MỐC CHUYỂN GIAI ĐOẠN ---")]
+        [Tooltip("Số ngày bước vào để chuyển sang Gió Lào (Đầu ngày này sẽ chuyển).")]
+        [SerializeField] private int lapNghiepDaysLimit = 8;
+        
+        [Tooltip("Số ngày bước vào để chuyển sang Chuẩn bị bão (Đầu ngày này sẽ chuyển).")]
+        [SerializeField] private int gioLaoDaysLimit = 15;
 
-        private bool isTimerRunning = true;
+        [Tooltip("Số ngày bước vào để chuyển sang Mùa Bão (Đầu ngày này sẽ chuyển).")]
+        [SerializeField] private int chuanBiBaoDaysLimit = 18;
+        
+        [Tooltip("Số ngày bước vào để chuyển sang Phù Sa (Đầu ngày này sẽ chuyển).")]
+        [SerializeField] private int muaBaoDaysLimit = 23;
+
+        [Tooltip("Số ngày bước vào để kết thúc game và hiện Ending screen.")]
+        [SerializeField] private int endingDayLimit = 8;
+
+        // Sự kiện thông báo khi chuyển giai đoạn, đổi ngày mới, đổi giờ
+        public event Action<GamePhase> OnPhaseChanged;
+        public event Action<int> OnDayChanged;
+        public event Action<int> OnHourChanged; // Gửi giờ chẵn (int) phục vụ hiệu ứng ánh sáng / AI sinh hoạt
+
+        private int lastTriggeredHour = -1;
 
         private void Awake()
         {
@@ -51,93 +73,160 @@ namespace SownInStone.Core
             }
         }
 
-        private void Start()
-        {
-            // Phát sự kiện khởi tạo ban đầu để HUD cập nhật hiển thị
-            OnDayChanged?.Invoke(currentDay);
-            OnPhaseChanged?.Invoke(currentPhase);
-        }
-
         private void Update()
         {
-            if (!isTimerRunning) return;
+            UpdateGameTime();
+        }
 
-            // Đồng hồ đếm thời gian hằng ngày
-            timeOfDay += (Time.deltaTime / dayLengthInSeconds) * 24f;
+        /// <summary>
+        /// Cập nhật thời gian trôi của một ngày.
+        /// </summary>
+        private void UpdateGameTime()
+        {
+            currentHour += Time.deltaTime / secondsPerGameHour;
 
-            if (timeOfDay >= 24f)
+            if (currentHour >= 24f)
             {
-                timeOfDay = 0f;
+                currentHour -= 24f;
                 currentDay++;
                 OnDayChanged?.Invoke(currentDay);
+                
+                // Kiểm tra điều kiện tự động chuyển Phase cốt truyện nếu đạt mốc ngày
+                CheckPhaseTransitionProgress();
+            }
 
-                // Tự động chuyển mốc chuẩn bị bão vào ngày 3 nếu chưa thắp nhang
-                if (currentDay == 3 && currentPhase == GamePhase.LapNghiep)
+            // Kích hoạt sự kiện giờ chẵn
+            int hourInt = Mathf.FloorToInt(currentHour);
+            if (hourInt != lastTriggeredHour)
+            {
+                lastTriggeredHour = hourInt;
+                OnHourChanged?.Invoke(hourInt);
+            }
+        }
+
+        /// <summary>
+        /// Kiểm tra mốc ngày trôi qua để chuyển tiếp giai đoạn cốt truyện chính.
+        /// Các giá trị ngày này có thể cấu hình lại dễ dàng trong Inspector.
+        /// </summary>
+        private void CheckPhaseTransitionProgress()
+        {
+            if (currentDay == lapNghiepDaysLimit && currentPhase == GamePhase.LapNghiep)
+            {
+                TransitionToPhase(GamePhase.GioLao);
+            }
+            else if (currentDay == gioLaoDaysLimit && currentPhase == GamePhase.GioLao)
+            {
+                TransitionToPhase(GamePhase.ChuanBiBao);
+            }
+            else if (currentDay == chuanBiBaoDaysLimit && currentPhase == GamePhase.ChuanBiBao)
+            {
+                TransitionToPhase(GamePhase.MuaBao);
+            }
+            else if (currentDay == muaBaoDaysLimit && currentPhase == GamePhase.MuaBao)
+            {
+                TransitionToPhase(GamePhase.PhuSa);
+            }
+
+            if (currentDay >= endingDayLimit)
+            {
+                if (SownInStone.UI.EndingManager.Instance != null)
                 {
-                    TransitionToPhase(GamePhase.ChuanBiBao);
+                    SownInStone.UI.EndingManager.Instance.ShowEnding();
                 }
             }
         }
 
         /// <summary>
-        /// Hàm cốt lõi: Trigger bão khẩn cấp gọi trực tiếp từ AncestralAltar.cs sau khi thắp nhang
-        /// </summary>
-        public void TriggerStormCrisis()
-        {
-            if (currentPhase == GamePhase.LapNghiep || currentPhase == GamePhase.ChuanBiBao)
-            {
-                Debug.Log("[GameManager] Nghi thức cầu an hoàn tất. Kích hoạt siêu sự kiện bão lũ khẩn cấp!");
-                TransitionToPhase(GamePhase.MuaBao);
-            }
-        }
-
-        /// <summary>
-        /// Hàm chuyển đổi Giai đoạn toàn cục
+        /// Kích hoạt chuyển đổi giai đoạn game thủ công hoặc tự động.
         /// </summary>
         public void TransitionToPhase(GamePhase newPhase)
         {
             currentPhase = newPhase;
+            
+            // Cập nhật ngày tương ứng với giai đoạn để đồng bộ UI và progression
+            if (newPhase == GamePhase.LapNghiep) currentDay = 1;
+            else if (newPhase == GamePhase.GioLao) currentDay = 3;
+            else if (newPhase == GamePhase.MuaBao) currentDay = 5;
+            else if (newPhase == GamePhase.PhuSa) currentDay = 7;
+
+            OnDayChanged?.Invoke(currentDay);
             OnPhaseChanged?.Invoke(currentPhase);
 
-            // Điều phối thời tiết và HUD tương ứng theo từng mốc
-            switch (currentPhase)
+            // Tự động phủ phù sa cho toàn bộ ruộng đất khi chuyển sang GĐ Phù Sa
+            if (newPhase == GamePhase.PhuSa)
             {
-                case GamePhase.MuaBao:
-                    // Dừng đồng hồ ngày/đêm để tập trung vào gameplay đếm ngược sinh tồn
-                    isTimerRunning = false;
-                    // Bật đồng hồ đếm ngược 45 giây chạy lũ trên HUD
-                    if (SurvivalUIManager.Instance != null)
+                var soils = FindObjectsByType<SownInStone.Agriculture.SoilCell>(FindObjectsInactive.Exclude);
+                foreach (var s in soils)
+                {
+                    if (s != null)
                     {
-                        SurvivalUIManager.Instance.StartEvacuationCountdown(45f);
+                        s.quality = SownInStone.Agriculture.SoilQuality.PhuSa;
+                        s.Nutrients = 100f;
+                        s.RockDensity = 0f;
+                        s.UpdateVisuals();
                     }
-                    break;
+                }
+                Debug.Log($"[GAME MANAGER] Đã tự động bồi đắp PHÙ SA và dọn sạch sỏi đá cho {soils.Length} ô đất.");
+            }
+            
+            // Play phase change warning chime
+            SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_warning");
 
-                case GamePhase.PhuSa:
-                    // Nước rút, trả lại chu kỳ ngày đêm để bà con tái thiết làng quê
-                    Time.timeScale = 1f;
-                    isTimerRunning = true;
-                    break;
+            Debug.Log($"[GAME MANAGER] Chuyển sang Giai Đoạn: {newPhase.ToString()}, Ngày: {currentDay}");
+        }
+
+        /// <summary>
+        /// Tua nhanh thời gian trong game theo số giờ truyền vào.
+        /// Tự động cập nhật chuyển phase và kích hoạt OnHourChanged qua mỗi mốc giờ chẵn.
+        /// </summary>
+        public void AdvanceTime(float hours)
+        {
+            float timeToAdvance = hours;
+            while (timeToAdvance > 0f)
+            {
+                float step = Mathf.Min(timeToAdvance, 1f); // Xử lý tối đa 1 giờ mỗi bước
+                currentHour += step;
+                timeToAdvance -= step;
+
+                if (currentHour >= 24f)
+                {
+                    currentHour -= 24f;
+                    currentDay++;
+                    OnDayChanged?.Invoke(currentDay);
+                    CheckPhaseTransitionProgress();
+                }
+
+                int newHourInt = Mathf.FloorToInt(currentHour);
+                if (newHourInt != lastTriggeredHour)
+                {
+                    lastTriggeredHour = newHourInt;
+                    OnHourChanged?.Invoke(newHourInt);
+                }
             }
         }
 
-        // Các hàm Getter hỗ trợ kiểm tra dữ liệu runtime
-        public void RestoreSaveState(int savedDay, float savedTimeOfDay, GamePhase savedPhase)
+        public void RestoreSaveState(int day, GamePhase phase)
         {
-            currentDay = savedDay;
-            timeOfDay = savedTimeOfDay;
-            TransitionToPhase(savedPhase);
+            currentDay = day;
+            currentPhase = phase;
             OnDayChanged?.Invoke(currentDay);
+            OnPhaseChanged?.Invoke(currentPhase);
+            Debug.Log($"[GAME MANAGER] Khôi phục tiến trình từ Save: Ngày {currentDay}, Giai đoạn {currentPhase}");
         }
 
-        public void RestoreSaveState(int savedDay, GamePhase savedPhase)
-        {
-            RestoreSaveState(savedDay, 8f, savedPhase);
-        }
-
+        #region GETTERS VÀ SETTERS CƠ BẢN
         public int CurrentDay => currentDay;
-        public float TimeOfDay => timeOfDay;
-        public float CurrentHour => timeOfDay;
+        public float CurrentHour => currentHour;
         public GamePhase CurrentPhase => currentPhase;
-        public bool IsBeforeStorm => currentPhase == GamePhase.LapNghiep || currentPhase == GamePhase.GioLao || currentPhase == GamePhase.ChuanBiBao;
+        
+        /// <summary>
+        /// Kiểm tra xem hiện tại có phải là khoảng thời gian làm việc an toàn trong mùa hè hay không.
+        /// Giữa trưa (11h - 15h) mùa Gió Lào cực kỳ khắc nghiệt.
+        /// </summary>
+        public bool IsDangerousNoon()
+        {
+            return currentPhase == GamePhase.GioLao && (currentHour >= 11f && currentHour <= 15f);
+        }
+        #endregion
     }
 }

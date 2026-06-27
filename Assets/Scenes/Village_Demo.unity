@@ -2697,6 +2697,15 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   cameraRadius: 0.2
+  fixedHeight: 12
+  fixedZOffset: -8
+  fixedPitch: 50
+  fixedFollowSpeed: 4
+  eyeHeight: 1.65
+  fpsFOV: 75
+  fpsYawSensitivity: 2
+  fpsPitchSensitivity: 2
+  fpsPitchClamp: 80
 --- !u!1001 &338167889
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -6832,11 +6841,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2b0017994526b8c4eb289805042849f3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SownInStone.Interactions.AncestralAltar
-  AltarName: "B\xE0n th\u1EDD Gia ti\xEAn"
-  incenseItem: {fileID: 11400000, guid: f0001001000100010001000100010003, type: 2}
-  burnDurationHours: 3
-  moraleRestoreRate: 2
-  smokeParticles: {fileID: 0}
+  moraleReward: 10
 --- !u!4 &923161170
 Transform:
   m_ObjectHideFlags: 0
@@ -12981,23 +12986,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bad5417c49fd4554f94a37e1434b88e4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SownInStone.Core.PlayerController
-  walkSpeed: 3
-  runSpeed: 6
   moveSpeed: 4
-  digActionDuration: 1.2
-  waterActionDuration: 1.2
-  plantActionDuration: 1
-  harvestActionDuration: 1.2
-  characterVisual: {fileID: 341157520}
-  rotationSpeed: 10
-  rotationAxis: 1
+  runSpeedMultiplier: 1.5
   interactRadius: 2.5
-  interactableLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  testSeedData: {fileID: 11400000, guid: f0001001000100010001000100010004, type: 2}
-  seedItem: {fileID: 0}
-  noodlesItem: {fileID: 0}
   keyMoveUp: 119
   keyMoveDown: 115
   keyMoveLeft: 97
@@ -13732,13 +13723,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: db6e2d3ef9caf344193cab2ba204b65d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SownInStone.Weather.WeatherManager
+  waterPlanePrefab: {fileID: 0}
+  disasterContainer: {fileID: 0}
+  temperature: 28.5
+  humidity: 65
+  rainIntensity: 0
+  floodLevel: -1.5
+  windSpeed: 8
   currentVisualWeather: 0
-  Temperature: 28
-  Humidity: 75
-  WindSpeed: 10
-  RainIntensity: 0
-  FloodLevel: 0
-  floodRiseRatePerHour: 0.15
+  floodRiseSpeed: 0.15
+  weatherChangeSpeed: 0.35
 --- !u!114 &1753416132
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -13768,14 +13762,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SownInStone.Core.GameManager
   currentDay: 1
-  currentHour: 6
-  secondsPerGameHour: 30
+  timeOfDay: 8
+  dayLengthInSeconds: 300
   currentPhase: 0
-  lapNghiepDaysLimit: 3
-  gioLaoDaysLimit: 5
-  chuanBiBaoDaysLimit: 18
-  muaBaoDaysLimit: 7
-  endingDayLimit: 8
 --- !u!4 &1753416134
 Transform:
   m_ObjectHideFlags: 0

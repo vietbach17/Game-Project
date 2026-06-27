@@ -59,8 +59,6 @@ namespace SownInStone.Community
             Debug.Log($"[COMMUNITY] Điểm Nghĩa Tình (Karma) toàn cầu thay đổi: {globalKarmaPoints}");
         }
 
-        public void AddKarma(int amount) => ModifyGlobalKarma(amount);
-
         public int GlobalKarma => globalKarmaPoints;
 
         /// <summary>

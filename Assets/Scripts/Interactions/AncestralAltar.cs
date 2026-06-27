@@ -1,79 +1,159 @@
 using UnityEngine;
 using SownInStone.Core;
-using SownInStone.UI;
 using SownInStone.Storage;
 
 namespace SownInStone.Interactions
 {
+    /// <summary>
+    /// Bàn thờ Tổ tiên trong nhà hoặc Am thờ Thổ Địa ngoài sân vườn.
+    /// Tương tác thắp nhang giúp phục hồi Morale (Tinh thần) và giảm hoảng sợ cho người chơi trước bão lũ.
+    /// </summary>
     public class AncestralAltar : MonoBehaviour
     {
-        [Header("Altar Settings")]
-        [SerializeField] private int moraleReward = 10; // Điểm tinh thần hồi phục
-        private bool isIncenseBurning;
+        [Header("--- THÔNG TIN TƯƠNG TÁC ---")]
+        public string AltarName = "Bàn thờ Gia tiên";
+        
+        [Tooltip("Vật phẩm nhang cần có trong kho để thắp.")]
+        [SerializeField] private ItemData incenseItem;
 
-        public bool IsIncenseBurning => isIncenseBurning;
-        public void ActionBurnIncense() => Interact();
+        [Header("--- TRẠNG THÁI KHÓI NHANG ---")]
+        [Tooltip("Số giờ game nhang sẽ cháy sau khi thắp.")]
+        [SerializeField] private float burnDurationHours = 3f;
+        
+        [Tooltip("Thời gian nhang còn cháy lại (giờ game).")]
+        private float remainingBurnTime = 0f;
 
-        /// <summary>
-        /// Hàm tương tác chính thức: Gọi khi Player đứng trong vùng Trigger của Altar và nhấn [E]
-        /// </summary>
-        public void Interact()
+        [Header("--- HIỆU ỨNG TÁC ĐỘNG ---")]
+        [Tooltip("Tốc độ phục hồi Tinh thần (Morale) mỗi giây thực tế khi nhang đang cháy.")]
+        [SerializeField] private float moraleRestoreRate = 2f;
+
+        [Tooltip("Hạt khói nhang (Unity Particle System).")]
+        [SerializeField] private ParticleSystem smokeParticles;
+
+#if UNITY_EDITOR
+        private void Awake()
         {
-            // 1. Kiểm tra xem người chơi đã hoàn thành giai đoạn 1 của Tutorial chưa (Gặp đủ 4 NPC)
-            if (TutorialManager.Instance != null && !TutorialManager.Instance.IsTutorialCompleted)
+            if (incenseItem == null)
             {
-                if (TutorialManager.Instance.CurrentState == TutorialState.IntroQuests)
-                {
-                    SurvivalUIManager.Instance.ShowHUDToast("Không thể thắp nhang! Hãy đi thăm hỏi đủ 4 dân làng trước.");
-                    return;
-                }
+                incenseItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Incense.asset");
+            }
+        }
+#endif
+
+        private void Start()
+        {
+            if (smokeParticles != null)
+            {
+                smokeParticles.Stop();
             }
 
-            // 2. Chặn tương tác nếu bão lũ đang diễn ra hoặc đã qua bão
-            if (GameManager.Instance != null && !GameManager.Instance.IsBeforeStorm)
+            if (GameManager.Instance != null)
             {
-                SurvivalUIManager.Instance.ShowHUDToast("Bàn thờ gia tiên đã được thắp nhang cầu an từ trước bão.");
-                return;
+                GameManager.Instance.OnHourChanged += OnHourTick;
             }
+        }
 
-            // 3. Tiến hành kiểm tra vật phẩm Nhang Cúng trong kho đồ của StorageManager
-            ItemData incenseData = StorageManager.Instance.GetItemDataByID("item_incense");
-
-            if (incenseData == null)
+        private void OnDestroy()
+        {
+            if (GameManager.Instance != null)
             {
-                SurvivalUIManager.Instance.ShowHUDToast("Không tìm thấy dữ liệu vật phẩm Nhang cúng!");
-                return;
+                GameManager.Instance.OnHourChanged -= OnHourTick;
             }
+        }
 
-            int ownedIncense = StorageManager.Instance.GetItemQuantity(incenseData);
-
-            if (ownedIncense > 0)
+        private void Update()
+        {
+            // Nếu nhang đang cháy, phục hồi tinh thần cho người chơi
+            if (remainingBurnTime > 0f)
             {
-                // Thực hiện tiêu hao 1 cây nhang cúng trong túi đồ
-                StorageManager.Instance.RemoveItem(incenseData, 1);
-
-                // Hồi phục +10 điểm Tinh thần (Morale) cho người chơi, clamp tối đa 100
                 if (PlayerStats.Instance != null)
                 {
-                    PlayerStats.Instance.RestoreMorale(moraleReward);
+                    PlayerStats.Instance.ModifyMorale(moraleRestoreRate * Time.deltaTime);
                 }
+            }
+        }
 
-                isIncenseBurning = true;
-
-                // Phát thông báo Toast Regex tôn kính lên HUD góc màn hình
-                SurvivalUIManager.Instance.ShowHUDToast("Thành thắp nén nhang cầu an cho làng xã. +10 Tinh thần");
-
-                // --- TRIGGER CỐT LÕI: Gọi GameManager ép hệ thống sập bão và dâng nước lũ tức thì ---
-                if (GameManager.Instance != null)
+        /// <summary>
+        /// Hành động tương tác thắp nhang từ người chơi.
+        /// </summary>
+        public bool ActionBurnIncense()
+        {
+            if (remainingBurnTime > 0f)
+            {
+                Debug.Log($"[{AltarName}] Nhang vẫn đang cháy ấm cúng, khói thơm nghi ngút.");
+                if (SownInStone.UI.SurvivalUIManager.Instance != null)
                 {
-                    GameManager.Instance.TriggerStormCrisis();
+                    SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast("Nhang vẫn đang cháy ấm cúng, khói thơm nghi ngút.");
+                }
+                return false;
+            }
+
+            // Kiểm tra và khấu trừ 1 cây nhang trong kho đồ
+            if (StorageManager.Instance != null && incenseItem != null)
+            {
+                if (StorageManager.Instance.RemoveItem(incenseItem, 1))
+                {
+                    remainingBurnTime = burnDurationHours;
+                    
+                    if (smokeParticles != null)
+                    {
+                        smokeParticles.Play();
+                    }
+
+                    // Tăng nóng hổi 10 điểm tinh thần ngay lập tức khi thắp nhang
+                    if (PlayerStats.Instance != null)
+                    {
+                        PlayerStats.Instance.ModifyMorale(10f);
+                    }
+                    
+                    SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_altar");
+                    Debug.Log($"[{AltarName}] Bạn thắp nhang cúi đầu cầu nguyện bình an. Khói nhang tỏa hương ấm cúng, xua tan hoảng sợ bão giông.");
+                    
+                    if (SownInStone.UI.SurvivalUIManager.Instance != null)
+                    {
+                        SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast("Bạn thắp nhang thành kính cầu nguyện tổ tiên. +10 Tinh thần");
+                    }
+                    return true;
+                }
+                else
+                {
+                    Debug.LogWarning($"[{AltarName}] Bạn không có Nhang (Incense) để thắp cúng lễ!");
+                    if (SownInStone.UI.SurvivalUIManager.Instance != null)
+                    {
+                        SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast("Không đủ Nhang cúng để thực hiện hành động này!");
+                    }
                 }
             }
             else
             {
-                // Thông báo báo đỏ cảnh báo tài nguyên thiếu hụt
-                SurvivalUIManager.Instance.ShowHUDToast("Không đủ vật phẩm! Bạn cần có Nhang Cúng trong kho đồ.");
+                // Fallback check if incenseItem is somehow not initialized
+                if (SownInStone.UI.SurvivalUIManager.Instance != null)
+                {
+                    SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast("Không đủ Nhang cúng để thực hiện hành động này!");
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Tick mỗi giờ game trôi qua để giảm thời gian cháy của nhang.
+        /// </summary>
+        private void OnHourTick(int currentHour)
+        {
+            if (remainingBurnTime > 0f)
+            {
+                remainingBurnTime = Mathf.Max(0f, remainingBurnTime - 1f);
+                if (remainingBurnTime <= 0f)
+                {
+                    if (smokeParticles != null)
+                    {
+                        smokeParticles.Stop();
+                    }
+                    Debug.Log($"[{AltarName}] Nhang đã tàn.");
+                }
             }
         }
+
+        public bool IsIncenseBurning => remainingBurnTime > 0f;
     }
 }
