@@ -277,7 +277,7 @@ namespace SownInStone.Agriculture
 
             if (GameManager.Instance != null)
             {
-                GameManager.Instance.OnDayChanged += OnNewDayTick;
+                GameManager.OnDayChanged += OnNewDayTick;
             }
         }
 
@@ -285,7 +285,7 @@ namespace SownInStone.Agriculture
         {
             if (GameManager.Instance != null)
             {
-                GameManager.Instance.OnDayChanged -= OnNewDayTick;
+                GameManager.OnDayChanged -= OnNewDayTick;
             }
             Cleanup3DVisual();
         }

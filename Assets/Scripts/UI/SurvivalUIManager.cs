@@ -243,7 +243,7 @@ namespace SownInStone.UI
             }
             if (GameManager.Instance != null)
             {
-                GameManager.Instance.OnPhaseChanged += TriggerPhaseAnnouncement;
+                GameManager.OnPhaseChanged += TriggerPhaseAnnouncement;
             }
             if (PlayerStats.Instance != null)
             {
@@ -259,7 +259,7 @@ namespace SownInStone.UI
             }
             if (GameManager.Instance != null)
             {
-                GameManager.Instance.OnPhaseChanged -= TriggerPhaseAnnouncement;
+                GameManager.OnPhaseChanged -= TriggerPhaseAnnouncement;
             }
             if (PlayerStats.Instance != null)
             {
@@ -2558,6 +2558,32 @@ namespace SownInStone.UI
             {
                 ShowHUDToast($"Không có {item.ItemName} để bán!");
             }
+        }
+
+        public void StartEvacuationCountdown(float seconds)
+        {
+            ShowHUDToast($"Nước lũ đang dâng! Còn {Mathf.CeilToInt(seconds)} giây để sơ tán dân làng.");
+        }
+
+        public void ShowFarmingTutorialSlideshow(System.Action onComplete)
+        {
+            ShowHUDToast("Hướng dẫn làm nông: dọn đá, gieo hạt, tưới nước để cải tạo ruộng.");
+            onComplete?.Invoke();
+        }
+
+        public void HideTutorialQuestPanel()
+        {
+            SetInteractionPrompt(string.Empty);
+        }
+
+        public void UpdateTutorialQuestPanelText(string content)
+        {
+            SetInteractionPrompt(content);
+        }
+
+        public void ShowDrownGameOverPanel()
+        {
+            ShowHUDToast("Bạn đã không kịp sơ tán trước khi lũ dâng. Game Over.");
         }
 
         /// <summary>
