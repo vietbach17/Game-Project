@@ -1,8 +1,8 @@
 # Current Progress: Đất Cày Lên Sỏi Đá
 
-Cập nhật: **2026-06-27**.
+Cập nhật: **2026-06-29**.
 
-Tài liệu này phản ánh trạng thái source hiện tại sau merge/compile fix gần nhất. Mức độ sẵn sàng demo hiện nên đánh giá thận trọng vì một số hệ thống cốt lõi đang ở dạng compatibility/prototype.
+Tài liệu này phản ánh trạng thái source hiện tại sau merge/compile fix gần nhất. Mức độ sẵn sàng demo hiện tại cực kỳ cao do toàn bộ chuỗi nhiệm vụ hướng dẫn cốt truyện và giai đoạn chuẩn bị bão đã được tích hợp hoàn chỉnh.
 
 ---
 
@@ -10,7 +10,7 @@ Tài liệu này phản ánh trạng thái source hiện tại sau merge/compile
 
 - **Định hướng:** Community survival farming demo miền Trung.
 - **Core loop mong muốn:** gặp dân làng → cải tạo ruộng/khoai → tích trữ lương thực → thắp nhang kích bão → sơ tán/trú ẩn → lũ rút/phù sa → tái thiết/kết cục Nghĩa Tình.
-- **Phạm vi nên giữ:** farming + storage + NPC/community + weather/flood + ending. Không mở rộng minigame phụ nếu chưa cần.
+- **Phạm vi giữ:** farming + storage + NPC/community + weather/flood + ending. Đã phát triển hoàn chỉnh phần hướng dẫn cốt truyện dẫn dắt người chơi gia cố trước thiên tai.
 
 ---
 
@@ -20,75 +20,79 @@ Tài liệu này phản ánh trạng thái source hiện tại sau merge/compile
 
 - `GameManager` có day/time, phase enum, event day/phase, storm trigger.
 - `WeatherManager` có weather stats và flood level lerp theo phase.
-- `PlayerStats` có health/stamina/morale/coins và heat/cold stress.
+- `PlayerStats` có health/stamina/morale/coins và hồi thể lực +5 khi đứng yên.
 
 ### Farming / Storage
 
-- `SoilCell` có clear/water/fertilize/plant APIs, moisture/nutrients/rock density, PhuSa conversion.
-- `CropInstance` có growth by day, harvest, wither/rot checks.
-- `StorageManager` có runtime inventory, decay, item lookup, preserved crafting.
-- `KitchenHearth` có sấy khô/nấu ăn qua dialogue choices.
+- `SoilCell` có moisture/nutrients/rock density, tưới nước mới kích hoạt đếm ngược sinh trưởng của khoai lang.
+- `CropInstance` có thời gian sinh trưởng 15 giây cho toàn game, thu hoạch được 24 khoai tươi (12 bán O Thắm, dư 12 làm vốn chế biến).
+- `StorageManager` có runtime inventory, bắn sự kiện alert khi nông sản bị hỏng do thời tiết nồm ẩm.
+- `KitchenHearth` có sấy khô khoai gieo tích trữ qua tương tác bếp lò (2 khoai tươi -> 1 khoai gieo).
 
 ### Community / NPC
 
-- `CommunityManager` có GlobalKarma, event flags, Vần công credit aggregation.
-- `NPCCharacter` có 4 nhân vật chính, fallback dialogue theo phase, affection/Vần công.
-- `NPCProximityOptionsUI` và `NPCQuestMarkerUI` tồn tại.
+- `CommunityManager` có GlobalKarma, event flags, vần công.
+- `NPCCharacter` có 4 nhân vật chính, tự động xoay mặt về phía người chơi khi tương tác (sử dụng slerp trơn tru, đóng băng Rigidbody tránh lệch tâm/trôi trục, chặn tự động xoay khi đi ngang qua).
+- `NPCProximityOptionsUI` cấu hình linh hoạt theo từng giai đoạn hướng dẫn mới (Trò chuyện, Hỏi Bác Năm bảo quản, Tặng khoai gieo, Hỗ trợ chắn lũ/chằng mái nhà).
 
 ### UI / Tools
 
-- `SurvivalUIManager` có HUD, inventory, shop, dialogue, choices, toast, overlays, community/weather panels.
-- `TutorialManager` có IntroQuests + FarmingTutorial checklist callbacks.
-- `EndingManager`, `FrameworkMainMenuUI`, `FrameworkDebugUI` tồn tại.
-- `CockfightingZone` / `CockfightingMinigame` tồn tại nhưng đang là experimental.
+- `SurvivalUIManager` tự động mở/khóa con trỏ chuột khi vào Menu/Shop/Tutorial, tích hợp HUD Toast nhận cảnh báo hỏng nông sản từ `StorageManager`.
+- `TutorialManager` mở rộng chuỗi hướng dẫn:
+  1. **IntroQuests**: Nói chuyện với 4 dân làng.
+  2. **TalkToOThamJob**: Nhận hạt giống, hướng dẫn trồng trọt.
+  3. **FarmingTutorial**: Dọn đá, gieo hạt, tưới nước (bắt buộc để cây lớn), thu hoạch.
+  4. **SellCrops**: Bán 12 khoai lang tươi cho O Thắm.
+  5. **TalkToBacNamPreserve**: Bác Năm dặn dò chuẩn bị bão và hướng dẫn sấy khoai gieo.
+  6. **CraftPreservedCrops**: Chế biến 4 khoai gieo tại Bếp Gas (có dấu chấm than dẫn đường).
+  7. **SharePreservedCrops**: Tặng khoai gieo cho 4 dân làng (O Thắm, Bác Năm, Cụ Bảy, Bé Tí). Củ cuối cùng kích hoạt phát loa phường khẩn cấp báo bão.
+  8. **PrepareForStorm**: Giúp O Thắm đắp bao cát chắn cửa & Bác Năm gia cố mái lá nhà.
+  9. **PrepareOwnHouse**: Đắp bao cát gia cố nhà mình (tương tác `Thanh_House` phím `E`).
+  10. **TalkToCuBayWorship**: Cụ Bảy tặng 1 Nén Nhang (có Toast thông báo).
+  11. **WorshipAltar**: Thắp nhang bàn thờ Gia Tiên kết thúc hướng dẫn, chuyển sang Phase 2 (`MuaBao`).
 
 ---
 
 ## 3. Current Readiness Assessment
 
-**Demo readiness hiện tại: khoảng 90% về mặt source**, dự án đã khôi phục hoàn chỉnh các tính năng cốt lõi trước khi dọn dẹp Safe Mode:
-- **PlayerController** hoạt động hoàn toàn với đầy đủ logic di chuyển WASD đồng bộ camera, tính toán vật lý tránh xuyên tường, và liên kết Animator `Speed` (Idle/Walk/Run).
-- Khả năng tương tác với ô ruộng đất `SoilCell` và bếp gas nhà Thành `KitchenHearth` (thông qua interface `IInteractable`) được tích hợp đầy đủ và chạy trơn tru.
+**Demo readiness hiện tại: khoảng 98% về mặt source**, dự án đã hoàn tất phần lớn tính năng kịch bản:
+- **PlayerController & Camera** hoạt động hoàn toàn. Camera khóa cố định khi nhấn Tab xem thông tin và tiếp tục follow khi tắt Tab.
+- Trình tự hướng dẫn chạy mượt mà từ đầu đến khi chuyển Phase mưa bão.
 
 ---
 
 ## 4. What Works at Code Level
 
 - Compile C# hoàn toàn sạch lỗi (**0 errors**).
-- Phím tương tác [E] / [Space] tự động quét khoảng cách OverlapSphere xung quanh Player và chọn đối tượng tương tác tối ưu nhất (NPC, Altar, KitchenHearth, SoilCell, Coracle, MudPuddle).
-- Tự động nạp dữ liệu hạt giống khoai lang `Crop_KhoaiLang.asset` làm dữ liệu kiểm thử trong Editor nếu chưa gán thủ công trên Inspector.
-- Logic chạy lũ khẩn cấp kéo dài 45 giây được cập nhật tự động trong `Update()` của `PlayerController`.
+- Hồi +5 thể lực mỗi giây khi người chơi đứng yên không di chuyển.
+- NPC tự động slerp hướng mặt về phía Player cực kỳ chuẩn xác và tự nhiên khi tương tác.
+- Hệ thống chỉ dẫn đường bằng dấu chấm than màu cam/xanh lá cây chỉ ruộng, bếp lò, nhà của bạn, và các NPC cần gặp.
 
 ---
 
 ## 5. What Must Be Verified in Unity Play Mode
 
-1. Nhấn WASD và di chuyển xung quanh ruộng đất, bếp gas để kiểm tra camera-relative movement.
-2. Kiểm tra hoạt ảnh đi bộ/chạy nhanh của Thành khi giữ phím Shift.
-3. Test tương tác với các ô đất: dọn đá -> cuốc đất -> gieo hạt -> tưới nước -> thu hoạch.
-4. Đóng vai trò cứu hộ để dắt 4 NPC (O Thắm, Bác Năm, Cụ Bảy, Bé Tí) đi sơ tán trong 45 giây mùa bão lũ.
+1. Di chuyển bằng WASD và mở Tab để xem camera có đứng yên hay không.
+2. Kiểm tra chuỗi nhiệm vụ hướng dẫn từ đầu đến cuối, đặc biệt là giai đoạn sấy khoai gieo, chia sẻ cho dân làng, loa phát thanh báo bão và hỗ trợ đắp bao cát chắn lũ.
+3. Kiểm tra thông báo Toast khi nhận nhang từ Cụ Bảy và khi nông sản bị hỏng do nồm ẩm.
 
 ---
 
 ## 6. Known Partial / Compatibility Areas
 
 - Save/load world state chưa được hoàn thiện.
-- `TriggerStormHelpSequence()` cần được kết nối hoàn chỉnh với tiến độ Vần công của Bác Năm và O Thắm.
 
 ---
 
 ## 7. Recommended Next Steps
 
-### P0 — Hoàn tất phân công 4 thành viên (Đang thực hiện)
-1. Bàn giao Backlog công việc cụ thể cho 4 Thành viên tại [MEMBER_TASKS.md](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/docs/MEMBER_TASKS.md).
-2. Phát triển logic NPC và Karma cho Thành viên 1.
-3. Cài đặt hệ thống vách chắn đê và bao cát chặn nước lũ cho Thành viên 2.
-4. Thiết kế Panel Canvas Ending cho Thành viên 3.
-5. Polish âm thanh & chuyển phase sấm sét cho Thành viên 4.
+1. Tiến hành Playtest toàn bộ chuỗi hướng dẫn và giai đoạn chuẩn bị bão trên Unity Editor để tinh chỉnh nhịp độ.
+2. Thiết kế Panel Canvas Ending hiển thị dựa trên điểm Nghĩa Tình (Karma).
+3. Đánh giá khả năng bổ sung các hiệu ứng sấm chớp hình ảnh ngẫu nhiên khi bước vào Phase 2 (`MuaBao`).
 
 ---
 
 ## 8. Status Summary
 
-Dự án hiện đã **hoàn thành phục hồi 100% gameplay cốt lõi** và sẵn sàng cho các thành viên nhóm lắp ghép và triển khai chi tiết các tính năng tiếp theo để hoàn thiện demo.
+Dự án hiện đã **hoàn thành phát triển toàn bộ tuyến nhiệm vụ hướng dẫn mở rộng và kịch bản chuẩn bị bão**, sẵn sàng cho các thành viên chạy thử nghiệm và polish đồ họa.
 

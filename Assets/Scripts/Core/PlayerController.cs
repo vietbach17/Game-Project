@@ -569,6 +569,16 @@ namespace SownInStone.Core
                     return;
                 }
 
+                // 1.5 Tương tác với Nhà của bạn để chuẩn bị bão
+                if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive && TutorialManager.Instance.currentStage == TutorialManager.TutorialStage.PrepareOwnHouse)
+                {
+                    if (target.name.Contains("Thanh_House"))
+                    {
+                        TutorialManager.Instance.OnOwnHousePrepared();
+                        return;
+                    }
+                }
+
                 // 2. Tương tác với Bàn thờ gia tiên (Thắp nhang)
                 AncestralAltar altar = target.GetComponent<AncestralAltar>();
                 if (altar != null)

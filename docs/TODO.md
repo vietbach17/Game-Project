@@ -1,6 +1,6 @@
 # TODO: Development Status & Remaining Tasks
 
-Cập nhật: **2026-06-27**. Checklist này dựa trên source hiện tại trong `Assets/Scripts`, không dựa trên mục tiêu thiết kế cũ.
+Cập nhật: **2026-06-29**.
 
 ---
 
@@ -9,7 +9,8 @@ Cập nhật: **2026-06-27**. Checklist này dựa trên source hiện tại tro
 - [x] C# compile hoàn toàn sạch lỗi (0 errors).
 - [x] Weather/GamePhase/Storage/UI/NPC compatibility APIs hoạt động ổn định.
 - [x] Khôi phục 100% di chuyển WASD camera-relative, tương tác ruộng đất SoilCell và bếp gas KitchenHearth.
-- [ ] Bàn giao và triển khai công việc của 4 thành viên phát triển.
+- [x] Bàn giao và triển khai công việc của 4 thành viên phát triển.
+- [x] Phát triển hoàn chỉnh chuỗi nhiệm vụ hướng dẫn chuẩn bị bão (Tutorial Expansion).
 
 ---
 
@@ -27,13 +28,33 @@ Cập nhật: **2026-06-27**. Checklist này dựa trên source hiện tại tro
 - [x] Animator di chuyển Idle/Walk/Run hoạt động hoàn hảo.
 - [x] Lội nước lũ làm giảm tốc độ di chuyển của Thành (flood movement penalty).
 - [x] Đếm ngược chạy lũ 45 giây và logic di chuyển lên nóc nhà khi hoàn thành cứu hộ.
+- [x] Khóa góc camera đứng yên khi mở Tab xem thông tin hành trang và mở lại khi đóng.
+- [x] Tự động hồi phục +5 thể lực mỗi giây khi người chơi đứng yên tại chỗ.
+
+### NPC & Community
+- [x] Khắc phục triệt để lỗi NPC tự xoay khi đi ngang qua và xoay lệch tâm (mesh visual được CenterVisualModel chuẩn hóa tại Runtime, đóng băng Rigidbody).
+- [x] NPC slerp xoay mặt hướng chính xác về phía Player khi bắt đầu hội thoại.
+- [x] Khóa các option tương tác phụ lúc đầu game, chỉ giữ duy nhất option "[1] Trò chuyện" để đi đúng cốt truyện.
+- [x] Thiết lập chuỗi hội thoại NPC chi tiết theo từng mốc tiến độ hướng dẫn.
+
+### Farming & Weather
+- [x] Chỉnh sửa thời gian sinh trưởng của cây khoai lang thành 15 giây game-wide (áp dụng cho toàn game).
+- [x] Cây trồng chỉ bắt đầu sinh trưởng sau khi ruộng đất được tưới nước ẩm (nhiệm vụ trồng trọt yêu cầu tưới nước).
+- [x] Bắn thông báo Toast cảnh báo mất nông sản lên màn hình khi thời tiết ẩm nồm gây thối mốc thực phẩm.
+
+### Storm / Tutorial Expansion
+- [x] Hướng dẫn sấy khoai gieo khô tại bếp gas (hiển thị dấu chấm than và chữ "Bếp Gas" dẫn đường).
+- [x] Gặp và tặng khoai gieo cho 4 dân làng. Hội thoại Bé Tí lo sợ về cơn bão kích hoạt tiếng Loa Phát Thanh Xã khẩn cấp và còi hú cảnh báo thiên tai.
+- [x] Tuyến nhiệm vụ gia cố trước bão: đắp bao cát giúp O Thắm, chằng buộc mái nhà lá giúp Bác Năm.
+- [x] Nhiệm vụ chuẩn bị bao cát bảo vệ nhà mình (hiển thị dấu chấm than "Nhà Của Bạn").
+- [x] Cụ Bảy tặng 1 Nén Nhang cúng tế và hiển thị Toast "Bạn nhận được 1 Nén Nhang từ Cụ Bảy".
+- [x] Thắp nhang ban thờ gia tiên để hoàn thành hướng dẫn và kích hoạt chuyển cảnh bão về (`GamePhase.MuaBao`).
 
 ---
 
 ## 3. P1 — Needed for Storm/Flood Presentation
 
 ### Evacuation
-
 - [ ] Thay `SurvivalUIManager.StartEvacuationCountdown()` toast-only bằng panel/timer thật nếu demo cần phần chạy lũ.
 - [ ] Hiển thị rescued count `rescuedCount/4` liên tục.
 - [ ] Test `TryEvacuateNPC()` từ proximity options hoặc interaction key.
@@ -41,7 +62,6 @@ Cập nhật: **2026-06-27**. Checklist này dựa trên source hiện tại tro
 - [ ] Quyết định failure flow: toast-only hay Game Over panel thật.
 
 ### Community / Vần công
-
 - [ ] Wire `CommunityManager.TriggerStormHelpSequence()` vào thời điểm chuyển `MuaBao` hoặc `ChuanBiBao` nếu Vần công phải có tác dụng.
 - [ ] Kiểm tra event flags:
   - [ ] `eventOThamFoodCompleted`
@@ -50,7 +70,6 @@ Cập nhật: **2026-06-27**. Checklist này dựa trên source hiện tại tro
 - [ ] Đảm bảo NPC quest marker không báo sai phase.
 
 ### Flood / recovery props
-
 - [ ] Kiểm tra `FloodBarrier` prefab có component và radius phù hợp.
 - [ ] Kiểm tra inventory placement của `item_sandbag` / `item_flood_board` có spawn prefab đúng đường dẫn Resources:
   - [ ] `Resources/Prefabs/Sandbag`
@@ -74,7 +93,6 @@ Cập nhật: **2026-06-27**. Checklist này dựa trên source hiện tại tro
 ## 5. Experimental / Scope Decision
 
 ### Cockfighting
-
 - [ ] Quyết định giữ hay bỏ `CockfightingZone` / `CockfightingMinigame` khỏi demo.
 - Nếu giữ:
   - [ ] Reframe thành trò chơi dân gian/hoạt động tinh thần, tránh làm lệch core survival message.

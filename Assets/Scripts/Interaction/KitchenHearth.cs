@@ -68,6 +68,10 @@ namespace SownInStone.Interactions
                         SurvivalUIManager.Instance.CloseDialogue();
                         SurvivalUIManager.Instance.ShowHUDToast("Bạn xắt lát phơi sấy khoai lang. Nhận +1 Khoai gieo khô dự trữ!");
                     }
+                    if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
+                    {
+                        TutorialManager.Instance.OnPreservedCropCrafted();
+                    }
                 }
             }
             else

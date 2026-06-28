@@ -21,6 +21,13 @@ namespace SownInStone
             ShowingFarmingSlides, // Show farming slides
             FarmingTutorial,      // Stage 2: Clean rocks, Plant seed, Water soil, Harvest
             SellCrops,            // Stage 3: Sell crops to O Thắm
+            TalkToBacNamPreserve, // Stage 4: Talk to Bác Năm about food preservation
+            CraftPreservedCrops,  // Stage 5: Craft 4 preserved crops
+            SharePreservedCrops,  // Stage 6: Share 4 preserved crops with 4 NPCs
+            PrepareForStorm,      // Stage 7: Help O Thắm and Bác Năm prepare for storm
+            PrepareOwnHouse,      // Stage 8: Prepare own house
+            TalkToCuBayWorship,   // Stage 9: Talk to Cụ Bảy about ancestral worship
+            WorshipAltar,         // Stage 10: Burn incense at ancestral altar
             Completed             // Finished
         }
 
@@ -38,6 +45,16 @@ namespace SownInStone
         public bool subTask3Completed = false; // Water soil
         public bool subTask4Completed = false; // Harvest crop
         public int freshCropsSold = 0; // Số lượng khoai lang tươi đã bán cho O Thắm
+
+        // Các mốc nhiệm vụ bổ sung
+        public int preservedCropsCrafted = 0;
+        public bool sharedOTham = false;
+        public bool sharedBacNam = false;
+        public bool sharedCuBay = false;
+        public bool sharedBeTi = false;
+
+        public bool oThamPrepped = false;
+        public bool bacNamPrepped = false;
 
         private bool talkDialogueActive = false;
         private string currentTalkSpeaker = "";
@@ -274,12 +291,131 @@ namespace SownInStone
                 hudPanel = null;
             }
 
-            SurvivalUIManager.Instance?.ShowHUDToast("Hoàn thành hướng dẫn! Bắt đầu chế độ tự do.");
+            SurvivalUIManager.Instance?.ShowHUDToast("Hoàn thành hướng dẫn! Bão lũ đang đổ bộ vào làng.");
 
             if (GameManager.Instance != null)
             {
-                GameManager.Instance.TransitionToPhase(GamePhase.LapNghiep);
+                GameManager.Instance.TransitionToPhase(GamePhase.MuaBao);
             }
+        }
+
+        public void OnCropsSold()
+        {
+            if (!isTutorialActive || currentStage != TutorialStage.SellCrops) return;
+            currentStage = TutorialStage.TalkToBacNamPreserve;
+            UpdateHUDPanel();
+            npcsInScene = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Exclude);
+        }
+
+        public void OnBacNamPreserveTalked()
+        {
+            if (!isTutorialActive || currentStage != TutorialStage.TalkToBacNamPreserve) return;
+            currentStage = TutorialStage.CraftPreservedCrops;
+            UpdateHUDPanel();
+            npcsInScene = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Exclude);
+        }
+
+        public void OnPreservedCropCrafted()
+        {
+            if (!isTutorialActive || currentStage != TutorialStage.CraftPreservedCrops) return;
+            preservedCropsCrafted++;
+            if (preservedCropsCrafted >= 4)
+            {
+                currentStage = TutorialStage.SharePreservedCrops;
+            }
+            UpdateHUDPanel();
+            npcsInScene = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Exclude);
+        }
+
+        public void OnPreservedCropShared(SownInStone.Community.NPCCharacter.StoryCharacterType characterType)
+        {
+            if (!isTutorialActive || currentStage != TutorialStage.SharePreservedCrops) return;
+
+            if (characterType == SownInStone.Community.NPCCharacter.StoryCharacterType.OTham) sharedOTham = true;
+            else if (characterType == SownInStone.Community.NPCCharacter.StoryCharacterType.BacNam) sharedBacNam = true;
+            else if (characterType == SownInStone.Community.NPCCharacter.StoryCharacterType.CuBay) sharedCuBay = true;
+            else if (characterType == SownInStone.Community.NPCCharacter.StoryCharacterType.BeTi) sharedBeTi = true;
+
+            int sharedCount = 0;
+            if (sharedOTham) sharedCount++;
+            if (sharedBacNam) sharedCount++;
+            if (sharedCuBay) sharedCount++;
+            if (sharedBeTi) sharedCount++;
+
+            if (sharedCount >= 4)
+            {
+                currentStage = TutorialStage.PrepareForStorm;
+                TriggerLoudspeakerAnnouncement();
+            }
+            UpdateHUDPanel();
+            npcsInScene = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Exclude);
+        }
+
+        private void TriggerLoudspeakerAnnouncement()
+        {
+            if (SurvivalUIManager.Instance != null)
+            {
+                SurvivalUIManager.Instance.ShowDialogue(
+                    "[LOA PHÁT THANH XÃ]", 
+                    "\"Alo! Alo! Báo động khẩn cấp! Cơn bão số 6 siêu mạnh đang hướng thẳng vào vùng biển miền Trung và sẽ đổ bộ vào đêm nay! Yêu cầu toàn thể bà con khẩn trương chằng chống nhà cửa, đắp bao cát ngăn lũ, sẵn sàng ứng phó!\""
+                );
+                SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_warning");
+            }
+        }
+
+        public void OnOThamPrepped()
+        {
+            if (!isTutorialActive || currentStage != TutorialStage.PrepareForStorm) return;
+            oThamPrepped = true;
+            CheckPrepStormComplete();
+        }
+
+        public void OnBacNamPrepped()
+        {
+            if (!isTutorialActive || currentStage != TutorialStage.PrepareForStorm) return;
+            bacNamPrepped = true;
+            CheckPrepStormComplete();
+        }
+
+        private void CheckPrepStormComplete()
+        {
+            if (oThamPrepped && bacNamPrepped)
+            {
+                currentStage = TutorialStage.PrepareOwnHouse;
+            }
+            UpdateHUDPanel();
+            npcsInScene = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Exclude);
+        }
+
+        public void OnOwnHousePrepared()
+        {
+            if (!isTutorialActive || currentStage != TutorialStage.PrepareOwnHouse) return;
+            
+            if (SurvivalUIManager.Instance != null)
+            {
+                SurvivalUIManager.Instance.ShowDialogue(
+                    "Nhà của bạn", 
+                    "\"Bạn đã chất bao cát chắn các khe cửa và buộc dây chằng cố định lại mái tranh của nhà mình. Nhà cửa đã tạm thời an toàn trước giông bão.\""
+                );
+            }
+            
+            currentStage = TutorialStage.TalkToCuBayWorship;
+            UpdateHUDPanel();
+            npcsInScene = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Exclude);
+        }
+
+        public void OnCuBayWorshipTalked()
+        {
+            if (!isTutorialActive || currentStage != TutorialStage.TalkToCuBayWorship) return;
+            currentStage = TutorialStage.WorshipAltar;
+            UpdateHUDPanel();
+            npcsInScene = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Exclude);
+        }
+
+        public void OnAltarWorshipped()
+        {
+            if (!isTutorialActive || currentStage != TutorialStage.WorshipAltar) return;
+            CompleteTutorial();
         }
 
         private void CreateHUDPanel()
@@ -460,6 +596,99 @@ namespace SownInStone
                 if (hudTaskCText != null) hudTaskCText.gameObject.SetActive(false);
                 if (hudTaskDText != null) hudTaskDText.gameObject.SetActive(false);
             }
+            else if (currentStage == TutorialStage.TalkToBacNamPreserve)
+            {
+                hudPanel.SetActive(true);
+                hudTitleText.text = "BẢO QUẢN THỨC ĂN";
+
+                hudTaskAText.text = " <color=#E74C3C>☐</color> Gặp Bác Năm hướng dẫn";
+                hudTaskAText.color = Color.white;
+
+                if (hudTaskBText != null) hudTaskBText.gameObject.SetActive(false);
+                if (hudTaskCText != null) hudTaskCText.gameObject.SetActive(false);
+                if (hudTaskDText != null) hudTaskDText.gameObject.SetActive(false);
+            }
+            else if (currentStage == TutorialStage.CraftPreservedCrops)
+            {
+                hudPanel.SetActive(true);
+                hudTitleText.text = "CHẾ BIẾN KHOAI GIEO";
+
+                hudTaskAText.text = $" <color=#E74C3C>☐</color> Chế biến khoai gieo ({preservedCropsCrafted}/4)";
+                hudTaskAText.color = Color.white;
+
+                if (hudTaskBText != null) hudTaskBText.gameObject.SetActive(false);
+                if (hudTaskCText != null) hudTaskCText.gameObject.SetActive(false);
+                if (hudTaskDText != null) hudTaskDText.gameObject.SetActive(false);
+            }
+            else if (currentStage == TutorialStage.SharePreservedCrops)
+            {
+                hudPanel.SetActive(true);
+                hudTitleText.text = "CHIA SẺ NÔNG SẢN";
+
+                int sharedCount = 0;
+                if (sharedOTham) sharedCount++;
+                if (sharedBacNam) sharedCount++;
+                if (sharedCuBay) sharedCount++;
+                if (sharedBeTi) sharedCount++;
+
+                hudTaskAText.text = $" <color=#E74C3C>☐</color> Mời mọi người khoai gieo ({sharedCount}/4)";
+                hudTaskAText.color = Color.white;
+
+                if (hudTaskBText != null) hudTaskBText.gameObject.SetActive(false);
+                if (hudTaskCText != null) hudTaskCText.gameObject.SetActive(false);
+                if (hudTaskDText != null) hudTaskDText.gameObject.SetActive(false);
+            }
+            else if (currentStage == TutorialStage.PrepareForStorm)
+            {
+                hudPanel.SetActive(true);
+                hudTitleText.text = "GIA CỐ TRƯỚC BÃO";
+
+                hudTaskAText.text = (oThamPrepped ? " <color=#2ECC71>✓</color> " : " <color=#E74C3C>☐</color> ") + "Hỗ trợ O Thắm chắn lũ";
+                hudTaskAText.color = oThamPrepped ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
+
+                hudTaskBText.text = (bacNamPrepped ? " <color=#2ECC71>✓</color> " : " <color=#E74C3C>☐</color> ") + "Hỗ trợ Bác Năm gia cố nhà";
+                hudTaskBText.color = bacNamPrepped ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
+                hudTaskBText.gameObject.SetActive(true);
+
+                if (hudTaskCText != null) hudTaskCText.gameObject.SetActive(false);
+                if (hudTaskDText != null) hudTaskDText.gameObject.SetActive(false);
+            }
+            else if (currentStage == TutorialStage.PrepareOwnHouse)
+            {
+                hudPanel.SetActive(true);
+                hudTitleText.text = "GIA CỐ NHÀ MÌNH";
+
+                hudTaskAText.text = " <color=#E74C3C>☐</color> Chuẩn bị bao cát bảo vệ nhà mình";
+                hudTaskAText.color = Color.white;
+
+                if (hudTaskBText != null) hudTaskBText.gameObject.SetActive(false);
+                if (hudTaskCText != null) hudTaskCText.gameObject.SetActive(false);
+                if (hudTaskDText != null) hudTaskDText.gameObject.SetActive(false);
+            }
+            else if (currentStage == TutorialStage.TalkToCuBayWorship)
+            {
+                hudPanel.SetActive(true);
+                hudTitleText.text = "THỜ CÚNG QUÊ NHÀ";
+
+                hudTaskAText.text = " <color=#E74C3C>☐</color> Gặp Cụ Bảy";
+                hudTaskAText.color = Color.white;
+
+                if (hudTaskBText != null) hudTaskBText.gameObject.SetActive(false);
+                if (hudTaskCText != null) hudTaskCText.gameObject.SetActive(false);
+                if (hudTaskDText != null) hudTaskDText.gameObject.SetActive(false);
+            }
+            else if (currentStage == TutorialStage.WorshipAltar)
+            {
+                hudPanel.SetActive(true);
+                hudTitleText.text = "THẮP NHANG GIA TIÊN";
+
+                hudTaskAText.text = " <color=#E74C3C>☐</color> Thắp nhang bàn thờ gia tiên";
+                hudTaskAText.color = Color.white;
+
+                if (hudTaskBText != null) hudTaskBText.gameObject.SetActive(false);
+                if (hudTaskCText != null) hudTaskCText.gameObject.SetActive(false);
+                if (hudTaskDText != null) hudTaskDText.gameObject.SetActive(false);
+            }
             else
             {
                 hudPanel.SetActive(false);
@@ -535,6 +764,12 @@ namespace SownInStone
             // Vẽ các chỉ thị hướng dẫn Ruộng Đất lên màn hình
             DrawSoilIndicators();
 
+            // Vẽ chỉ thị dẫn đến Bếp Gas
+            DrawHearthIndicator();
+
+            // Vẽ chỉ thị dẫn đến Nhà của bạn
+            DrawHouseIndicator();
+
             if (isShowing)
             {
                 int tempSlide = currentSlide;
@@ -558,7 +793,12 @@ namespace SownInStone
         private void DrawNPCIndicators()
         {
             if (!isTutorialActive) return;
-            if (currentStage != TutorialStage.IntroQuests && currentStage != TutorialStage.TalkToOThamJob && currentStage != TutorialStage.SellCrops) return;
+            if (currentStage != TutorialStage.IntroQuests && 
+                currentStage != TutorialStage.TalkToOThamJob && 
+                currentStage != TutorialStage.SellCrops &&
+                currentStage != TutorialStage.TalkToBacNamPreserve &&
+                currentStage != TutorialStage.SharePreservedCrops &&
+                currentStage != TutorialStage.TalkToCuBayWorship) return;
             if (Camera.main == null) return;
 
             bool needsRefresh = (npcsInScene == null || npcsInScene.Length == 0);
@@ -610,6 +850,36 @@ namespace SownInStone
                     if (npc.characterType == SownInStone.Community.NPCCharacter.StoryCharacterType.OTham)
                     {
                         isCompleted = false; // Luôn hiện chỉ thị trên đầu O Thắm để giao việc / mua bán
+                    }
+                    else
+                    {
+                        continue;
+                    }
+                }
+                else if (currentStage == TutorialStage.TalkToBacNamPreserve)
+                {
+                    if (npc.characterType == SownInStone.Community.NPCCharacter.StoryCharacterType.BacNam)
+                    {
+                        isCompleted = false;
+                    }
+                    else
+                    {
+                        continue;
+                    }
+                }
+                else if (currentStage == TutorialStage.SharePreservedCrops)
+                {
+                    if (npc.characterType == SownInStone.Community.NPCCharacter.StoryCharacterType.OTham) isCompleted = sharedOTham;
+                    else if (npc.characterType == SownInStone.Community.NPCCharacter.StoryCharacterType.BacNam) isCompleted = sharedBacNam;
+                    else if (npc.characterType == SownInStone.Community.NPCCharacter.StoryCharacterType.CuBay) isCompleted = sharedCuBay;
+                    else if (npc.characterType == SownInStone.Community.NPCCharacter.StoryCharacterType.BeTi) isCompleted = sharedBeTi;
+                    else continue;
+                }
+                else if (currentStage == TutorialStage.TalkToCuBayWorship)
+                {
+                    if (npc.characterType == SownInStone.Community.NPCCharacter.StoryCharacterType.CuBay)
+                    {
+                        isCompleted = false;
                     }
                     else
                     {
@@ -793,6 +1063,96 @@ namespace SownInStone
             if (GUI.Button(new Rect(panelX + (panelWidth - btnWidth) / 2f, btnY, btnWidth, btnHeight), "Bỏ Qua"))
             {
                 onFinished?.Invoke();
+            }
+        }
+
+        private void DrawHearthIndicator()
+        {
+            if (!isTutorialActive || currentStage != TutorialStage.CraftPreservedCrops) return;
+            if (Camera.main == null) return;
+
+            SownInStone.Interactions.KitchenHearth hearth = FindAnyObjectByType<SownInStone.Interactions.KitchenHearth>();
+            if (hearth == null) return;
+
+            GUIStyle nameStyle = new GUIStyle();
+            nameStyle.alignment = TextAnchor.MiddleCenter;
+            nameStyle.normal.textColor = new Color(0.9f, 0.4f, 0.2f, 1f); // Cam
+            nameStyle.fontStyle = FontStyle.Bold;
+            nameStyle.fontSize = 11;
+
+            GUIStyle exclamationStyle = new GUIStyle();
+            exclamationStyle.alignment = TextAnchor.MiddleCenter;
+            exclamationStyle.normal.textColor = new Color(0.9f, 0.4f, 0.2f, 1f);
+            exclamationStyle.fontStyle = FontStyle.Bold;
+            exclamationStyle.fontSize = 28;
+
+            Vector3 worldPos = hearth.transform.position + Vector3.up * 1.5f;
+            Vector3 screenPos = Camera.main.WorldToScreenPoint(worldPos);
+
+            if (screenPos.z > 0)
+            {
+                float guiY = Screen.height - screenPos.y;
+                float pulse = Mathf.PingPong(Time.time * 2f, 0.3f);
+                exclamationStyle.normal.textColor = new Color(0.9f, 0.4f + pulse * 0.3f, 0.2f, 0.8f + pulse);
+
+                // Bóng đổ
+                GUIStyle exShadow = new GUIStyle(exclamationStyle);
+                exShadow.normal.textColor = new Color(0f, 0f, 0f, 0.8f);
+                GUI.Label(new Rect(screenPos.x - 20 + 1, guiY - 25 + 1, 40, 25), "!", exShadow);
+                
+                // Dấu !
+                GUI.Label(new Rect(screenPos.x - 20, guiY - 25, 40, 25), "!", exclamationStyle);
+
+                // Tên "Bếp Gas"
+                GUIStyle nameShadow = new GUIStyle(nameStyle);
+                nameShadow.normal.textColor = new Color(0f, 0f, 0f, 0.8f);
+                GUI.Label(new Rect(screenPos.x - 100 + 1, guiY + 1, 200, 20), "Bếp Gas", nameShadow);
+                GUI.Label(new Rect(screenPos.x - 100, guiY, 200, 20), "Bếp Gas", nameStyle);
+            }
+        }
+
+        private void DrawHouseIndicator()
+        {
+            if (!isTutorialActive || currentStage != TutorialStage.PrepareOwnHouse) return;
+            if (Camera.main == null) return;
+
+            GameObject house = GameObject.Find("Thanh_House");
+            if (house == null) return;
+
+            GUIStyle nameStyle = new GUIStyle();
+            nameStyle.alignment = TextAnchor.MiddleCenter;
+            nameStyle.normal.textColor = new Color(0.9f, 0.4f, 0.2f, 1f); // Cam
+            nameStyle.fontStyle = FontStyle.Bold;
+            nameStyle.fontSize = 11;
+
+            GUIStyle exclamationStyle = new GUIStyle();
+            exclamationStyle.alignment = TextAnchor.MiddleCenter;
+            exclamationStyle.normal.textColor = new Color(0.9f, 0.4f, 0.2f, 1f);
+            exclamationStyle.fontStyle = FontStyle.Bold;
+            exclamationStyle.fontSize = 28;
+
+            Vector3 worldPos = house.transform.position + Vector3.up * 2.5f;
+            Vector3 screenPos = Camera.main.WorldToScreenPoint(worldPos);
+
+            if (screenPos.z > 0)
+            {
+                float guiY = Screen.height - screenPos.y;
+                float pulse = Mathf.PingPong(Time.time * 2f, 0.3f);
+                exclamationStyle.normal.textColor = new Color(0.9f, 0.4f + pulse * 0.3f, 0.2f, 0.8f + pulse);
+
+                // Bóng đổ
+                GUIStyle exShadow = new GUIStyle(exclamationStyle);
+                exShadow.normal.textColor = new Color(0f, 0f, 0f, 0.8f);
+                GUI.Label(new Rect(screenPos.x - 20 + 1, guiY - 25 + 1, 40, 25), "!", exShadow);
+                
+                // Dấu !
+                GUI.Label(new Rect(screenPos.x - 20, guiY - 25, 40, 25), "!", exclamationStyle);
+
+                // Tên "Nhà Của Bạn"
+                GUIStyle nameShadow = new GUIStyle(nameStyle);
+                nameShadow.normal.textColor = new Color(0f, 0f, 0f, 0.8f);
+                GUI.Label(new Rect(screenPos.x - 100 + 1, guiY + 1, 200, 20), "Nhà Của Bạn", nameShadow);
+                GUI.Label(new Rect(screenPos.x - 100, guiY, 200, 20), "Nhà Của Bạn", nameStyle);
             }
         }
     }

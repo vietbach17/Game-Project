@@ -138,6 +138,7 @@ namespace SownInStone.UI
         public bool IsCommunityOpen => isCommunityOpen;
         public bool IsWeatherDetailsOpen => isWeatherDetailsOpen;
         public TextMeshProUGUI SpeakerNameText => speakerNameText;
+        public ItemData IncenseItem => incenseItem;
 
         private void Awake()
         {
@@ -2720,7 +2721,7 @@ namespace SownInStone.UI
                                 TutorialManager.Instance.freshCropsSold += quantity;
                                 if (TutorialManager.Instance.freshCropsSold >= 12)
                                 {
-                                    TutorialManager.Instance.CompleteTutorial();
+                                    TutorialManager.Instance.OnCropsSold();
                                 }
                                 else
                                 {

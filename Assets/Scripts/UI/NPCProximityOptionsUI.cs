@@ -7,6 +7,7 @@ using TMPro;
 using SownInStone.Core;
 using SownInStone.Community;
 using SownInStone.Storage;
+using SownInStone.Interactions;
 
 namespace SownInStone.UI
 {
@@ -228,14 +229,172 @@ namespace SownInStone.UI
             optionButtons.Clear();
             currentOptions.Clear();
 
-            // Khi bắt đầu game (giai đoạn IntroQuests), tất cả NPC chỉ có duy nhất option Trò chuyện
-            if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive && TutorialManager.Instance.currentStage == TutorialManager.TutorialStage.IntroQuests)
+            // Khi hướng dẫn đang kích hoạt, thiết lập các lựa chọn tương tác chuyên biệt cho từng Stage
+            if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
             {
-                currentOptions.Add(new ProximityOption 
-                { 
-                    label = "[1] Trò chuyện (+5 Nghĩa Tình)", 
-                    action = () => TriggerTalk(npc) 
-                });
+                var stage = TutorialManager.Instance.currentStage;
+                if (stage == TutorialManager.TutorialStage.IntroQuests ||
+                    stage == TutorialManager.TutorialStage.FarmingTutorial ||
+                    stage == TutorialManager.TutorialStage.CraftPreservedCrops ||
+                    stage == TutorialManager.TutorialStage.PrepareOwnHouse ||
+                    stage == TutorialManager.TutorialStage.WorshipAltar)
+                {
+                    currentOptions.Add(new ProximityOption 
+                    { 
+                        label = "[1] Trò chuyện (+5 Nghĩa Tình)", 
+                        action = () => TriggerTalk(npc) 
+                    });
+                }
+                else if (stage == TutorialManager.TutorialStage.TalkToOThamJob)
+                {
+                    if (npc.characterType == NPCCharacter.StoryCharacterType.OTham)
+                    {
+                        currentOptions.Add(new ProximityOption 
+                        { 
+                            label = "[1] Hỏi O Thắm nhờ việc gì", 
+                            action = () => TriggerOThamJobTalk(npc) 
+                        });
+                    }
+                    else
+                    {
+                        currentOptions.Add(new ProximityOption 
+                        { 
+                            label = "[1] Trò chuyện (+5 Nghĩa Tình)", 
+                            action = () => TriggerTalk(npc) 
+                        });
+                    }
+                }
+                else if (stage == TutorialManager.TutorialStage.SellCrops)
+                {
+                    if (npc.characterType == NPCCharacter.StoryCharacterType.OTham)
+                    {
+                        currentOptions.Add(new ProximityOption 
+                        { 
+                            label = "[1] Bán khoai lang cho O Thắm", 
+                            action = () => TriggerTrade(npc) 
+                        });
+                    }
+                    else
+                    {
+                        currentOptions.Add(new ProximityOption 
+                        { 
+                            label = "[1] Trò chuyện (+5 Nghĩa Tình)", 
+                            action = () => TriggerTalk(npc) 
+                        });
+                    }
+                }
+                else if (stage == TutorialManager.TutorialStage.TalkToBacNamPreserve)
+                {
+                    if (npc.characterType == NPCCharacter.StoryCharacterType.BacNam)
+                    {
+                        currentOptions.Add(new ProximityOption 
+                        { 
+                            label = "[1] Hỏi Bác Năm cách bảo quan", 
+                            action = () => TriggerBacNamPreserveTalk(npc) 
+                        });
+                    }
+                    else
+                    {
+                        currentOptions.Add(new ProximityOption 
+                        { 
+                            label = "[1] Trò chuyện (+5 Nghĩa Tình)", 
+                            action = () => TriggerTalk(npc) 
+                        });
+                    }
+                }
+                else if (stage == TutorialManager.TutorialStage.SharePreservedCrops)
+                {
+                    bool alreadyShared = false;
+                    if (npc.characterType == NPCCharacter.StoryCharacterType.OTham) alreadyShared = TutorialManager.Instance.sharedOTham;
+                    else if (npc.characterType == NPCCharacter.StoryCharacterType.BacNam) alreadyShared = TutorialManager.Instance.sharedBacNam;
+                    else if (npc.characterType == NPCCharacter.StoryCharacterType.CuBay) alreadyShared = TutorialManager.Instance.sharedCuBay;
+                    else if (npc.characterType == NPCCharacter.StoryCharacterType.BeTi) alreadyShared = TutorialManager.Instance.sharedBeTi;
+
+                    if (!alreadyShared)
+                    {
+                        currentOptions.Add(new ProximityOption 
+                        { 
+                            label = "[1] Tặng khoai gieo tự trồng", 
+                            action = () => TriggerPreservedCropGift(npc) 
+                        });
+                    }
+                    else
+                    {
+                        currentOptions.Add(new ProximityOption 
+                        { 
+                            label = "[1] Trò chuyện (+5 Nghĩa Tình)", 
+                            action = () => TriggerTalk(npc) 
+                        });
+                    }
+                }
+                else if (stage == TutorialManager.TutorialStage.PrepareForStorm)
+                {
+                    if (npc.characterType == NPCCharacter.StoryCharacterType.OTham)
+                    {
+                        if (!TutorialManager.Instance.oThamPrepped)
+                        {
+                            currentOptions.Add(new ProximityOption 
+                            { 
+                                label = "[1] Hỗ trợ đắp bao cát chắn lũ", 
+                                action = () => TriggerOThamPrep(npc) 
+                            });
+                        }
+                        else
+                        {
+                            currentOptions.Add(new ProximityOption 
+                            { 
+                                label = "[1] Trò chuyện (+5 Nghĩa Tình)", 
+                                action = () => TriggerTalk(npc) 
+                            });
+                        }
+                    }
+                    else if (npc.characterType == NPCCharacter.StoryCharacterType.BacNam)
+                    {
+                        if (!TutorialManager.Instance.bacNamPrepped)
+                        {
+                            currentOptions.Add(new ProximityOption 
+                            { 
+                                label = "[1] Hỗ trợ chằng chống mái nhà", 
+                                action = () => TriggerBacNamPrep(npc) 
+                            });
+                        }
+                        else
+                        {
+                            currentOptions.Add(new ProximityOption 
+                            { 
+                                label = "[1] Trò chuyện (+5 Nghĩa Tình)", 
+                                action = () => TriggerTalk(npc) 
+                            });
+                        }
+                    }
+                    else
+                    {
+                        currentOptions.Add(new ProximityOption 
+                        { 
+                            label = "[1] Trò chuyện (+5 Nghĩa Tình)", 
+                            action = () => TriggerTalk(npc) 
+                        });
+                    }
+                }
+                else if (stage == TutorialManager.TutorialStage.TalkToCuBayWorship)
+                {
+                    if (npc.characterType == NPCCharacter.StoryCharacterType.CuBay)
+                    {
+                        currentOptions.Add(new ProximityOption 
+                        { 
+                            label = "[1] Hỏi chuyện Cụ Bảy", 
+                            action = () => TriggerCuBayWorshipTalk(npc) 
+                        });
+                    }
+                    else
+                    {
+                        currentOptions.Add(new ProximityOption 
+                        { 
+                            label = "[1] Trò chuyện (+5 Nghĩa Tình)", 
+                            action = () => TriggerTalk(npc) 
+                        });
+                    }
+                }
             }
             else
             {
@@ -601,6 +760,123 @@ namespace SownInStone.UI
             if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
             {
                 TutorialManager.Instance.StartFarmingSlideshow();
+            }
+        }
+
+        private void TriggerBacNamPreserveTalk(NPCCharacter npc)
+        {
+            targetAlpha = 0f;
+            SurvivalUIManager.Instance?.ShowDialogue(npc.NPCName, "\"Muốn tích cốc phòng cơ chống mưa lụt thì phải biết làm khoai gieo con ơi. Con đi lại góc bếp lửa trước nhà mình chế biến 4 củ khoai gieo đi.\"");
+            
+            if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
+            {
+                TutorialManager.Instance.OnBacNamPreserveTalked();
+            }
+        }
+
+        private void TriggerPreservedCropGift(NPCCharacter npc)
+        {
+            if (StorageManager.Instance == null) return;
+
+            var slots = StorageManager.Instance.GetStorageSlots();
+            var preservedSlot = slots.Find(s => s.item != null && (s.item.ItemID == "item_khoai_gieo" || s.item.ItemName.Contains("Khoai Gieo") || s.item.name.Contains("PreservedCrop")));
+            int preservedCount = preservedSlot != null ? preservedSlot.quantity : 0;
+
+            if (preservedCount >= 1)
+            {
+                if (StorageManager.Instance.RemoveItem(preservedSlot.item, 1))
+                {
+                    npc.ModifyAffection(15);
+                    CommunityManager.Instance?.ModifyGlobalKarma(10);
+                    
+                    string dialog = "";
+                    if (npc.characterType == NPCCharacter.StoryCharacterType.OTham)
+                        dialog = "\"Cảm ơn Thành nghe, khoai gieo dẻo ngọt lắm con, o Thắm quý con lắm!\"";
+                    else if (npc.characterType == NPCCharacter.StoryCharacterType.BacNam)
+                        dialog = "\"Khoai gieo ngọt thơm bùi lắm con ơi, tích cốc phòng cơ như thế này là tốt lắm!\"";
+                    else if (npc.characterType == NPCCharacter.StoryCharacterType.CuBay)
+                        dialog = "\"Cảm ơn tấm lòng của cháu, người già như cụ quý nhất những món quà mộc mạc thế này.\"";
+                    else if (npc.characterType == NPCCharacter.StoryCharacterType.BeTi)
+                        dialog = "\"Oa, khoai gieo chú Thành tặng ngọt quá, con cảm ơn chú Thành nha!\"";
+
+                    SurvivalUIManager.Instance?.ShowDialogue(npc.NPCName, dialog);
+
+                    if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
+                    {
+                        TutorialManager.Instance.OnPreservedCropShared(npc.characterType);
+                    }
+                }
+            }
+            else
+            {
+                SurvivalUIManager.Instance?.ShowHUDToast("<color=#E74C3C>Không đủ Khoai gieo trong kho để tặng!</color>");
+            }
+            targetAlpha = 0f;
+        }
+
+        private void TriggerOThamPrep(NPCCharacter npc)
+        {
+            targetAlpha = 0f;
+            SurvivalUIManager.Instance?.ShowDialogue(
+                npc.NPCName, 
+                "\"Cảm ơn Thành nhiều nha, phụ o đắp thêm mấy bao cát này chắn trước cửa đại lý để nước lụt không tràn vào kho gạo của o. Con ngoan quá!\""
+            );
+            if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
+            {
+                TutorialManager.Instance.OnOThamPrepped();
+            }
+        }
+
+        private void TriggerBacNamPrep(NPCCharacter npc)
+        {
+            targetAlpha = 0f;
+            SurvivalUIManager.Instance?.ShowDialogue(
+                npc.NPCName, 
+                "\"Tốt quá Thành ơi, phụ bác kéo mấy sợi thừng này chằng mái lá lại, không bão giật bay mất mái nhà bác. Bác cảm ơn con và bà con nghe!\""
+            );
+            if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
+            {
+                TutorialManager.Instance.OnBacNamPrepped();
+            }
+        }
+
+        private void TriggerCuBayWorshipTalk(NPCCharacter npc)
+        {
+            targetAlpha = 0f;
+            SurvivalUIManager.Instance?.ShowDialogue(
+                npc.NPCName, 
+                "\"Này Thành, cháu mới quay về làng, hãy đi thắp nhang thờ cúng chốn quê này ở bàn thờ gia tiên trước nhà nhé. Uống nước nhớ nguồn, đây là nén nhang cụ tặng cháu để thắp cúng lễ.\""
+            );
+            
+            if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
+            {
+                if (StorageManager.Instance != null)
+                {
+                    ItemData incense = SurvivalUIManager.Instance != null ? SurvivalUIManager.Instance.IncenseItem : null;
+                    if (incense == null)
+                    {
+                        var altar = FindAnyObjectByType<AncestralAltar>();
+                        if (altar != null)
+                        {
+                            incense = altar.IncenseItem;
+                        }
+                    }
+                    if (incense == null)
+                    {
+                        incense = Resources.Load<ItemData>("Data/Item_Incense");
+                    }
+                    if (incense == null)
+                    {
+                        incense = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Incense.asset");
+                    }
+                    if (incense != null)
+                    {
+                        StorageManager.Instance.AddItem(incense, 1);
+                        SurvivalUIManager.Instance?.ShowHUDToast("Bạn nhận được 1 Nén Nhang từ Cụ Bảy");
+                    }
+                }
+                
+                TutorialManager.Instance.OnCuBayWorshipTalked();
             }
         }
 
