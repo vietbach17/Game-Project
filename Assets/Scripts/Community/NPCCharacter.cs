@@ -79,6 +79,43 @@ namespace SownInStone.Community
 
             // Tự động kiểm tra và sửa hiển thị visual ở Runtime
             EnsureVisualModel();
+
+            // Tự động căn chỉnh gốc (parent root) theo mô hình mesh thực tế nếu bị lệch xa
+            Renderer childRenderer = GetComponentInChildren<Renderer>();
+            if (childRenderer != null && childRenderer.gameObject != gameObject)
+            {
+                Vector3 rendererWorldPos = childRenderer.bounds.center;
+                rendererWorldPos.y = childRenderer.bounds.min.y; // Đặt gốc ở chân của mesh
+
+                float dist = Vector3.Distance(transform.position, rendererWorldPos);
+                if (dist > 1.0f) // Chỉ dịch chuyển nếu lệch hơn 1 mét
+                {
+                    Debug.Log($"[NPC ALIGN] Căn chỉnh gốc của {gameObject.name} từ {transform.position} về vị trí mô hình thực tế {rendererWorldPos} (Lệch: {dist:F2}m)");
+                    Vector3 offset = rendererWorldPos - transform.position;
+                    transform.position = rendererWorldPos;
+                    
+                    // Giữ nguyên vị trí thế giới của các con
+                    foreach (Transform child in transform)
+                    {
+                        child.position -= offset;
+                    }
+                }
+            }
+
+            // Vô hiệu hóa ảnh hưởng vật lý để tránh NPC bị xoay/đẩy khi người chơi đi ngang qua
+            Rigidbody rb = GetComponent<Rigidbody>();
+            if (rb != null)
+            {
+                rb.isKinematic = true;
+            }
+            Rigidbody[] childRbs = GetComponentsInChildren<Rigidbody>();
+            foreach (var childRb in childRbs)
+            {
+                if (childRb != null)
+                {
+                    childRb.isKinematic = true;
+                }
+            }
         }
 
         /// <summary>
@@ -142,6 +179,9 @@ namespace SownInStone.Community
                 
                 modelObj.transform.localPosition = new Vector3(0f, localY, 0f);
                 modelObj.transform.localScale = new Vector3(scaleVal, scaleVal, scaleVal);
+
+                // Căn chỉnh tâm mesh của visual model về gốc (0, Y, 0)
+                CenterVisualModel(modelObj);
 
                 // Cập nhật lại BoxCollider nếu cần thiết
                 BoxCollider boxCol = GetComponent<BoxCollider>();
@@ -395,10 +435,12 @@ namespace SownInStone.Community
         }
 
         private Coroutine lookAtCoroutine;
+        private bool isLookingAtPlayer = false;
 
         public void LookAtPlayer(Transform player)
         {
             if (player == null) return;
+            isLookingAtPlayer = true;
             if (lookAtCoroutine != null)
             {
                 StopCoroutine(lookAtCoroutine);
@@ -410,25 +452,25 @@ namespace SownInStone.Community
         {
             float duration = 0.15f;
             float elapsed = 0f;
-            Quaternion startRot = transform.rotation;
             
-            Vector3 dir = player.position - transform.position;
+            Transform visualTrans = transform.Find("Visual");
+            if (visualTrans == null) visualTrans = transform;
+            
+            Quaternion startRot = visualTrans.rotation;
+            
+            Vector3 dir = player.position - visualTrans.position;
             dir.y = 0;
             if (dir.sqrMagnitude > 0.01f)
             {
                 Quaternion targetRot = Quaternion.LookRotation(dir);
-                if (characterType == StoryCharacterType.OTham || characterType == StoryCharacterType.BacNam)
-                {
-                    targetRot *= Quaternion.Euler(0, 180, 0);
-                }
 
                 while (elapsed < duration)
                 {
                     elapsed += Time.deltaTime;
-                    transform.rotation = Quaternion.Slerp(startRot, targetRot, elapsed / duration);
+                    visualTrans.rotation = Quaternion.Slerp(startRot, targetRot, elapsed / duration);
                     yield return null;
                 }
-                transform.rotation = targetRot;
+                visualTrans.rotation = targetRot;
             }
             lookAtCoroutine = null;
         }
@@ -439,6 +481,13 @@ namespace SownInStone.Community
             {
                 return;
             }
+
+            // Chỉ trả về hướng cũ nếu thực sự đang nhìn về phía người chơi
+            if (!isLookingAtPlayer)
+            {
+                return;
+            }
+            isLookingAtPlayer = false;
 
             if (lookAtCoroutine != null)
             {
@@ -451,7 +500,13 @@ namespace SownInStone.Community
         {
             float duration = 0.35f;
             float elapsed = 0f;
-            Quaternion startRot = transform.rotation;
+            
+            Transform visualTrans = transform.Find("Visual");
+            if (visualTrans == null) visualTrans = transform;
+            
+            Quaternion startRot = visualTrans.rotation;
+            // Mặc định visual xoay 180 độ quanh gốc của parent
+            Quaternion defaultVisualRot = transform.rotation * Quaternion.Euler(0f, 180f, 0f);
 
             while (elapsed < duration)
             {
@@ -462,11 +517,43 @@ namespace SownInStone.Community
                 }
 
                 elapsed += Time.deltaTime;
-                transform.rotation = Quaternion.Slerp(startRot, defaultRotation, elapsed / duration);
+                visualTrans.rotation = Quaternion.Slerp(startRot, defaultVisualRot, elapsed / duration);
                 yield return null;
             }
-            transform.rotation = defaultRotation;
+            visualTrans.rotation = defaultVisualRot;
             lookAtCoroutine = null;
+        }
+
+        /// <summary>
+        /// Tìm tất cả các renderers con và căn chỉnh chúng về trục local (0, Y, 0)
+        /// giúp mô hình visual quay tại chỗ hoàn hảo mà không bị lệch tâm (xoay càn quét vòng tròn).
+        /// </summary>
+        private void CenterVisualModel(GameObject visualRoot)
+        {
+            Renderer[] renderers = visualRoot.GetComponentsInChildren<Renderer>();
+            if (renderers == null || renderers.Length == 0) return;
+
+            // Tính toán bounds gộp của tất cả renderers con
+            Bounds combinedBounds = renderers[0].bounds;
+            for (int i = 1; i < renderers.Length; i++)
+            {
+                combinedBounds.Encapsulate(renderers[i].bounds);
+            }
+
+            // Tìm độ lệch vị trí từ gốc của visualRoot đến tâm hình học của mesh con (chỉ tính phương ngang X và Z)
+            Vector3 worldCenter = combinedBounds.center;
+            Vector3 localCenter = visualRoot.transform.InverseTransformPoint(worldCenter);
+            Vector3 offset = new Vector3(localCenter.x, 0f, localCenter.z);
+
+            if (offset.sqrMagnitude > 0.001f)
+            {
+                Debug.Log($"[NPC ALIGN] Căn chỉnh tâm mesh cho {gameObject.name} trong Visual. Lệch: {offset}");
+                // Dịch chuyển tất cả các con của visualRoot ngược lại để đưa tâm về trục local Y
+                foreach (Transform child in visualRoot.transform)
+                {
+                    child.localPosition -= offset;
+                }
+            }
         }
     }
 }

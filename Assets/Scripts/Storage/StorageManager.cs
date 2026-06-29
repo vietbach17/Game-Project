@@ -49,6 +49,7 @@ namespace SownInStone.Storage
 
         private void Start()
         {
+            storageSlots.Clear(); // Khởi đầu trắng tay: xóa toàn bộ kho đồ khi bắt đầu game
             if (GameManager.Instance != null)
             {
                 GameManager.Instance.OnDayChanged += OnNewDayDecayCheck;
@@ -262,7 +263,9 @@ namespace SownInStone.Storage
                     slot.quantity -= decayAmount;
                     isDecayDay = true;
 
-                    Debug.LogWarning($"[TÍCH CỐC] Thời tiết nồm ẩm làm mốc! {slot.item.ItemName} bị hư thối mất x{decayAmount} củ!");
+                    string decayMsg = $"Thời tiết nồm ẩm! {slot.item.ItemName} bị hư thối mất x{decayAmount} củ!";
+                    Debug.LogWarning($"[TÍCH CỐC] {decayMsg}");
+                    OnStorageAlert?.Invoke(decayMsg);
 
                     if (slot.quantity <= 0)
                     {

@@ -68,7 +68,7 @@ namespace SownInStone.Core
         [SerializeField] private CropData testSeedData;
 
         [Tooltip("Vật phẩm Hạt giống thực tế trong kho đồ tiêu hao khi gieo trồng.")]
-        [SerializeField] private ItemData seedItem;
+        [SerializeField] public ItemData seedItem;
 
         [Header("--- LŨ LỤT & SINH TỒN TRÊN NÓC NHÀ ---")]
         [Tooltip("Mì tôm cứu trợ khi dâng lũ.")]
@@ -490,14 +490,21 @@ namespace SownInStone.Core
         /// </summary>
         private void HandleStaminaDrainOnMove()
         {
-            if (moveInput.sqrMagnitude > 0.01f && PlayerStats.Instance != null && WeatherManager.Instance != null)
+            if (PlayerStats.Instance == null) return;
+
+            if (moveInput.sqrMagnitude > 0.01f)
             {
                 // Nếu đang di chuyển giữa trưa nắng Gió Lào
-                if (WeatherManager.Instance.currentVisualWeather == WeatherType.GioLao && WeatherManager.Instance.Temperature > 38f)
+                if (WeatherManager.Instance != null && WeatherManager.Instance.currentVisualWeather == WeatherType.GioLao && WeatherManager.Instance.Temperature > 38f)
                 {
                     // Tiêu hao thêm 1.5 Stamina mỗi giây khi di chuyển ngoài nắng nóng
                     PlayerStats.Instance.ModifyStamina(-1.5f * Time.deltaTime);
                 }
+            }
+            else
+            {
+                // Hồi phục thể lực khi đứng yên tại chỗ (+5 thể lực/giây)
+                PlayerStats.Instance.ModifyStamina(5f * Time.deltaTime);
             }
         }
 
@@ -660,6 +667,16 @@ namespace SownInStone.Core
                     return;
                 }
 
+                // 1.5 Tương tác với Nhà của bạn để chuẩn bị bão
+                if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive && TutorialManager.Instance.currentStage == TutorialManager.TutorialStage.PrepareOwnHouse)
+                {
+                    if (target.name.Contains("Thanh_House"))
+                    {
+                        TutorialManager.Instance.OnOwnHousePrepared();
+                        return;
+                    }
+                }
+
                 // 2. Tương tác với Bàn thờ gia tiên (Thắp nhang)
                 AncestralAltar altar = target.GetComponent<AncestralAltar>();
                 if (altar != null)
@@ -811,6 +828,12 @@ namespace SownInStone.Core
                 if (totalYield > 0 && StorageManager.Instance != null && harvestItem != null)
                 {
                     StorageManager.Instance.AddItem(harvestItem, totalYield);
+                    
+                    if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
+                    {
+                        TutorialManager.Instance.OnCropHarvested();
+                    }
+
                     Debug.Log($"[PLAYER] Thu hoạch thành công ruộng cây: {harvestItem.ItemName} x{totalYield}!");
                     string itemName = !string.IsNullOrEmpty(harvestItem.ItemName) ? harvestItem.ItemName : "Nông sản";
                     
@@ -849,51 +872,49 @@ namespace SownInStone.Core
                 if (canPlant) emptySlots = 1;
             }
 
-            if (canPlant && !(TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive && TutorialManager.Instance.subTask2Completed))
+            int availableSeeds = 0;
+            if (testSeedData != null && seedItem != null && StorageManager.Instance != null)
+            {
+                var slots = StorageManager.Instance.GetStorageSlots();
+                var seedSlot = slots.Find(s => s.item.ItemID == seedItem.ItemID);
+                if (seedSlot != null && seedSlot.quantity > 0)
+                {
+                    availableSeeds = seedSlot.quantity;
+                }
+            }
+
+            bool isRestrictedByTutorial = TutorialManager.Instance != null && 
+                                           TutorialManager.Instance.isTutorialActive && 
+                                           TutorialManager.Instance.subTask2Completed && 
+                                           !TutorialManager.Instance.subTask4Completed && 
+                                           TutorialManager.Instance.currentStage != TutorialManager.TutorialStage.SellCrops;
+
+            if (canPlant && availableSeeds > 0 && !isRestrictedByTutorial)
             {
                 if (testSeedData != null && seedItem != null)
                 {
-                    int availableSeeds = 0;
-                    if (StorageManager.Instance != null)
-                    {
-                        var slots = StorageManager.Instance.GetStorageSlots();
-                        var seedSlot = slots.Find(s => s.item.ItemID == seedItem.ItemID);
-                        if (seedSlot != null && seedSlot.quantity > 0)
-                        {
-                            availableSeeds = seedSlot.quantity;
+                    var plantable = GetPlantableCellsNear(activeSoil);
+                    int bulkCount = Mathf.Min(availableSeeds, plantable.Count);
+
+                    string title = "Gieo hạt giống";
+                    string msg = "Bạn muốn làm gì?";
+
+                    SownInStone.UI.SurvivalUIManager.Instance.ShowDialogueWithChoices(
+                        title,
+                        msg,
+                        $"Trồng hàng loạt ({bulkCount} ô)",
+                        () => {
+                            PerformBulkPlant(activeSoil, bulkCount);
+                        },
+                        "Chỉ trồng ô này",
+                        () => {
+                            PerformSinglePlant(activeSoil);
+                        },
+                        "Hủy",
+                        () => {
+                            SownInStone.UI.SurvivalUIManager.Instance.CloseDialogue();
                         }
-                    }
-
-                    if (availableSeeds > 0)
-                    {
-                        var plantable = GetPlantableCellsNear(activeSoil);
-                        int bulkCount = Mathf.Min(availableSeeds, plantable.Count);
-
-                        string title = "Gieo hạt giống";
-                        string msg = "Bạn muốn làm gì?";
-
-                        SownInStone.UI.SurvivalUIManager.Instance.ShowDialogueWithChoices(
-                            title,
-                            msg,
-                            $"Trồng hàng loạt ({bulkCount} ô)",
-                            () => {
-                                PerformBulkPlant(activeSoil, bulkCount);
-                            },
-                            "Chỉ trồng ô này",
-                            () => {
-                                PerformSinglePlant(activeSoil);
-                            },
-                            "Hủy",
-                            () => {
-                                SownInStone.UI.SurvivalUIManager.Instance.CloseDialogue();
-                            }
-                        );
-                    }
-                    else
-                    {
-                        Debug.Log("Plant failed: no seeds");
-                        SownInStone.UI.SurvivalUIManager.Instance?.ShowDialogue("Hệ thống", "Không có hạt giống Khoai Lang trong kho đồ! Hãy đến gặp đại lý O Thắm để mua giống tái thiết.");
-                    }
+                    );
                 }
                 else
                 {
@@ -1193,11 +1214,22 @@ namespace SownInStone.Core
                                         if (activeSoil.Moisture < 40f) dryCells = 1;
                                     }
 
+                                    int availableSeeds = 0;
+                                    if (testSeedData != null && seedItem != null && StorageManager.Instance != null)
+                                    {
+                                        var slots = StorageManager.Instance.GetStorageSlots();
+                                        var seedSlot = slots.Find(s => s.item != null && s.item.ItemID == seedItem.ItemID);
+                                        if (seedSlot != null && seedSlot.quantity > 0)
+                                        {
+                                            availableSeeds = seedSlot.quantity;
+                                        }
+                                    }
+
                                     if (cellsWithRocks > 0)
                                         prompt = "[E] Dọn đá cải tạo ruộng";
                                     else if (hasReadyCrops)
                                         prompt = "[E] Thu hoạch khoai tươi";
-                                    else if (emptySlots > 0 && !(TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive && TutorialManager.Instance.subTask2Completed))
+                                    else if (emptySlots > 0 && availableSeeds > 0 && !(TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive && TutorialManager.Instance.subTask2Completed))
                                         prompt = "[E] Gieo hạt giống khoai";
                                     else if (dryCells > 0)
                                         prompt = "[E] Tưới nước cho đất ẩm";

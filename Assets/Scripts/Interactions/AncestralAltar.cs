@@ -113,6 +113,10 @@ namespace SownInStone.Interactions
                     {
                         SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast("Bạn thắp nhang thành kính cầu nguyện tổ tiên. +10 Tinh thần");
                     }
+                    if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
+                    {
+                        TutorialManager.Instance.OnAltarWorshipped();
+                    }
                     return true;
                 }
                 else
@@ -155,5 +159,6 @@ namespace SownInStone.Interactions
         }
 
         public bool IsIncenseBurning => remainingBurnTime > 0f;
+        public ItemData IncenseItem => incenseItem;
     }
 }

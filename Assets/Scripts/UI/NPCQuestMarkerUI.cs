@@ -75,8 +75,42 @@ namespace SownInStone.UI
                 GameObject markerObj = npcMarkers[npc];
                 bool shouldShow = false;
 
-                // 1. Kiểm tra xem NPC hiện tại có Sự kiện Giai đoạn chưa hoàn thành hay không
-                if (CommunityManager.Instance != null)
+                // 1. Kiểm tra xem NPC hiện tại có Sự kiện Hướng dẫn hoặc Sự kiện Giai đoạn chưa hoàn thành hay không
+                if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
+                {
+                    var stage = TutorialManager.Instance.currentStage;
+                    if (stage == TutorialManager.TutorialStage.IntroQuests)
+                    {
+                        if (npc.characterType == NPCCharacter.StoryCharacterType.OTham && !TutorialManager.Instance.taskACompleted) shouldShow = true;
+                        else if (npc.characterType == NPCCharacter.StoryCharacterType.BacNam && !TutorialManager.Instance.taskBCompleted) shouldShow = true;
+                        else if (npc.NPCName.Contains("Cụ Bảy") && !TutorialManager.Instance.taskCCompleted) shouldShow = true;
+                        else if (npc.NPCName.Contains("Bé Tí") && !TutorialManager.Instance.taskDCompleted) shouldShow = true;
+                    }
+                    else if (stage == TutorialManager.TutorialStage.TalkToOThamJob)
+                    {
+                        if (npc.characterType == NPCCharacter.StoryCharacterType.OTham) shouldShow = true;
+                    }
+                    else if (stage == TutorialManager.TutorialStage.SellCrops)
+                    {
+                        if (npc.characterType == NPCCharacter.StoryCharacterType.OTham) shouldShow = true;
+                    }
+                    else if (stage == TutorialManager.TutorialStage.TalkToBacNamPreserve)
+                    {
+                        if (npc.characterType == NPCCharacter.StoryCharacterType.BacNam) shouldShow = true;
+                    }
+                    else if (stage == TutorialManager.TutorialStage.SharePreservedCrops)
+                    {
+                        if (npc.characterType == NPCCharacter.StoryCharacterType.OTham && !TutorialManager.Instance.sharedOTham) shouldShow = true;
+                        else if (npc.characterType == NPCCharacter.StoryCharacterType.BacNam && !TutorialManager.Instance.sharedBacNam) shouldShow = true;
+                        else if (npc.characterType == NPCCharacter.StoryCharacterType.CuBay && !TutorialManager.Instance.sharedCuBay) shouldShow = true;
+                        else if (npc.characterType == NPCCharacter.StoryCharacterType.BeTi && !TutorialManager.Instance.sharedBeTi) shouldShow = true;
+                    }
+                    else if (stage == TutorialManager.TutorialStage.TalkToCuBayWorship)
+                    {
+                        if (npc.characterType == NPCCharacter.StoryCharacterType.CuBay) shouldShow = true;
+                    }
+                }
+                else if (CommunityManager.Instance != null)
                 {
                     if (npc.characterType == NPCCharacter.StoryCharacterType.OTham)
                     {

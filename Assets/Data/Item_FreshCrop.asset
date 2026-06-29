@@ -21,4 +21,4 @@ MonoBehaviour:
   Icon: {fileID: 21300000, guid: 412eed74d7b14614a802f8e981dec735, type: 3}
   StaminaRestoreValue: 10
   MoraleRestoreValue: 0
-  DecayRateInHumidity: 0.8
+  DecayRateInHumidity: 0.05

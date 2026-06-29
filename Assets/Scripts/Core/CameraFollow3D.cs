@@ -98,6 +98,34 @@ namespace SownInStone.Core
 
         // Cursor state
         private bool isCursorLocked = false;
+        private bool wasUIOpen = false;
+
+        private bool ShouldReleaseCursor()
+        {
+            if (FrameworkMainMenuUI.Instance != null && FrameworkMainMenuUI.Instance.IsMenuOpen)
+                return true;
+
+            if (SownInStone.UI.SurvivalUIManager.Instance != null)
+            {
+                if (SownInStone.UI.SurvivalUIManager.Instance.IsShopOpen || 
+                    SownInStone.UI.SurvivalUIManager.Instance.IsDialogueActive || 
+                    SownInStone.UI.SurvivalUIManager.Instance.IsChoiceActive ||
+                    SownInStone.UI.SurvivalUIManager.Instance.IsInventoryOpen ||
+                    SownInStone.UI.SurvivalUIManager.Instance.IsCommunityOpen ||
+                    SownInStone.UI.SurvivalUIManager.Instance.IsWeatherDetailsOpen)
+                    return true;
+            }
+
+            if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
+            {
+                if (TutorialManager.Instance.currentStage == TutorialManager.TutorialStage.ShowingFarmingSlides || 
+                    TutorialManager.Instance.IsShowing || 
+                    TutorialManager.Instance.IsShowingFarmingSlides)
+                    return true;
+            }
+
+            return false;
+        }
 
         // ─────────────────────────────────────────────────────────────────────
         //  LIFECYCLE
@@ -320,6 +348,29 @@ namespace SownInStone.Core
                 if (target == null) return;
             }
 
+            // Tự động giải phóng con trỏ chuột khi có các giao diện / hướng dẫn hiện lên
+            bool isUIOpen = ShouldReleaseCursor();
+            if (isUIOpen != wasUIOpen)
+            {
+                if (isUIOpen)
+                {
+                    ReleaseCursor();
+                }
+                else
+                {
+                    bool shouldLock = (currentMode == CameraMode.ThirdPerson || currentMode == CameraMode.FirstPerson);
+                    if (shouldLock)
+                    {
+                        Cursor.lockState = CursorLockMode.Locked;
+                        Cursor.visible = false;
+                        isCursorLocked = true;
+                    }
+                }
+                wasUIOpen = isUIOpen;
+            }
+
+
+
             // Phím [V] để cycle qua 3 mode
 #if ENABLE_INPUT_SYSTEM
             if (Keyboard.current != null && Keyboard.current.vKey.wasPressedThisFrame)
@@ -366,6 +417,7 @@ namespace SownInStone.Core
                             (UnityEngine.EventSystems.EventSystem.current != null && UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject());
 
             if (!isUIOpen)
+            if (!ShouldReleaseCursor())
             {
 #if ENABLE_INPUT_SYSTEM
                 if (Mouse.current != null)
@@ -380,17 +432,20 @@ namespace SownInStone.Core
 
             // 2. Rotation — luôn xoay theo chuột (cursor đã bị lock, không cần giữ RMB)
             float mouseX = 0f, mouseY = 0f;
-#if ENABLE_INPUT_SYSTEM
-            if (Mouse.current != null)
+            if (!ShouldReleaseCursor())
             {
-                Vector2 delta = Mouse.current.delta.ReadValue();
-                mouseX = delta.x * 0.1f;
-                mouseY = delta.y * 0.1f;
-            }
+#if ENABLE_INPUT_SYSTEM
+                if (Mouse.current != null)
+                {
+                    Vector2 delta = Mouse.current.delta.ReadValue();
+                    mouseX = delta.x * 0.1f;
+                    mouseY = delta.y * 0.1f;
+                }
 #else
-            mouseX = Input.GetAxis("Mouse X");
-            mouseY = Input.GetAxis("Mouse Y");
+                mouseX = Input.GetAxis("Mouse X");
+                mouseY = Input.GetAxis("Mouse Y");
 #endif
+            }
             currentYaw   += mouseX * yawSensitivity;
             currentPitch -= mouseY * pitchSensitivity;
             currentPitch  = Mathf.Clamp(currentPitch, minPitch, maxPitch);
@@ -416,6 +471,30 @@ namespace SownInStone.Core
                     checkDistance = Mathf.Clamp(h.distance, minDistance, distance);
                     break;
                 }
+                if (h.collider.transform == target || h.collider.transform.IsChildOf(target)) continue;
+                
+                // Bỏ qua va chạm camera với Địa hình (Terrain), Ruộng đất (SoilCell/Ruong), Vũng bùn (MudPuddle), NPC, cây cối, giếng nước, nhà cửa và cửa hàng
+                if (h.collider.GetComponent<Terrain>() != null || 
+                    h.collider.GetComponentInParent<SownInStone.Community.NPCCharacter>() != null ||
+                    h.collider.GetComponent<SownInStone.Community.NPCCharacter>() != null ||
+                    h.collider.name.Contains("Terrain") || 
+                    h.collider.name.Contains("Soil") || 
+                    h.collider.name.Contains("Ruong") || 
+                    h.collider.name.Contains("Mud") ||
+                    h.collider.name.Contains("NPC") ||
+                    h.collider.name.Contains("Banana") ||
+                    h.collider.name.Contains("Chuoi") ||
+                    h.collider.name.Contains("Tree") ||
+                    h.collider.name.Contains("Plant") ||
+                    h.collider.name.Contains("Well") ||
+                    h.collider.name.Contains("Gieng") ||
+                    h.collider.name.Contains("House") ||
+                    h.collider.name.Contains("Shop") ||
+                    h.collider.name.Contains("Stall")) 
+                    continue;
+
+                checkDistance = Mathf.Clamp(h.distance, minDistance, distance);
+                break;
             }
 
             Vector3 finalPos = pivot + desiredDir * checkDistance;
@@ -459,17 +538,20 @@ namespace SownInStone.Core
 
             // Xoay bằng chuột (luôn luôn, không cần giữ RMB)
             float mouseX = 0f, mouseY = 0f;
-#if ENABLE_INPUT_SYSTEM
-            if (Mouse.current != null)
+            if (!ShouldReleaseCursor())
             {
-                Vector2 delta = Mouse.current.delta.ReadValue();
-                mouseX = delta.x * 0.1f;
-                mouseY = delta.y * 0.1f;
-            }
+#if ENABLE_INPUT_SYSTEM
+                if (Mouse.current != null)
+                {
+                    Vector2 delta = Mouse.current.delta.ReadValue();
+                    mouseX = delta.x * 0.1f;
+                    mouseY = delta.y * 0.1f;
+                }
 #else
-            mouseX = Input.GetAxis("Mouse X");
-            mouseY = Input.GetAxis("Mouse Y");
+                mouseX = Input.GetAxis("Mouse X");
+                mouseY = Input.GetAxis("Mouse Y");
 #endif
+            }
             fpsCurrentYaw   += mouseX * fpsYawSensitivity;
             fpsCurrentPitch -= mouseY * fpsPitchSensitivity;
             fpsCurrentPitch  = Mathf.Clamp(fpsCurrentPitch, -fpsPitchClamp, fpsPitchClamp);

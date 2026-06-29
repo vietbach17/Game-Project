@@ -1,5 +1,8 @@
 # HƯỚNG DẪN CHI TIẾT TỪNG NHIỆM VỤ CHO AI AGENTS (MEMBER BACKLOGS)
 
+> [!NOTE]
+> **Cập nhật ngày 2026-06-29:** Toàn bộ khung logic cốt lõi cho các Thành viên dưới đây đã được lập trình và tích hợp thành công vào nhánh chính. Các Thành viên có thể tiến hành chạy thử nghiệm Play Mode trong Unity để kiểm tra trực quan và thực hiện các phần việc tinh chỉnh (polish) chi tiết liên quan đến prefab, asset mỹ thuật, UI Canvas và âm thanh môi trường.
+
 Tài liệu này cung cấp các chỉ dẫn kỹ thuật cực kỳ chi tiết, bao gồm: đường dẫn file, tên lớp (Class), tên phương thức (Method), logic nghiệp vụ và mã nguồn mẫu (Code template) để các AI Agent của từng thành viên có thể đọc hiểu và lập trình hoàn thành nhiệm vụ ngay lập tức.
 
 ---
