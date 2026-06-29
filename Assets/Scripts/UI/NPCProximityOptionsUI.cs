@@ -401,7 +401,6 @@ namespace SownInStone.UI
             else
             {
                 // Xác định các lựa chọn có sẵn cho NPC dựa trên Giai đoạn cốt truyện
-                GamePhase currentPhase = GameManager.Instance != null ? GameManager.Instance.CurrentPhase : GamePhase.LapNghiep;
 
                 if (npc.characterType == NPCCharacter.StoryCharacterType.OTham)
                 {
