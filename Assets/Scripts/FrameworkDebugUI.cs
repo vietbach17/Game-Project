@@ -26,6 +26,7 @@ namespace SownInStone
         [SerializeField] private ItemData testNonLa;
         [SerializeField] private ItemData testSandbag;
         [SerializeField] private ItemData testFloodBoard;
+        [SerializeField] private ItemData testPlasticMulch;
         [SerializeField] private AncestralAltar testAltar;
 
         private string alertMessage = "Hệ thống hoạt động bình thường.";
@@ -96,6 +97,7 @@ namespace SownInStone
             if (testNonLa == null) testNonLa = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_non_la.asset");
             if (testSandbag == null) testSandbag = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_sandbag.asset");
             if (testFloodBoard == null) testFloodBoard = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_flood_board.asset");
+            if (testPlasticMulch == null) testPlasticMulch = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_plastic_mulch.asset");
 #endif
             AddDefaultItemsToStorage();
         }
@@ -154,7 +156,8 @@ namespace SownInStone
             if (testSeedItem != null) StorageManager.Instance.AddItem(testSeedItem, 5);
             if (testNonLa != null) StorageManager.Instance.AddItem(testNonLa, 1);
             if (testSandbag != null) StorageManager.Instance.AddItem(testSandbag, 5);
-            if (testFloodBoard != null) StorageManager.Instance.AddItem(testFloodBoard, 3);
+            if (testFloodBoard != null) StorageManager.Instance.AddItem(testFloodBoard, 5);
+            if (testPlasticMulch != null) StorageManager.Instance.AddItem(testPlasticMulch, 3);
         }
 
         private void OnGUI()
