@@ -45,8 +45,8 @@ Cập nhật: **2026-06-29**.
 ### Storm / Tutorial Expansion
 - [x] Hướng dẫn sấy khoai gieo khô tại bếp gas (hiển thị dấu chấm than và chữ "Bếp Gas" dẫn đường).
 - [x] Gặp và tặng khoai gieo cho 4 dân làng. Hội thoại Bé Tí lo sợ về cơn bão kích hoạt tiếng Loa Phát Thanh Xã khẩn cấp và còi hú cảnh báo thiên tai.
-- [x] Tuyến nhiệm vụ gia cố trước bão: đắp bao cát giúp O Thắm, chằng buộc mái nhà lá giúp Bác Năm.
-- [x] Nhiệm vụ chuẩn bị bao cát bảo vệ nhà mình (hiển thị dấu chấm than "Nhà Của Bạn").
+- [x] Tuyến nhiệm vụ gia cố trước bão: O Thắm tặng 4 tấm chắn lũ dựng trước cửa đại lý để chống ngập, Bác Năm tặng 4 bao cát đặt trực tiếp lên mái nhà tranh để chằng chống. Cả hai nhiệm vụ đều sử dụng mô hình bóng ma trong suốt màu xanh dương (alpha = 0.35) tự động quét trong Scene, bắt khớp 2D XZ mượt mà với dung sai 3.5m, khôi phục vật liệu gốc khi hoàn tất và khóa option đối thoại của NPC.
+- [x] Nhiệm vụ chuẩn bị bao cát bảo vệ nhà mình: tự động nhận 4 bao cát đặt trước cửa nhà mình (hiển thị dấu chấm than "Nhà Của Bạn").
 - [x] Cụ Bảy tặng 1 Nén Nhang cúng tế và hiển thị Toast "Bạn nhận được 1 Nén Nhang từ Cụ Bảy".
 - [x] Thắp nhang ban thờ gia tiên để hoàn thành hướng dẫn và kích hoạt chuyển cảnh bão về (`GamePhase.MuaBao`).
 
