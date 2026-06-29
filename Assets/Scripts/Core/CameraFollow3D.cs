@@ -468,33 +468,30 @@ namespace SownInStone.Core
                 foreach (var h in hits)
                 {
                     if (h.collider.transform == target || h.collider.transform.IsChildOf(target)) continue;
+                    
+                    // Bỏ qua va chạm camera với Địa hình (Terrain), Ruộng đất (SoilCell/Ruong), Vũng bùn (MudPuddle), NPC, cây cối, giếng nước, nhà cửa và cửa hàng
+                    if (h.collider.GetComponent<Terrain>() != null || 
+                        h.collider.GetComponentInParent<SownInStone.Community.NPCCharacter>() != null ||
+                        h.collider.GetComponent<SownInStone.Community.NPCCharacter>() != null ||
+                        h.collider.name.Contains("Terrain") || 
+                        h.collider.name.Contains("Soil") || 
+                        h.collider.name.Contains("Ruong") || 
+                        h.collider.name.Contains("Mud") ||
+                        h.collider.name.Contains("NPC") ||
+                        h.collider.name.Contains("Banana") ||
+                        h.collider.name.Contains("Chuoi") ||
+                        h.collider.name.Contains("Tree") ||
+                        h.collider.name.Contains("Plant") ||
+                        h.collider.name.Contains("Well") ||
+                        h.collider.name.Contains("Gieng") ||
+                        h.collider.name.Contains("House") ||
+                        h.collider.name.Contains("Shop") ||
+                        h.collider.name.Contains("Stall")) 
+                        continue;
+
                     checkDistance = Mathf.Clamp(h.distance, minDistance, distance);
                     break;
                 }
-                if (h.collider.transform == target || h.collider.transform.IsChildOf(target)) continue;
-                
-                // Bỏ qua va chạm camera với Địa hình (Terrain), Ruộng đất (SoilCell/Ruong), Vũng bùn (MudPuddle), NPC, cây cối, giếng nước, nhà cửa và cửa hàng
-                if (h.collider.GetComponent<Terrain>() != null || 
-                    h.collider.GetComponentInParent<SownInStone.Community.NPCCharacter>() != null ||
-                    h.collider.GetComponent<SownInStone.Community.NPCCharacter>() != null ||
-                    h.collider.name.Contains("Terrain") || 
-                    h.collider.name.Contains("Soil") || 
-                    h.collider.name.Contains("Ruong") || 
-                    h.collider.name.Contains("Mud") ||
-                    h.collider.name.Contains("NPC") ||
-                    h.collider.name.Contains("Banana") ||
-                    h.collider.name.Contains("Chuoi") ||
-                    h.collider.name.Contains("Tree") ||
-                    h.collider.name.Contains("Plant") ||
-                    h.collider.name.Contains("Well") ||
-                    h.collider.name.Contains("Gieng") ||
-                    h.collider.name.Contains("House") ||
-                    h.collider.name.Contains("Shop") ||
-                    h.collider.name.Contains("Stall")) 
-                    continue;
-
-                checkDistance = Mathf.Clamp(h.distance, minDistance, distance);
-                break;
             }
 
             Vector3 finalPos = pivot + desiredDir * checkDistance;

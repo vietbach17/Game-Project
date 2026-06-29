@@ -229,6 +229,8 @@ namespace SownInStone.UI
             optionButtons.Clear();
             currentOptions.Clear();
 
+            GamePhase currentPhase = GameManager.Instance != null ? GameManager.Instance.CurrentPhase : GamePhase.LapNghiep;
+
             // Khi hướng dẫn đang kích hoạt, thiết lập các lựa chọn tương tác chuyên biệt cho từng Stage
             if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
             {
