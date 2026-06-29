@@ -7,7 +7,7 @@ namespace SownInStone.Editor
     /// <summary>
     /// Editor script to automate setting up Thành's house (the player's house),
     /// auto-scaling it, correcting pivot offsets to place it on the ground,
-    /// rotating it to face the player, and adding a BoxCollider.
+    /// rotating it to face the player, and adding thick solid BoxColliders to prevent passing through.
     /// </summary>
     public class SetupThanhHouse
     {
@@ -63,48 +63,48 @@ namespace SownInStone.Editor
                 AutoScaleObject(houseObj, 4.5f);
                 // Center house horizontally and place its bottom exactly at local Y = 0
                 AlignPivotOffset(houseObj, houseContainer.transform, Vector3.zero);
-            }
 
-            // 5. Clean up any colliders on child objects to avoid conflicts
-            if (houseObj != null)
-            {
-                var childColliders = houseObj.GetComponentsInChildren<Collider>(true);
-                foreach (var col in childColliders)
+                // Add MeshCollider to visual model for exact polygon collision
+                foreach (var mf in houseObj.GetComponentsInChildren<MeshFilter>())
                 {
-                    Object.DestroyImmediate(col);
+                    if (mf.sharedMesh != null)
+                    {
+                        MeshCollider mc = mf.gameObject.AddComponent<MeshCollider>();
+                        mc.sharedMesh = mf.sharedMesh;
+                        mc.convex = false;
+                    }
                 }
-                Debug.Log("[SETUP THANH HOUSE] Cleaned up child colliders.");
             }
 
-            // 6. Set up robust Compound BoxColliders on the parent container (Thanh_House)
-            // This prevents player from walking through the house's walls while keeping the front steps and porch open.
+            // 5. Clean up any extra colliders on child objects if needed
+            // 6. Set up thick, impenetrable Compound BoxColliders on the parent container (Thanh_House)
             BoxCollider[] existingColliders = houseContainer.GetComponents<BoxCollider>();
             foreach (var col in existingColliders)
             {
                 Object.DestroyImmediate(col);
             }
 
-            // A. Main House Body Collider
+            // A. Main House Body Collider (Kích thước dày dặn kín 100% ngôi nhà)
             BoxCollider mainBodyCol = houseContainer.AddComponent<BoxCollider>();
-            mainBodyCol.center = new Vector3(0.0f, 2.25f, 0.3725f);
-            mainBodyCol.size = new Vector3(6.46f, 4.5f, 1.745f);
+            mainBodyCol.center = new Vector3(0.0f, 2.5f, 0.5f);
+            mainBodyCol.size = new Vector3(7.5f, 5.0f, 5.0f);
             mainBodyCol.isTrigger = false;
 
             // B. Left Porch Wall Collider
             BoxCollider leftWallCol = houseContainer.AddComponent<BoxCollider>();
-            leftWallCol.center = new Vector3(-3.13f, 2.25f, -1.3525f);
-            leftWallCol.size = new Vector3(0.2f, 4.5f, 1.705f);
+            leftWallCol.center = new Vector3(-3.5f, 2.5f, -1.8f);
+            leftWallCol.size = new Vector3(0.8f, 5.0f, 2.5f);
             leftWallCol.isTrigger = false;
 
             // C. Right Porch Wall Collider
             BoxCollider rightWallCol = houseContainer.AddComponent<BoxCollider>();
-            rightWallCol.center = new Vector3(3.13f, 2.25f, -1.3525f);
-            rightWallCol.size = new Vector3(0.2f, 4.5f, 1.705f);
+            rightWallCol.center = new Vector3(3.5f, 2.5f, -1.8f);
+            rightWallCol.size = new Vector3(0.8f, 5.0f, 2.5f);
             rightWallCol.isTrigger = false;
 
-            Debug.Log("[SETUP THANH HOUSE] Set up robust Compound BoxColliders (Main Body, Left Porch Wall, Right Porch Wall) on Thanh_House.");
+            Debug.Log("[SETUP THANH HOUSE] Đã tạo va chạm vật lý cực kỳ kiên cố kín 100% không cho nhân vật đi xuyên qua nhà Thành!");
 
-            // 6. Mark scene dirty and save
+            // 7. Mark scene dirty and save
             if (!Application.isPlaying)
             {
                 EditorUtility.SetDirty(houseContainer);
@@ -151,12 +151,10 @@ namespace SownInStone.Editor
             visualObj.name = name;
             visualObj.transform.SetParent(parent);
             
-            // CRITICAL: Preserve the FBX's import rotation to keep the model upright!
             visualObj.transform.localRotation = fbxAsset.transform.localRotation;
             visualObj.transform.localPosition = Vector3.zero;
             visualObj.transform.localScale = Vector3.one;
 
-            // Assign Material to all MeshRenderers in the model
             var renderers = visualObj.GetComponentsInChildren<Renderer>();
             foreach (var r in renderers)
             {
@@ -196,11 +194,9 @@ namespace SownInStone.Editor
                 bounds.Encapsulate(r.bounds);
             }
 
-            // Convert bounds center and minimum to parent's local space
             Vector3 localCenter = parentTrans.InverseTransformPoint(bounds.center);
             Vector3 localMin = parentTrans.InverseTransformPoint(bounds.min);
 
-            // Compute the corrective offset to align horizontal center to 0 and bottom to Y = 0 relative to targetLocalPosition
             Vector3 pivotCorrection = new Vector3(
                 targetLocalPosition.x - (localCenter.x - visualObj.transform.localPosition.x),
                 targetLocalPosition.y - (localMin.y - visualObj.transform.localPosition.y),

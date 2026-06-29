@@ -55,6 +55,12 @@ namespace SownInStone
         private Texture2D bgImage;
         private Texture2D transparentTex;
         private Texture2D gearIconTex;
+        private Texture2D logoTex;
+        
+        // Loading simulation
+        private bool isLoading = false;
+        private float loadingProgress = 0f;
+        private System.Action onLoadingComplete;
         
         // Hover state scales for the 6 menu buttons
         private float[] menuHoverScales = new float[6] { 1f, 1f, 1f, 1f, 1f, 1f };
@@ -116,6 +122,7 @@ namespace SownInStone
             // Load ảnh nền mới
             bgImage = Resources.Load<Texture2D>("UI/bg_home_2");
             gearIconTex = Resources.Load<Texture2D>("UI/gear_icon");
+            logoTex = Resources.Load<Texture2D>("UI/logo");
 
             // Tạo texture trong suốt để bắt sự kiện hover chuột
             transparentTex = new Texture2D(1, 1);
@@ -143,6 +150,17 @@ namespace SownInStone
                 }
             }
 
+            if (isLoading)
+            {
+                loadingProgress += Time.unscaledDeltaTime / 2.0f; // Thời gian loading 2 giây
+                if (loadingProgress >= 1f)
+                {
+                    isLoading = false;
+                    onLoadingComplete?.Invoke();
+                }
+                return;
+            }
+
             if (isMenuOpen)
             {
                 // Mô phỏng bụi rơm bay chậm rãi trong gió Lào ở màn hình Menu
@@ -162,6 +180,12 @@ namespace SownInStone
 
         private void OnGUI()
         {
+            if (isLoading)
+            {
+                DrawLoadingScreen();
+                return;
+            }
+
             if (!isMenuOpen)
             {
                 if (hasStartedJourney)
@@ -194,6 +218,13 @@ namespace SownInStone
                     GUI.DrawTexture(new Rect(particle.x, particle.y, 4, 4), Texture2D.whiteTexture);
                 }
                 GUI.color = Color.white;
+
+                // Vẽ logo ở góc trên bên phải
+                if (logoTex != null)
+                {
+                    float logoSize = 150f;
+                    GUI.DrawTexture(new Rect(Screen.width - logoSize - 30f, 30f, logoSize, logoSize), logoTex, ScaleMode.ScaleToFit);
+                }
             }
 
             // Tọa độ menu nằm bên trái màn hình
@@ -273,6 +304,57 @@ namespace SownInStone
             }
         }
 
+        private void TriggerLoading(System.Action onComplete)
+        {
+            isLoading = true;
+            loadingProgress = 0f;
+            onLoadingComplete = onComplete;
+        }
+
+        private void ExecuteExit()
+        {
+            Application.Quit();
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+#endif
+        }
+
+        private void DrawLoadingScreen()
+        {
+            // Nền đen
+            GUI.color = new Color(0.05f, 0.05f, 0.05f, 1f);
+            GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), Texture2D.whiteTexture);
+            GUI.color = Color.white;
+
+            // Logo ở giữa
+            if (logoTex != null)
+            {
+                float size = 350f;
+                float logoY = (Screen.height - size) / 2f - 40f;
+                GUI.DrawTexture(new Rect((Screen.width - size) / 2f, logoY, size, size), logoTex, ScaleMode.ScaleToFit);
+            }
+
+            // Thanh tiến trình
+            float barWidth = 400f;
+            float barHeight = 6f;
+            float barX = (Screen.width - barWidth) / 2f;
+            float barY = Screen.height - 100f;
+            
+            GUI.color = new Color(0.2f, 0.2f, 0.2f, 1f);
+            GUI.DrawTexture(new Rect(barX, barY, barWidth, barHeight), Texture2D.whiteTexture);
+            GUI.color = new Color(0.98f, 0.85f, 0.35f, 1f); // Màu vàng gold
+            GUI.DrawTexture(new Rect(barX, barY, barWidth * loadingProgress, barHeight), Texture2D.whiteTexture);
+            GUI.color = Color.white;
+
+            // Chữ Loading
+            GUIStyle loadingStyle = new GUIStyle();
+            loadingStyle.alignment = TextAnchor.MiddleCenter;
+            loadingStyle.normal.textColor = new Color(0.9f, 0.9f, 0.9f);
+            loadingStyle.fontSize = 20;
+            loadingStyle.fontStyle = FontStyle.Bold;
+            GUI.Label(new Rect(0, barY - 40f, Screen.width, 30f), $"ĐANG TẢI... {Mathf.RoundToInt(loadingProgress * 100)}%", loadingStyle);
+        }
+
         #region VẼ CÁC TRANG MENU CHÍNH
         
         private void DrawMainMenu()
@@ -290,7 +372,7 @@ namespace SownInStone
                 {
                     SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
                     LoadGame();
-                    StartJourney();
+                    TriggerLoading(StartJourney);
                 }
                 GUILayout.Space(5);
             }
@@ -330,10 +412,7 @@ namespace SownInStone
             if (DrawMenuButton(5, "Exit", clearBtnStyle))
             {
                 SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
-                Application.Quit();
-#if UNITY_EDITOR
-                UnityEditor.EditorApplication.isPlaying = false;
-#endif
+                TriggerLoading(ExecuteExit);
             }
         }
 
@@ -415,11 +494,11 @@ namespace SownInStone
                 if (enableTutorial && TutorialManager.Instance != null)
                 {
                     isMenuOpen = false;
-                    TutorialManager.Instance.ShowTutorial(() => StartJourney());
+                    TutorialManager.Instance.ShowTutorial(() => TriggerLoading(StartJourney));
                 }
                 else
                 {
-                    StartJourney();
+                    TriggerLoading(StartJourney);
                 }
             }
 
@@ -768,7 +847,7 @@ namespace SownInStone
                     if (GUILayout.Button("Thoát ra Menu chính", buttonStyle, GUILayout.Width(180), GUILayout.Height(30)))
                     {
                         SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
-                        QuitToMainMenu();
+                        TriggerLoading(QuitToMainMenu);
                     }
                 }
                 GUILayout.EndHorizontal();

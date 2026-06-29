@@ -229,6 +229,8 @@ namespace SownInStone.UI
             optionButtons.Clear();
             currentOptions.Clear();
 
+            GamePhase currentPhase = GameManager.Instance != null ? GameManager.Instance.CurrentPhase : GamePhase.LapNghiep;
+
             // Khi hướng dẫn đang kích hoạt, thiết lập các lựa chọn tương tác chuyên biệt cho từng Stage
             if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
             {
@@ -417,7 +419,6 @@ namespace SownInStone.UI
             else
             {
                 // Xác định các lựa chọn có sẵn cho NPC dựa trên Giai đoạn cốt truyện
-                GamePhase currentPhase = GameManager.Instance != null ? GameManager.Instance.CurrentPhase : GamePhase.LapNghiep;
 
                 if (npc.characterType == NPCCharacter.StoryCharacterType.OTham)
                 {
@@ -585,8 +586,18 @@ namespace SownInStone.UI
                 }
             }
 
-            // Tạo các Button UI đồng bộ kích thước chuẩn (Chiều rộng 260px, Chiều cao 30px)
-            float totalHeight = 30f; // Tiêu đề + padding ban đầu
+            // Nút Tặng Tấm Chắn Lũ gia cố nhà dân làng (Chỉ xuất hiện trong Phase 3 Mưa Bão)
+            if (currentPhase == GamePhase.MuaBao)
+            {
+                currentOptions.Add(new ProximityOption
+                {
+                    label = $"[{currentOptions.Count + 1}] Tặng Tấm Chắn Lũ gia cố nhà (+20 NT)",
+                    action = () => TriggerGiveFloodBoard(npc)
+                });
+            }
+
+            // Tạo các Button UI đồng bộ kích thước chuẩn (Chiều rộng 360px, Chiều cao 36px)
+            float totalHeight = 39f; // Tiêu đề + padding ban đầu
             for (int i = 0; i < currentOptions.Count; i++)
             {
                 int index = i;
@@ -658,8 +669,9 @@ namespace SownInStone.UI
             bool pressed1 = Keyboard.current.digit1Key.wasPressedThisFrame || Keyboard.current.numpad1Key.wasPressedThisFrame;
             bool pressed2 = Keyboard.current.digit2Key.wasPressedThisFrame || Keyboard.current.numpad2Key.wasPressedThisFrame;
             bool pressed3 = Keyboard.current.digit3Key.wasPressedThisFrame || Keyboard.current.numpad3Key.wasPressedThisFrame;
+            bool pressed4 = Keyboard.current.digit4Key.wasPressedThisFrame || Keyboard.current.numpad4Key.wasPressedThisFrame;
 
-            if (pressed1 || pressed2 || pressed3)
+            if (pressed1 || pressed2 || pressed3 || pressed4)
             {
                 if (PlayerController.Instance != null)
                 {
@@ -679,9 +691,43 @@ namespace SownInStone.UI
             {
                 currentOptions[2].action();
             }
+            else if (currentOptions.Count >= 4 && pressed4)
+            {
+                currentOptions[3].action();
+            }
         }
 
         // --- CÁC HÀM XỬ LÝ LỰA CHỌN TƯƠNG TÁC (TÁI SỬ DỤNG LOGIC CHUẨN) ---
+
+        private void TriggerGiveFloodBoard(NPCCharacter npc)
+        {
+            if (npc == null) return;
+            ItemData floodBoardItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_flood_board.asset");
+            if (StorageManager.Instance != null && floodBoardItem != null)
+            {
+                if (StorageManager.Instance.RemoveItem(floodBoardItem, 1))
+                {
+                    CommunityManager.Instance?.ModifyGlobalKarma(20);
+                    if (SurvivalUIManager.Instance != null)
+                    {
+                        SurvivalUIManager.Instance.ShowHUDToast($"🧡 NGHĨA TÌNH: Đã tặng Tấm Chắn Lũ gia cố nhà {npc.NPCName}! (+20 Nghĩa Tình)");
+                    }
+                    GameObject floodBoardPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Resources/Prefabs/FloodBoard.prefab");
+                    if (floodBoardPrefab != null)
+                    {
+                        Vector3 spawnPos = npc.transform.position + npc.transform.forward * 1.5f + Vector3.up * 0.5f;
+                        Instantiate(floodBoardPrefab, spawnPos, npc.transform.rotation);
+                    }
+                }
+                else
+                {
+                    if (SurvivalUIManager.Instance != null)
+                    {
+                        SurvivalUIManager.Instance.ShowHUDToast("Trong Balo không còn Tấm Chắn Lũ!");
+                    }
+                }
+            }
+        }
 
         private void TriggerTalk(NPCCharacter npc)
         {

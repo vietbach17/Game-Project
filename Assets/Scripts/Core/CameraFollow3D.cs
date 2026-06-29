@@ -411,8 +411,12 @@ namespace SownInStone.Core
         // ─────────────────────────────────────────────────────────────────────
         private void UpdateThirdPerson()
         {
-            // 1. Mouse wheel zoom
+            // 1. Mouse wheel zoom (Tắt zoom khi đang mở Balo hoặc thao tác UI)
             float scroll = 0f;
+            bool isUIOpen = (SownInStone.UI.SurvivalUIManager.Instance != null && SownInStone.UI.SurvivalUIManager.Instance.IsInventoryOpen) ||
+                            (UnityEngine.EventSystems.EventSystem.current != null && UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject());
+
+            if (!isUIOpen)
             if (!ShouldReleaseCursor())
             {
 #if ENABLE_INPUT_SYSTEM
@@ -452,34 +456,42 @@ namespace SownInStone.Core
             Vector3 desiredDir     = rotation * Vector3.back;
             float   checkDistance  = distance;
 
-            RaycastHit[] hits = Physics.SphereCastAll(pivot, cameraRadius, desiredDir, distance, collisionLayers, QueryTriggerInteraction.Ignore);
-            System.Array.Sort(hits, (x, y) => x.distance.CompareTo(y.distance));
-            foreach (var h in hits)
+            bool isInsideHouse = PlayerController.Instance != null && PlayerController.Instance.IsInsideHouse;
+            if (isInsideHouse)
             {
-                if (h.collider.transform == target || h.collider.transform.IsChildOf(target)) continue;
-                
-                // Bỏ qua va chạm camera với Địa hình (Terrain), Ruộng đất (SoilCell/Ruong), Vũng bùn (MudPuddle), NPC, cây cối, giếng nước, nhà cửa và cửa hàng
-                if (h.collider.GetComponent<Terrain>() != null || 
-                    h.collider.GetComponentInParent<SownInStone.Community.NPCCharacter>() != null ||
-                    h.collider.GetComponent<SownInStone.Community.NPCCharacter>() != null ||
-                    h.collider.name.Contains("Terrain") || 
-                    h.collider.name.Contains("Soil") || 
-                    h.collider.name.Contains("Ruong") || 
-                    h.collider.name.Contains("Mud") ||
-                    h.collider.name.Contains("NPC") ||
-                    h.collider.name.Contains("Banana") ||
-                    h.collider.name.Contains("Chuoi") ||
-                    h.collider.name.Contains("Tree") ||
-                    h.collider.name.Contains("Plant") ||
-                    h.collider.name.Contains("Well") ||
-                    h.collider.name.Contains("Gieng") ||
-                    h.collider.name.Contains("House") ||
-                    h.collider.name.Contains("Shop") ||
-                    h.collider.name.Contains("Stall")) 
-                    continue;
+                checkDistance = 1.2f; // Góc nhìn 3D cận cảnh ngang vai PUBG khi ở trong nhà
+            }
+            else
+            {
+                RaycastHit[] hits = Physics.SphereCastAll(pivot, cameraRadius, desiredDir, distance, collisionLayers, QueryTriggerInteraction.Ignore);
+                System.Array.Sort(hits, (x, y) => x.distance.CompareTo(y.distance));
+                foreach (var h in hits)
+                {
+                    if (h.collider.transform == target || h.collider.transform.IsChildOf(target)) continue;
+                    
+                    // Bỏ qua va chạm camera với Địa hình (Terrain), Ruộng đất (SoilCell/Ruong), Vũng bùn (MudPuddle), NPC, cây cối, giếng nước, nhà cửa và cửa hàng
+                    if (h.collider.GetComponent<Terrain>() != null || 
+                        h.collider.GetComponentInParent<SownInStone.Community.NPCCharacter>() != null ||
+                        h.collider.GetComponent<SownInStone.Community.NPCCharacter>() != null ||
+                        h.collider.name.Contains("Terrain") || 
+                        h.collider.name.Contains("Soil") || 
+                        h.collider.name.Contains("Ruong") || 
+                        h.collider.name.Contains("Mud") ||
+                        h.collider.name.Contains("NPC") ||
+                        h.collider.name.Contains("Banana") ||
+                        h.collider.name.Contains("Chuoi") ||
+                        h.collider.name.Contains("Tree") ||
+                        h.collider.name.Contains("Plant") ||
+                        h.collider.name.Contains("Well") ||
+                        h.collider.name.Contains("Gieng") ||
+                        h.collider.name.Contains("House") ||
+                        h.collider.name.Contains("Shop") ||
+                        h.collider.name.Contains("Stall")) 
+                        continue;
 
-                checkDistance = Mathf.Clamp(h.distance, minDistance, distance);
-                break;
+                    checkDistance = Mathf.Clamp(h.distance, minDistance, distance);
+                    break;
+                }
             }
 
             Vector3 finalPos = pivot + desiredDir * checkDistance;

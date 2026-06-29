@@ -74,8 +74,24 @@ namespace SownInStone.Core
         [Tooltip("Mì tôm cứu trợ khi dâng lũ.")]
         [SerializeField] private ItemData noodlesItem;
         private bool isOnRoof = false;
+        private bool isInsideHouse = false;
+        private GameObject houseInteriorInstance;
 
         public bool IsOnRoof => isOnRoof;
+        public bool IsInsideHouse => isInsideHouse;
+
+        [Header("--- HỆ THỐNG CHẮN LŨ (TASK 2) ---")]
+        [Tooltip("Vật phẩm Vách chắn nước trong kho đồ.")]
+        public ItemData floodBoardItem;
+
+        [Tooltip("Vật phẩm Bao cát trong kho đồ.")]
+        public ItemData sandbagItem;
+
+        [Tooltip("Prefab Vách chắn nước 3D xuất hiện ngoài Scene.")]
+        public GameObject floodBoardPrefab;
+
+        [Tooltip("Prefab Bao cát 3D xuất hiện ngoài Scene.")]
+        public GameObject sandbagPrefab;
 
         private Rigidbody rb;
         private Animator animator;
@@ -91,6 +107,14 @@ namespace SownInStone.Core
         private System.Collections.Generic.HashSet<string> animatorParams = new System.Collections.Generic.HashSet<string>();
         private SoilCell currentTargetSoil;
         public SoilCell CurrentTargetSoilCell => currentTargetSoil;
+
+        [Header("--- XEM TRƯỚC VỊ TRÍ ĐẶT (GHOST PREVIEW) ---")]
+        private bool isPlacingPreview = false;
+        private ItemData previewItemData;
+        private GameObject previewPrefab;
+        private string previewItemName;
+        private GameObject activeGhostObject;
+        private float previewRotationY = 0f;
 
         [Header("--- PHÍM BẤM HỖ TRỢ TƯƠNG THÍCH ---")]
         public KeyCode keyMoveUp = KeyCode.W;
@@ -137,6 +161,8 @@ namespace SownInStone.Core
         private void Awake()
         {
             LoadKeyBindings();
+            AutoLoadTask2References();
+
             if (Instance == null)
             {
                 Instance = this;
@@ -302,10 +328,14 @@ namespace SownInStone.Core
             // 2. Cập nhật các thông số Animator phục vụ việc vẽ Sprite vẽ tay động
             UpdateAnimatorParameters();
 
-            // 3. Tiêu hao thể lực thụ động khi di chuyển dưới nắng hè Gió Lào gay gắt
-            HandleStaminaDrainOnMove();
+            // Xử lý chế độ xem trước vị trí đặt vật thể (Ghost Placement Preview)
+            if (isPlacingPreview)
+            {
+                UpdatePlacementPreview();
+                return;
+            }
 
-            // 4. Lắng nghe phím [E] hoặc [Space] để tương tác vật lý trong game
+            // 4. Lắng nghe phím [E] hoặc [Space] và phím nhanh [1..5]
 #if ENABLE_INPUT_SYSTEM
             if (Keyboard.current != null)
             {
@@ -313,12 +343,29 @@ namespace SownInStone.Core
                 {
                     TryPerformInteraction();
                 }
+
+                if (Keyboard.current.digit1Key.wasPressedThisFrame || Keyboard.current.numpad1Key.wasPressedThisFrame) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(0);
+                if (Keyboard.current.digit2Key.wasPressedThisFrame || Keyboard.current.numpad2Key.wasPressedThisFrame) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(1);
+                if (Keyboard.current.digit3Key.wasPressedThisFrame || Keyboard.current.numpad3Key.wasPressedThisFrame) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(2);
+                if (Keyboard.current.digit4Key.wasPressedThisFrame || Keyboard.current.numpad4Key.wasPressedThisFrame) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(3);
+                if (Keyboard.current.digit5Key.wasPressedThisFrame || Keyboard.current.numpad5Key.wasPressedThisFrame) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(4);
             }
-#else
+            if (Input.GetKeyDown(KeyCode.F2))
+            {
+                GameManager.Instance?.SetTime(22.95f);
+                SownInStone.UI.SurvivalUIManager.Instance?.ShowHUDToast("⚙️ [DEBUG] Đã tua thời gian sang ban đêm (22:57)! Chuẩn bị nhận cảnh báo 23:00!");
+            }
+
             if (Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.Space))
             {
                 TryPerformInteraction();
             }
+
+            if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1)) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(0);
+            if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2)) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(1);
+            if (Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3)) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(2);
+            if (Input.GetKeyDown(KeyCode.Alpha4) || Input.GetKeyDown(KeyCode.Keypad4)) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(3);
+            if (Input.GetKeyDown(KeyCode.Alpha5) || Input.GetKeyDown(KeyCode.Keypad5)) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(4);
 #endif
             // Cập nhật gợi ý tương tác lên UI
             UpdateInteractionPrompt();
@@ -642,53 +689,104 @@ namespace SownInStone.Core
 
             Debug.Log("[PLAYER] Bấm phím tương tác [E]!");
 
-            // 0. Nếu đang ở trên nóc nhà và không có đối thoại nào đang mở
-            if (isOnRoof)
+            // Tương tác trực tiếp vào/ra nhà trú ẩn và các đồ nội thất trong nhà
+            if (isInsideHouse)
             {
-                if (SownInStone.UI.SurvivalUIManager.Instance != null)
+                if (houseInteriorInstance != null)
                 {
-                    if (SownInStone.UI.SurvivalUIManager.Instance.IsDialogueActive)
+                    Transform mainDoor = houseInteriorInstance.transform.Find("HouseFrame/MainDoor");
+                    if (mainDoor == null)
                     {
-                        if (!SownInStone.UI.SurvivalUIManager.Instance.IsChoiceActive)
+                        foreach (var t in houseInteriorInstance.GetComponentsInChildren<Transform>())
                         {
-                            SownInStone.UI.SurvivalUIManager.Instance.CloseDialogue();
+                            if (t.name == "MainDoor") { mainDoor = t; break; }
                         }
+                    }
+                    if (mainDoor != null && Vector3.Distance(transform.position, mainDoor.position) <= 1.8f)
+                    {
+                        ExitHouse();
                         return;
                     }
 
-                    // Mở hội thoại lựa chọn nghỉ ngơi trên nóc nhà
-                    SownInStone.UI.SurvivalUIManager.Instance.ShowDialogueWithChoices(
-                        "Sinh tồn trên nóc nhà",
-                        "Bạn có muốn nghỉ ngơi trên nóc nhà để chờ nước lũ rút không? (Trôi qua 1 giờ, hồi phục 15 Thể lực, giảm 10 nhiễm lạnh, hồi phục 5 tinh thần)",
-                        "Nghỉ ngơi (1 giờ)",
-                        () => {
-                            // Thực hiện nghỉ ngơi
-                            if (GameManager.Instance != null)
-                            {
-                                GameManager.Instance.AdvanceTime(1f);
-                            }
-                            if (PlayerStats.Instance != null)
-                            {
-                                PlayerStats.Instance.ModifyStamina(15f);
-                                PlayerStats.Instance.ApplyColdStress(-10f);
-                                PlayerStats.Instance.ModifyMorale(5f);
-                            }
-                            if (SownInStone.UI.SurvivalUIManager.Instance != null)
-                            {
-                                SownInStone.UI.SurvivalUIManager.Instance.ShowDialogue(
-                                    "Sinh tồn trên nóc nhà", 
-                                    "Bạn đã chợp mắt một lúc. Thể lực và tinh thần phục hồi nhẹ, cơ thể ấm áp hơn."
-                                );
-                            }
-                        },
-                        "Hủy bỏ",
-                        () => {
-                            if (SownInStone.UI.SurvivalUIManager.Instance != null)
-                            {
-                                SownInStone.UI.SurvivalUIManager.Instance.CloseDialogue();
-                            }
+                    Transform giuong = houseInteriorInstance.transform.Find("HouseFrame/GiuongNguModel");
+                    if (giuong == null)
+                    {
+                        foreach (var t in houseInteriorInstance.GetComponentsInChildren<Transform>())
+                        {
+                            if (t.name == "GiuongNguModel") { giuong = t; break; }
                         }
-                    );
+                    }
+                    if (giuong != null && Vector3.Distance(transform.position, giuong.position) <= 2.5f)
+                    {
+                        StartCoroutine(PerformSleepSequence());
+                        return;
+                    }
+
+                    Transform bep = houseInteriorInstance.transform.Find("HouseFrame/BepGasModel");
+                    if (bep == null)
+                    {
+                        foreach (var t in houseInteriorInstance.GetComponentsInChildren<Transform>())
+                        {
+                            if (t.name == "BepGasModel") { bep = t; break; }
+                        }
+                    }
+                    if (bep != null && Vector3.Distance(transform.position, bep.position) <= 2.5f)
+                    {
+                        if (PlayerStats.Instance != null)
+                        {
+                            PlayerStats.Instance.ModifyHealth(20f);
+                            PlayerStats.Instance.ModifyStamina(30f);
+                        }
+                        SownInStone.UI.SurvivalUIManager.Instance?.ShowHUDToast("🍳 Đã nấu ăn nóng hổi! Phục hồi sức khỏe và thể lực.");
+                        return;
+                    }
+
+                    Transform altar = houseInteriorInstance.transform.Find("HouseFrame/AncestralAltarModel");
+                    if (altar == null)
+                    {
+                        foreach (var t in houseInteriorInstance.GetComponentsInChildren<Transform>())
+                        {
+                            if (t.name == "AncestralAltarModel") { altar = t; break; }
+                        }
+                    }
+                    if (altar != null && Vector3.Distance(transform.position, altar.position) <= 2.5f)
+                    {
+                        if (PlayerStats.Instance != null)
+                        {
+                            PlayerStats.Instance.ModifyMorale(30f);
+                        }
+                        SownInStone.UI.SurvivalUIManager.Instance?.ShowHUDToast("⛩️ Đã thắp nhang cầu nguyện thành kính! Phục hồi tinh thần.");
+                        return;
+                    }
+
+                    Transform ruong = houseInteriorInstance.transform.Find("HouseFrame/RuongDoModel");
+                    if (ruong == null)
+                    {
+                        foreach (var t in houseInteriorInstance.GetComponentsInChildren<Transform>())
+                        {
+                            if (t.name == "RuongDoModel") { ruong = t; break; }
+                        }
+                    }
+                    if (ruong != null && Vector3.Distance(transform.position, ruong.position) <= 2.5f)
+                    {
+                        if (SownInStone.Storage.StorageManager.Instance != null)
+                        {
+                            SownInStone.Storage.StorageManager.Instance.AutoDepositOverflowItems();
+                        }
+                        SownInStone.UI.SurvivalUIManager.Instance?.OpenStorageChestUI();
+                        SownInStone.UI.SurvivalUIManager.Instance?.ShowHUDToast("📦 Đã mở rương đồ dự trữ!");
+                        return;
+                    }
+                }
+                return;
+            }
+            else
+            {
+                GameObject thanhHouse = GameObject.Find("Thanh_House");
+                Vector3 doorPos = thanhHouse != null ? thanhHouse.transform.TransformPoint(new Vector3(0f, 0f, 2.0f)) : new Vector3(10.66f, 0f, -8.0f);
+                if (Vector3.Distance(transform.position, doorPos) <= 2.5f)
+                {
+                    EnterHouse();
                     return;
                 }
             }
@@ -1058,6 +1156,96 @@ namespace SownInStone.Core
         {
             if (SownInStone.UI.SurvivalUIManager.Instance == null) return;
 
+            if (isInsideHouse)
+            {
+                string prompt = "";
+                if (houseInteriorInstance != null)
+                {
+                    Transform mainDoor = houseInteriorInstance.transform.Find("HouseFrame/MainDoor");
+                    if (mainDoor == null)
+                    {
+                        foreach (var t in houseInteriorInstance.GetComponentsInChildren<Transform>())
+                        {
+                            if (t.name == "MainDoor") { mainDoor = t; break; }
+                        }
+                    }
+                    if (mainDoor != null && Vector3.Distance(transform.position, mainDoor.position) <= 1.8f)
+                    {
+                        prompt = "[E] Ra ngoài sân";
+                    }
+                    else
+                    {
+                        Transform giuong = houseInteriorInstance.transform.Find("HouseFrame/GiuongNguModel");
+                        if (giuong == null)
+                        {
+                            foreach (var t in houseInteriorInstance.GetComponentsInChildren<Transform>())
+                            {
+                                if (t.name == "GiuongNguModel") { giuong = t; break; }
+                            }
+                        }
+                        if (giuong != null && Vector3.Distance(transform.position, giuong.position) <= 2.5f)
+                        {
+                            prompt = "[E] Đi ngủ (Phục hồi 100%)";
+                        }
+                        else
+                        {
+                            Transform bep = houseInteriorInstance.transform.Find("HouseFrame/BepGasModel");
+                            if (bep == null)
+                            {
+                                foreach (var t in houseInteriorInstance.GetComponentsInChildren<Transform>())
+                                {
+                                    if (t.name == "BepGasModel") { bep = t; break; }
+                                }
+                            }
+                            if (bep != null && Vector3.Distance(transform.position, bep.position) <= 2.5f)
+                            {
+                                prompt = "[E] Nấu nướng";
+                            }
+                            else
+                            {
+                                Transform altar = houseInteriorInstance.transform.Find("HouseFrame/AncestralAltarModel");
+                                if (altar == null)
+                                {
+                                    foreach (var t in houseInteriorInstance.GetComponentsInChildren<Transform>())
+                                    {
+                                        if (t.name == "AncestralAltarModel") { altar = t; break; }
+                                    }
+                                }
+                                if (altar != null && Vector3.Distance(transform.position, altar.position) <= 2.5f)
+                                {
+                                    prompt = "[E] Thắp nhang";
+                                }
+                                else
+                                {
+                                    Transform ruong = houseInteriorInstance.transform.Find("HouseFrame/RuongDoModel");
+                                    if (ruong == null)
+                                    {
+                                        foreach (var t in houseInteriorInstance.GetComponentsInChildren<Transform>())
+                                        {
+                                            if (t.name == "RuongDoModel") { ruong = t; break; }
+                                        }
+                                    }
+                                    if (ruong != null && Vector3.Distance(transform.position, ruong.position) <= 2.5f)
+                                    {
+                                        prompt = "[E] Mở rương đồ dự trữ";
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                SownInStone.UI.SurvivalUIManager.Instance.SetInteractionPrompt(prompt);
+                return;
+            }
+
+            GameObject houseObj = GameObject.Find("Thanh_House");
+            Vector3 targetDoorPos = houseObj != null ? houseObj.transform.TransformPoint(new Vector3(0f, 0f, 2.0f)) : new Vector3(10.66f, 0f, -8.0f);
+            if (Vector3.Distance(transform.position, targetDoorPos) <= 2.5f)
+            {
+                SownInStone.UI.SurvivalUIManager.Instance.SetInteractionPrompt("[E] Vào bên trong nhà trú ẩn");
+                return;
+            }
+
             if (isOnRoof)
             {
                 if (currentTargetSoil != null)
@@ -1186,6 +1374,9 @@ namespace SownInStone.Core
                                         prompt = "[E] Tưới nước cho đất ẩm";
                                     else
                                         prompt = "Đất đã được gieo hạt";
+
+                                    string stateInfo = activeSoil.IsProtectedByFloodBarrier() ? "Được bảo vệ" : (activeSoil.Moisture >= 90f ? "NGẬP ÚNG!" : "An toàn");
+                                    prompt += $" (Ẩm: {Mathf.RoundToInt(activeSoil.Moisture)}% - {stateInfo})";
                                 }
                             }
                         }
@@ -1622,6 +1813,461 @@ namespace SownInStone.Core
             // Vẽ vòng tròn kiểm tra phạm vi tương tác trong Scene View của Unity Editor
             Gizmos.color = Color.yellow;
             Gizmos.DrawWireSphere(transform.position, interactRadius);
+        }
+
+        /// <summary>
+        /// Tự động tải tham chiếu Task 2 nếu trong Inspector chưa kéo thả.
+        /// </summary>
+        private void AutoLoadTask2References()
+        {
+#if UNITY_EDITOR
+            if (floodBoardItem == null)
+                floodBoardItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_flood_board.asset");
+            if (sandbagItem == null)
+                sandbagItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_sandbag.asset");
+            if (floodBoardPrefab == null)
+                floodBoardPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Resources/Prefabs/FloodBoard.prefab");
+            if (sandbagPrefab == null)
+                sandbagPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Resources/Prefabs/Sandbag.prefab");
+#endif
+        }
+
+        private void OnValidate()
+        {
+            AutoLoadTask2References();
+        }
+
+        /// <summary>
+        /// Thử mở chế độ xem trước vị trí đặt vật thể (Ghost Preview).
+        /// </summary>
+        private void TryPlaceBarrier(ItemData itemData, GameObject barrierPrefab, string itemName)
+        {
+            if (itemData == null || barrierPrefab == null)
+            {
+                AutoLoadTask2References();
+            }
+
+            if (itemData == null || barrierPrefab == null)
+            {
+                Debug.LogWarning($"[CHẮN LŨ] Chưa gán ItemData hoặc Prefab cho {itemName} trên PlayerController!");
+                return;
+            }
+
+            if (StorageManager.Instance != null && !StorageManager.Instance.HasItem(itemData, 1))
+            {
+                // Tự động cấp 5 vật phẩm vào kho đồ nếu chưa có để kiểm thử thuận tiện
+                StorageManager.Instance.AddItem(itemData, 5);
+                if (SownInStone.UI.SurvivalUIManager.Instance != null)
+                {
+                    SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast($"Đã tự động cấp 5x {itemName} vào kho để test!");
+                }
+            }
+
+            StartPlacementPreview(itemData, barrierPrefab, itemName);
+        }
+
+        private void StartPlacementPreview(ItemData itemData, GameObject barrierPrefab, string itemName)
+        {
+            CancelPlacementPreview();
+
+            isPlacingPreview = true;
+            previewItemData = itemData;
+            previewPrefab = barrierPrefab;
+            previewItemName = itemName;
+            previewRotationY = 0f;
+
+            activeGhostObject = Instantiate(barrierPrefab);
+            
+            // Phóng to kích thước bao cát và chỉnh tư thế nằm ngang chắc chắn
+            if (itemName == "Bao cát" || (sandbagItem != null && itemData.ItemID == sandbagItem.ItemID))
+            {
+                activeGhostObject.transform.localScale = new Vector3(2.2f, 1.8f, 2.2f);
+            }
+
+            // Tắt toàn bộ Collider và script logic để ghost object không gây xung đột vật lý
+            foreach (var col in activeGhostObject.GetComponentsInChildren<Collider>())
+            {
+                col.enabled = false;
+            }
+            foreach (var barrier in activeGhostObject.GetComponentsInChildren<Interactions.FloodBarrier>())
+            {
+                barrier.enabled = false;
+            }
+            foreach (var mono in activeGhostObject.GetComponentsInChildren<MonoBehaviour>())
+            {
+                if (mono != null) mono.enabled = false;
+            }
+
+            // Tạo vật liệu Hologram trong suốt màu xanh bảo vệ (Ghost Effect)
+            Shader ghostShader = Shader.Find("Sprites/Default");
+            if (ghostShader == null) ghostShader = Shader.Find("Legacy Shaders/Transparent/Diffuse");
+            if (ghostShader == null) ghostShader = Shader.Find("Unlit/Transparent");
+
+            Material ghostMat = new Material(ghostShader);
+            ghostMat.color = new Color(0.2f, 0.85f, 1f, 0.5f); // Màu xanh lam trong suốt dạng Hologram
+
+            foreach (var renderer in activeGhostObject.GetComponentsInChildren<Renderer>())
+            {
+                Material[] ghostMats = new Material[renderer.sharedMaterials.Length];
+                for (int i = 0; i < ghostMats.Length; i++)
+                {
+                    ghostMats[i] = ghostMat;
+                }
+                renderer.materials = ghostMats;
+            }
+
+            Debug.Log($"[CHẮN LŨ] Đang ở chế độ xem trước vị trí đặt {itemName}");
+        }
+
+        private void UpdatePlacementPreview()
+        {
+            if (activeGhostObject == null)
+            {
+                CancelPlacementPreview();
+                return;
+            }
+
+            // Cập nhật vị trí mô hình xem trước theo con trỏ chuột và hỗ trợ xếp chồng (Stacking)
+            Vector3 targetPos = transform.position + transform.forward * 1.5f;
+            Camera mainCam = Camera.main;
+            if (mainCam != null)
+            {
+                Vector3 mouseScreenPos = Input.mousePosition;
+#if ENABLE_INPUT_SYSTEM
+                if (Mouse.current != null)
+                {
+                    Vector2 mPos = Mouse.current.position.ReadValue();
+                    mouseScreenPos = new Vector3(mPos.x, mPos.y, 0f);
+                }
+#endif
+                Ray ray = mainCam.ScreenPointToRay(mouseScreenPos);
+                if (Physics.Raycast(ray, out RaycastHit mouseHit, 100f))
+                {
+                    targetPos = mouseHit.point;
+                    // Hỗ trợ xếp chồng bao cát/vật chắn lên nhau khi chỉ chuột vào vật thể cũ
+                    if (mouseHit.collider != null && mouseHit.collider.GetComponentInParent<Interactions.FloodBarrier>() != null)
+                    {
+                        targetPos.y = mouseHit.collider.bounds.max.y;
+                    }
+                }
+                else if (Physics.Raycast(targetPos + Vector3.up * 3f, Vector3.down, out RaycastHit hit, 10f))
+                {
+                    targetPos.y = hit.point.y;
+                }
+            }
+
+            activeGhostObject.transform.position = targetPos;
+
+            // Xoay mô hình xem trước đồng bộ theo hướng đứng thực tế của nhân vật (characterVisual)
+            Quaternion charRot = transform.rotation;
+            if (characterVisual != null)
+            {
+                charRot = characterVisual.rotation;
+            }
+            activeGhostObject.transform.rotation = charRot * Quaternion.Euler(0, previewRotationY, 0);
+
+            // Cập nhật hướng dẫn UI dạng hàng dọc
+            if (SownInStone.UI.SurvivalUIManager.Instance != null)
+            {
+                SownInStone.UI.SurvivalUIManager.Instance.SetInteractionPrompt(
+                    $"• <b>[Chuột Trái / Enter]</b>: Đặt {previewItemName}\n" +
+                    $"• <b>[R]</b>: Xoay góc vật thể\n" +
+                    $"• <b>[Chuột Phải / Esc]</b>: Hủy bỏ"
+                );
+            }
+
+            // Bấm [R] để xoay góc 45 độ
+#if ENABLE_INPUT_SYSTEM
+            bool rotateKey = Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame;
+            bool confirmKey = (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame) || 
+                              (Keyboard.current != null && (Keyboard.current.enterKey.wasPressedThisFrame || Keyboard.current.eKey.wasPressedThisFrame));
+            bool cancelKey = (Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame) || 
+                             (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame);
+#else
+            bool rotateKey = Input.GetKeyDown(KeyCode.R);
+            bool confirmKey = Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.E);
+            bool cancelKey = Input.GetMouseButtonDown(1) || Input.GetKeyDown(KeyCode.Escape);
+#endif
+
+            if (rotateKey)
+            {
+                previewRotationY += 45f;
+                if (previewRotationY >= 360f) previewRotationY -= 360f;
+            }
+
+            if (confirmKey)
+            {
+                ConfirmPlacement();
+            }
+            else if (cancelKey)
+            {
+                CancelPlacementPreview();
+                if (SownInStone.UI.SurvivalUIManager.Instance != null)
+                {
+                    SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast("Đã hủy đặt vật phẩm.");
+                }
+            }
+        }
+
+        private void ConfirmPlacement()
+        {
+            if (activeGhostObject == null || previewItemData == null || previewPrefab == null)
+            {
+                CancelPlacementPreview();
+                return;
+            }
+
+            if (StorageManager.Instance != null && StorageManager.Instance.RemoveItem(previewItemData, 1))
+            {
+                Vector3 finalPos = activeGhostObject.transform.position;
+                Quaternion finalRot = activeGhostObject.transform.rotation;
+                Vector3 finalScale = activeGhostObject.transform.localScale;
+                string placedName = previewItemName;
+
+                CancelPlacementPreview();
+
+                GameObject placedGo = Instantiate(previewPrefab, finalPos, finalRot);
+                placedGo.transform.localScale = finalScale;
+
+                if (SownInStone.UI.SurvivalUIManager.Instance != null)
+                {
+                    SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast($"Đã đặt 1x {placedName} gia cố!");
+                }
+
+                Debug.Log($"[CHẮN LŨ] XÁC NHẬN ĐẶT thành công {placedName} tại {finalPos}");
+            }
+            else
+            {
+                CancelPlacementPreview();
+                if (SownInStone.UI.SurvivalUIManager.Instance != null)
+                {
+                    SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast($"Trong kho không đủ {previewItemName} để đặt!");
+                }
+            }
+        }
+
+        private void CancelPlacementPreview()
+        {
+            isPlacingPreview = false;
+            if (activeGhostObject != null)
+            {
+                Destroy(activeGhostObject);
+                activeGhostObject = null;
+            }
+            if (SownInStone.UI.SurvivalUIManager.Instance != null)
+            {
+                SownInStone.UI.SurvivalUIManager.Instance.SetInteractionPrompt("");
+            }
+        }
+
+        /// <summary>
+        /// Xử lý khi sử dụng vật phẩm từ thanh phím tắt Hotbar 1..5.
+        /// </summary>
+        public void UseItemFromHotbar(ItemData item)
+        {
+            if (item == null) return;
+
+            if (item.ItemID == "item_sandbag" || (sandbagItem != null && item.ItemID == sandbagItem.ItemID))
+            {
+                TryPlaceBarrier(sandbagItem, sandbagPrefab, "Bao cát");
+            }
+            else if (item.ItemID == "item_flood_board" || (floodBoardItem != null && item.ItemID == floodBoardItem.ItemID))
+            {
+                TryPlaceBarrier(floodBoardItem, floodBoardPrefab, "Vách chắn nước");
+            }
+            else if (item.ItemID == "item_plastic_mulch")
+            {
+                ApplyPlasticMulchToAllFields(item);
+            }
+            else if (item.StaminaRestoreValue > 0f || item.MoraleRestoreValue > 0f)
+            {
+                if (PlayerStats.Instance != null)
+                {
+                    PlayerStats.Instance.UseItem(item);
+                }
+                if (SownInStone.UI.SurvivalUIManager.Instance != null)
+                {
+                    SownInStone.UI.SurvivalUIManager.Instance.RefreshInventoryUI();
+                }
+            }
+            else
+            {
+                if (SownInStone.UI.SurvivalUIManager.Instance != null)
+                {
+                    SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast($"Sử dụng {item.ItemName}");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Phủ màng bọc nilon bảo vệ cho toàn bộ các ô ruộng trong làng trước bão lũ.
+        /// </summary>
+        public void ApplyPlasticMulchToAllFields(ItemData mulchItem)
+        {
+            if (StorageManager.Instance != null && !StorageManager.Instance.RemoveItem(mulchItem, 1))
+            {
+                if (SownInStone.UI.SurvivalUIManager.Instance != null)
+                {
+                    SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast("Trong kho không còn Màng Bọc Nilon!");
+                }
+                return;
+            }
+
+            GameObject mulchPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Resources/Prefabs/PlasticMulch.prefab");
+            var soils = FindObjectsByType<SoilCell>(FindObjectsInactive.Exclude);
+            int count = 0;
+            foreach (var soil in soils)
+            {
+                if (soil != null && !soil.IsParentField)
+                {
+                    soil.ApplyPlasticMulch(mulchPrefab);
+                    count++;
+                }
+            }
+
+            if (SownInStone.UI.SurvivalUIManager.Instance != null)
+            {
+                SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast($"🌾 Đã phủ Màng Bọc Nilon bảo vệ toàn bộ {count} ô ruộng trước bão lũ!");
+            }
+            Debug.Log($"[PLASTIC MULCH] Đã phủ thành công Màng nilon bảo vệ {count} ô ruộng!");
+        }
+
+        /// <summary>
+        /// Chuyển đổi màn hình/vị trí người chơi vào bên trong KhungNha trú ẩn bão lũ.
+        /// </summary>
+        public void EnterHouse()
+        {
+            isInsideHouse = true;
+
+            Vector3 indoorSpawnPoint = new Vector3(100f, 0f, 100f);
+
+            if (houseInteriorInstance == null)
+            {
+                houseInteriorInstance = GameObject.Find("HouseInterior");
+            }
+
+            // Nếu nhà trong scene bị rỗng không có mô hình con, lập tức xóa bỏ để nạp lại
+            if (houseInteriorInstance != null && houseInteriorInstance.transform.childCount == 0)
+            {
+                DestroyImmediate(houseInteriorInstance);
+                houseInteriorInstance = null;
+            }
+
+            if (houseInteriorInstance == null)
+            {
+                GameObject prefab = Resources.Load<GameObject>("Prefabs/HouseInterior");
+#if UNITY_EDITOR
+                if (prefab == null)
+                {
+                    prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Resources/Prefabs/HouseInterior.prefab");
+                }
+#endif
+                if (prefab != null)
+                {
+                    houseInteriorInstance = Instantiate(prefab, indoorSpawnPoint, Quaternion.identity);
+                    houseInteriorInstance.name = "HouseInterior";
+                }
+            }
+
+            Vector3 targetIndoorPos = indoorSpawnPoint + new Vector3(0f, 0.2f, 0f);
+            if (houseInteriorInstance != null)
+            {
+                houseInteriorInstance.transform.position = indoorSpawnPoint;
+                houseInteriorInstance.transform.localScale = Vector3.one;
+
+                foreach (Transform child in houseInteriorInstance.transform)
+                {
+                    child.gameObject.SetActive(true);
+                }
+
+                foreach (var col in houseInteriorInstance.GetComponentsInChildren<Collider>())
+                {
+                    if (col.gameObject.transform.parent != null && col.gameObject.transform.parent.name == "PhysicalWalls")
+                    {
+                        continue; // Giữ lại 4 tường cản vật lý để nhân vật KHÔNG ĐI XUYÊN TƯỜNG được
+                    }
+                    Destroy(col);
+                }
+
+                foreach (var rend in houseInteriorInstance.GetComponentsInChildren<Renderer>())
+                {
+                    if (rend != null)
+                    {
+                        rend.enabled = true; // Hiển thị 100% tất cả tường gỗ và nội thất kín bao trọn không nhìn xuyên
+                    }
+                }
+
+                targetIndoorPos = houseInteriorInstance.transform.position + new Vector3(-1.0f, 0.1f, -2.0f);
+            }
+
+            if (rb != null)
+            {
+                rb.linearVelocity = Vector3.zero;
+                rb.position = targetIndoorPos;
+            }
+            transform.position = targetIndoorPos;
+
+            // Giữ chuẩn góc nhìn 3D ngang vai phong cách PUBG
+            CameraFollow3D.Instance?.SetCameraMode(CameraFollow3D.CameraMode.ThirdPerson);
+
+            if (SownInStone.UI.SurvivalUIManager.Instance != null)
+            {
+                SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast("🏠 Bạn đã vào bên trong nhà an toàn tránh bão lũ!");
+            }
+        }
+
+        public void ExitHouse()
+        {
+            isInsideHouse = false;
+            GameObject houseObj = GameObject.Find("Thanh_House");
+            Vector3 outdoorPos = houseObj != null ? houseObj.transform.TransformPoint(new Vector3(0f, 0.2f, 4.2f)) : new Vector3(10.66f, 0.2f, -5.8f);
+            if (rb != null)
+            {
+                rb.linearVelocity = Vector3.zero;
+                rb.position = outdoorPos;
+            }
+            transform.position = outdoorPos;
+
+            // Khôi phục góc nhìn camera 3D ngoài trời
+            CameraFollow3D.Instance?.SetCameraMode(CameraFollow3D.CameraMode.ThirdPerson);
+
+            if (SownInStone.UI.SurvivalUIManager.Instance != null)
+            {
+                SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast("🚪 Bạn đã ra ngoài sân trước cửa nhà!");
+            }
+        }
+
+        private System.Collections.IEnumerator PerformSleepSequence()
+        {
+            isPerformingAction = true;
+            if (SownInStone.UI.SurvivalUIManager.Instance != null)
+            {
+                SownInStone.UI.SurvivalUIManager.Instance.FadeToBlack(1.5f);
+            }
+            yield return new WaitForSeconds(1.5f);
+
+            if (GameManager.Instance != null)
+            {
+                GameManager.Instance.SkipToMorningFiveAM();
+            }
+
+            if (PlayerStats.Instance != null)
+            {
+                PlayerStats.Instance.ModifyHealth(100f);
+                PlayerStats.Instance.ModifyStamina(100f);
+                PlayerStats.Instance.ModifyMorale(100f);
+            }
+
+            yield return new WaitForSeconds(0.5f);
+
+            if (SownInStone.UI.SurvivalUIManager.Instance != null)
+            {
+                SownInStone.UI.SurvivalUIManager.Instance.FadeFromBlack(1.5f);
+                SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast("🛏️ Bạn đã ngủ một giấc thật ngon! Trời đã sáng lúc 05:00 AM, thể lực và tinh thần phục hồi 100%.");
+            }
+
+            yield return new WaitForSeconds(1.0f);
+            isPerformingAction = false;
         }
     }
 }

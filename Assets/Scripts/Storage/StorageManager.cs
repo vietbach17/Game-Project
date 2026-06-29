@@ -29,6 +29,7 @@ namespace SownInStone.Storage
 
         [Header("--- KHO LƯU TRỮ ---")]
         [SerializeField] private List<InventorySlot> storageSlots = new List<InventorySlot>();
+        [SerializeField] private List<InventorySlot> reserveChestSlots = new List<InventorySlot>();
 
         public event Action OnStorageChanged;
         public event Action<string> OnStorageAlert; // Báo hiệu khi có thức ăn tươi bị thối mốc
@@ -53,6 +54,27 @@ namespace SownInStone.Storage
             {
                 GameManager.Instance.OnDayChanged += OnNewDayDecayCheck;
             }
+
+            AutoLoadDefaultItems();
+        }
+
+        private void AutoLoadDefaultItems()
+        {
+#if UNITY_EDITOR
+            ItemData floodBoard = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_flood_board.asset");
+            ItemData sandbag = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_sandbag.asset");
+            ItemData seed = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_seed_potato.asset");
+            ItemData nonLa = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_non_la.asset");
+            ItemData mulch = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_plastic_mulch.asset");
+            ItemData freshPotato = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_fresh_potato.asset");
+
+            if (floodBoard != null && !storageSlots.Exists(s => s.item != null && s.item.ItemID == floodBoard.ItemID)) AddItem(floodBoard, 5);
+            if (sandbag != null && !storageSlots.Exists(s => s.item != null && s.item.ItemID == sandbag.ItemID)) AddItem(sandbag, 5);
+            if (seed != null && !storageSlots.Exists(s => s.item != null && s.item.ItemID == seed.ItemID)) AddItem(seed, 10);
+            if (nonLa != null && !storageSlots.Exists(s => s.item != null && s.item.ItemID == nonLa.ItemID)) AddItem(nonLa, 1);
+            if (mulch != null && !storageSlots.Exists(s => s.item != null && s.item.ItemID == mulch.ItemID)) AddItem(mulch, 3);
+            if (freshPotato != null && !storageSlots.Exists(s => s.item != null && s.item.ItemID == freshPotato.ItemID)) AddItem(freshPotato, 10);
+#endif
         }
 
         private void OnDestroy()
@@ -65,47 +87,154 @@ namespace SownInStone.Storage
 
         #region QUẢN LÝ THÊM/BỚT ĐỒ KHO
         
+        public int GetMaxBackpackStack(ItemData item)
+        {
+            if (item == null) return 10;
+            string id = item.ItemID != null ? item.ItemID.ToLower() : "";
+            string name = item.ItemName != null ? item.ItemName.ToLower() : "";
+
+            if (id.Contains("potato") || name.Contains("khoai"))
+            {
+                return 15; // Khoai lang giới hạn 15 trong balo
+            }
+            if (id.Contains("sandbag") || id.Contains("board") || id.Contains("mulch") || name.Contains("đá") || name.Contains("bùn") || name.Contains("gỗ"))
+            {
+                return 5; // Vật phẩm to/nặng giới hạn 5 trong balo
+            }
+            return 10; // Các vật phẩm khác (hạt giống, thực phẩm khô) giới hạn 10 trong balo
+        }
+        
         public void AddItem(ItemData item, int amount)
         {
             if (item == null || amount <= 0) return;
 
-            InventorySlot slot = storageSlots.Find(s => s.item.ItemID == item.ItemID);
-            if (slot != null)
+            int maxStack = GetMaxBackpackStack(item);
+            InventorySlot slot = storageSlots.Find(s => s.item != null && s.item.ItemID == item.ItemID);
+            int currentQty = slot != null ? slot.quantity : 0;
+            int capacityLeft = Mathf.Max(0, maxStack - currentQty);
+
+            int toBackpack = Mathf.Min(amount, capacityLeft);
+            int overflow = amount - toBackpack;
+
+            if (toBackpack > 0)
             {
-                slot.quantity += amount;
+                if (slot != null)
+                {
+                    slot.quantity += toBackpack;
+                }
+                else
+                {
+                    storageSlots.Add(new InventorySlot(item, toBackpack));
+                }
             }
-            else
+
+            if (overflow > 0)
             {
-                storageSlots.Add(new InventorySlot(item, amount));
+                InventorySlot reserveSlot = reserveChestSlots.Find(s => s.item != null && s.item.ItemID == item.ItemID);
+                if (reserveSlot != null)
+                {
+                    reserveSlot.quantity += overflow;
+                }
+                else
+                {
+                    reserveChestSlots.Add(new InventorySlot(item, overflow));
+                }
+
+                if (SownInStone.UI.SurvivalUIManager.Instance != null)
+                {
+                    SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast($"📦 Balo đầy (Max {maxStack})! x{overflow} {item.ItemName} đã tự động chuyển vào Rương đồ dự trữ ở nhà.");
+                }
+                Debug.Log($"[STORAGE] Balo đầy! x{overflow} {item.ItemName} tự động chuyển vào Rương dự trữ.");
             }
 
             OnStorageChanged?.Invoke();
-            Debug.Log($"[STORAGE] Thêm vào kho: {item.ItemName} x{amount}");
+            Debug.Log($"[STORAGE] Thêm vào kho balo: {item.ItemName} x{toBackpack}");
         }
 
         public bool RemoveItem(ItemData item, int amount)
         {
             if (item == null || amount <= 0) return false;
 
-            InventorySlot slot = storageSlots.Find(s => s.item.ItemID == item.ItemID);
-            if (slot == null || slot.quantity < amount)
+            int totalAvailable = 0;
+            InventorySlot bSlot = storageSlots.Find(s => s.item != null && s.item.ItemID == item.ItemID);
+            InventorySlot rSlot = reserveChestSlots.Find(s => s.item != null && s.item.ItemID == item.ItemID);
+
+            if (bSlot != null) totalAvailable += bSlot.quantity;
+            if (rSlot != null) totalAvailable += rSlot.quantity;
+
+            if (totalAvailable < amount)
             {
-                Debug.LogWarning($"[STORAGE] Không đủ {item.ItemName} trong kho để dùng/bán!");
+                Debug.LogWarning($"[STORAGE] Không đủ {item.ItemName} trong balo lẫn rương để dùng/bán!");
                 return false;
             }
 
-            slot.quantity -= amount;
-            if (slot.quantity == 0)
+            int needed = amount;
+            if (bSlot != null && bSlot.quantity > 0)
             {
-                storageSlots.Remove(slot);
+                int take = Mathf.Min(needed, bSlot.quantity);
+                bSlot.quantity -= take;
+                needed -= take;
+                if (bSlot.quantity == 0) storageSlots.Remove(bSlot);
+            }
+
+            if (needed > 0 && rSlot != null && rSlot.quantity > 0)
+            {
+                int take = Mathf.Min(needed, rSlot.quantity);
+                rSlot.quantity -= take;
+                needed -= take;
+                if (rSlot.quantity == 0) reserveChestSlots.Remove(rSlot);
             }
 
             OnStorageChanged?.Invoke();
-            Debug.Log($"[STORAGE] Lấy ra từ kho: {item.ItemName} x{amount}");
+            Debug.Log($"[STORAGE] Lấy ra: {item.ItemName} x{amount}");
             return true;
         }
 
+        public bool HasItem(ItemData item, int amount = 1)
+        {
+            if (item == null || amount <= 0) return false;
+            int total = 0;
+            InventorySlot bSlot = storageSlots.Find(s => s.item != null && s.item.ItemID == item.ItemID);
+            InventorySlot rSlot = reserveChestSlots.Find(s => s.item != null && s.item.ItemID == item.ItemID);
+            if (bSlot != null) total += bSlot.quantity;
+            if (rSlot != null) total += rSlot.quantity;
+            return total >= amount;
+        }
+
+        public void AutoDepositOverflowItems()
+        {
+            int depositedCount = 0;
+            for (int i = storageSlots.Count - 1; i >= 0; i--)
+            {
+                InventorySlot slot = storageSlots[i];
+                if (slot != null && slot.item != null)
+                {
+                    int limit = GetMaxBackpackStack(slot.item);
+                    if (slot.quantity > limit)
+                    {
+                        int overflow = slot.quantity - limit;
+                        slot.quantity = limit;
+
+                        InventorySlot rSlot = reserveChestSlots.Find(s => s.item != null && s.item.ItemID == slot.item.ItemID);
+                        if (rSlot != null) rSlot.quantity += overflow;
+                        else reserveChestSlots.Add(new InventorySlot(slot.item, overflow));
+
+                        depositedCount += overflow;
+                    }
+                }
+            }
+            if (depositedCount > 0)
+            {
+                OnStorageChanged?.Invoke();
+                if (SownInStone.UI.SurvivalUIManager.Instance != null)
+                {
+                    SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast($"📦 Đã tự động cất {depositedCount} nông sản & thực phẩm dư thừa vào Rương dự trữ!");
+                }
+            }
+        }
+
         public List<InventorySlot> GetStorageSlots() => storageSlots;
+        public List<InventorySlot> GetReserveChestSlots() => reserveChestSlots;
 
         #endregion
 
