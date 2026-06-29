@@ -134,6 +134,7 @@ namespace SownInStone.UI
         public bool IsDialogueActive => isDialogueActive;
         public bool IsChoiceActive => isChoiceActive;
         public bool IsShopOpen => isShopOpen;
+        public bool IsInventoryOpen => isInventoryOpen;
         public TextMeshProUGUI SpeakerNameText => speakerNameText;
 
         private void Awake()
@@ -149,6 +150,7 @@ namespace SownInStone.UI
             }
             gameObject.AddComponent<NPCProximityOptionsUI>();
             gameObject.AddComponent<NPCQuestMarkerUI>();
+            gameObject.AddComponent<HotbarManager>();
         }
 
         private void Start()
@@ -171,6 +173,11 @@ namespace SownInStone.UI
 
             // Thiết lập coin text ở đáy bảng hòm đồ
             SetupInventoryCoinsText();
+
+            if (GameManager.Instance != null)
+            {
+                GameManager.Instance.OnPhaseChanged += OnPhaseChangedHandler;
+            }
 
 #if UNITY_EDITOR
             // Tự động tải tài nguyên nếu thiếu để Designer không phải kéo thả
@@ -932,11 +939,255 @@ namespace SownInStone.UI
 
         #region PHÂN HỆ HÒM ĐỒ DẠNG LƯỚI
 
+        private void EnsureInventoryPanelExists()
+        {
+            if (inventoryPanel == null)
+            {
+                Transform found = transform.Find("Panel_Inventory");
+                if (found == null) found = transform.Find("InventoryPanel");
+                if (found != null) inventoryPanel = found.gameObject;
+            }
+
+            if (inventoryPanel == null)
+            {
+                inventoryPanel = new GameObject("Panel_Inventory", typeof(RectTransform), typeof(CanvasGroup), typeof(Image));
+                inventoryPanel.transform.SetParent(this.transform, false);
+                inventoryPanel.transform.SetAsLastSibling();
+
+                RectTransform r = inventoryPanel.GetComponent<RectTransform>();
+                r.anchorMin = new Vector2(0.5f, 0.5f);
+                r.anchorMax = new Vector2(0.5f, 0.5f);
+                r.pivot = new Vector2(0.5f, 0.5f);
+                r.anchoredPosition = Vector2.zero;
+                r.sizeDelta = new Vector2(460f, 380f);
+
+                Image img = inventoryPanel.GetComponent<Image>();
+                img.color = new Color(0.12f, 0.10f, 0.08f, 0.96f); // Nâu mộc mạc sang trọng
+            }
+
+            if (itemSlotContainer == null)
+            {
+                Transform foundContainer = inventoryPanel.transform.Find("GridContainer");
+                if (foundContainer == null) foundContainer = inventoryPanel.transform.Find("Viewport/Content");
+                if (foundContainer != null) itemSlotContainer = foundContainer;
+            }
+
+            if (itemSlotContainer == null)
+            {
+                GameObject containerObj = new GameObject("GridContainer", typeof(RectTransform), typeof(GridLayoutGroup));
+                containerObj.transform.SetParent(inventoryPanel.transform, false);
+                itemSlotContainer = containerObj.transform;
+
+                GridLayoutGroup grid = containerObj.GetComponent<GridLayoutGroup>();
+                grid.cellSize = new Vector2(80f, 80f);
+                grid.spacing = new Vector2(10f, 10f);
+                grid.padding = new RectOffset(15, 15, 15, 15);
+                grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+                grid.constraintCount = 5;
+
+                SetupInventoryScrollView();
+            }
+
+            if (itemSlotPrefab == null)
+            {
+                itemSlotPrefab = new GameObject("ItemSlotPrefab", typeof(RectTransform), typeof(Image), typeof(Button), typeof(Outline));
+                itemSlotPrefab.SetActive(false);
+                itemSlotPrefab.transform.SetParent(this.transform, false);
+
+                RectTransform slotRect = itemSlotPrefab.GetComponent<RectTransform>();
+                slotRect.sizeDelta = new Vector2(80f, 80f);
+
+                Image slotImg = itemSlotPrefab.GetComponent<Image>();
+                slotImg.color = new Color(0.15f, 0.12f, 0.09f, 0.95f);
+
+                Outline outline = itemSlotPrefab.GetComponent<Outline>();
+                outline.effectColor = new Color(0.6f, 0.45f, 0.25f, 0.8f);
+                outline.effectDistance = new Vector2(1.5f, 1.5f);
+
+                GameObject iconObj = new GameObject("Icon", typeof(RectTransform), typeof(Image));
+                iconObj.transform.SetParent(itemSlotPrefab.transform, false);
+                RectTransform iconRect = iconObj.GetComponent<RectTransform>();
+                iconRect.anchorMin = new Vector2(0.5f, 0.5f);
+                iconRect.anchorMax = new Vector2(0.5f, 0.5f);
+                iconRect.pivot = new Vector2(0.5f, 0.5f);
+                iconRect.anchoredPosition = Vector2.zero;
+                iconRect.sizeDelta = new Vector2(60f, 60f);
+
+                GameObject textObj = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
+                textObj.transform.SetParent(itemSlotPrefab.transform, false);
+                RectTransform textRect = textObj.GetComponent<RectTransform>();
+                textRect.anchorMin = new Vector2(1f, 0f);
+                textRect.anchorMax = new Vector2(1f, 0f);
+                textRect.pivot = new Vector2(1f, 0f);
+                textRect.anchoredPosition = new Vector2(-4f, 4f);
+                textRect.sizeDelta = new Vector2(50f, 20f);
+
+                TextMeshProUGUI txt = textObj.GetComponent<TextMeshProUGUI>();
+                txt.fontSize = 14;
+                txt.alignment = TextAlignmentOptions.Right;
+                txt.color = Color.white;
+            }
+        }
+
+        private GameObject storageChestPanelObj;
+        private Transform storageChestContainer;
+
+        public void OpenStorageChestUI()
+        {
+            if (storageChestPanelObj == null)
+            {
+                storageChestPanelObj = new GameObject("Panel_StorageChestUI", typeof(RectTransform), typeof(CanvasGroup), typeof(Image));
+                storageChestPanelObj.transform.SetParent(this.transform, false);
+
+                RectTransform r = storageChestPanelObj.GetComponent<RectTransform>();
+                r.anchorMin = new Vector2(0.5f, 0.5f);
+                r.anchorMax = new Vector2(0.5f, 0.5f);
+                r.pivot = new Vector2(0.5f, 0.5f);
+                r.anchoredPosition = Vector2.zero;
+                r.sizeDelta = new Vector2(480f, 380f);
+
+                Image img = storageChestPanelObj.GetComponent<Image>();
+                img.color = new Color(0.12f, 0.10f, 0.08f, 0.98f);
+                Outline outline = storageChestPanelObj.AddComponent<Outline>();
+                outline.effectColor = new Color(0.7f, 0.55f, 0.3f, 1f);
+                outline.effectDistance = new Vector2(2f, 2f);
+
+                // Header Title
+                GameObject titleObj = new GameObject("Title", typeof(RectTransform), typeof(TextMeshProUGUI));
+                titleObj.transform.SetParent(storageChestPanelObj.transform, false);
+                RectTransform tRect = titleObj.GetComponent<RectTransform>();
+                tRect.anchorMin = new Vector2(0.5f, 1f);
+                tRect.anchorMax = new Vector2(0.5f, 1f);
+                tRect.pivot = new Vector2(0.5f, 1f);
+                tRect.anchoredPosition = new Vector2(0f, -15f);
+                tRect.sizeDelta = new Vector2(400f, 30f);
+
+                TextMeshProUGUI titleTxt = titleObj.GetComponent<TextMeshProUGUI>();
+                titleTxt.text = "<b>📦 RƯƠNG ĐỒ DỰ TRỮ GIA ĐÌNH</b>";
+                titleTxt.alignment = TextAlignmentOptions.Center;
+                titleTxt.fontSize = 18;
+                titleTxt.color = new Color(0.95f, 0.8f, 0.3f, 1f);
+                if (speakerNameText != null) titleTxt.font = speakerNameText.font;
+
+                // Close Button [X]
+                GameObject closeBtnObj = new GameObject("CloseBtn", typeof(RectTransform), typeof(Image), typeof(Button));
+                closeBtnObj.transform.SetParent(storageChestPanelObj.transform, false);
+                RectTransform cRect = closeBtnObj.GetComponent<RectTransform>();
+                cRect.anchorMin = new Vector2(1f, 1f);
+                cRect.anchorMax = new Vector2(1f, 1f);
+                cRect.pivot = new Vector2(1f, 1f);
+                cRect.anchoredPosition = new Vector2(-15f, -15f);
+                cRect.sizeDelta = new Vector2(30f, 30f);
+
+                Image cImg = closeBtnObj.GetComponent<Image>();
+                cImg.color = new Color(0.6f, 0.2f, 0.2f, 1f);
+                Button cBtn = closeBtnObj.GetComponent<Button>();
+                cBtn.onClick.AddListener(() => {
+                    storageChestPanelObj.SetActive(false);
+                });
+
+                GameObject cTextObj = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
+                cTextObj.transform.SetParent(closeBtnObj.transform, false);
+                RectTransform ctRect = cTextObj.GetComponent<RectTransform>();
+                ctRect.anchorMin = Vector2.zero;
+                ctRect.anchorMax = Vector2.one;
+                ctRect.sizeDelta = Vector2.zero;
+                TextMeshProUGUI cTxt = cTextObj.GetComponent<TextMeshProUGUI>();
+                cTxt.text = "X";
+                cTxt.alignment = TextAlignmentOptions.Center;
+                cTxt.fontSize = 16;
+                cTxt.color = Color.white;
+
+                // Grid Container
+                GameObject containerObj = new GameObject("GridContainer", typeof(RectTransform), typeof(GridLayoutGroup));
+                containerObj.transform.SetParent(storageChestPanelObj.transform, false);
+                RectTransform contRect = containerObj.GetComponent<RectTransform>();
+                contRect.anchorMin = Vector2.zero;
+                contRect.anchorMax = Vector2.one;
+                contRect.offsetMin = new Vector2(20f, 20f);
+                contRect.offsetMax = new Vector2(-20f, -60f);
+
+                storageChestContainer = containerObj.transform;
+                GridLayoutGroup grid = containerObj.GetComponent<GridLayoutGroup>();
+                grid.cellSize = new Vector2(80f, 80f);
+                grid.spacing = new Vector2(10f, 10f);
+                grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+                grid.constraintCount = 5;
+            }
+
+            storageChestPanelObj.transform.SetAsLastSibling();
+            storageChestPanelObj.SetActive(true);
+
+            foreach (Transform child in storageChestContainer)
+            {
+                Destroy(child.gameObject);
+            }
+
+            List<InventorySlot> allSlots = new List<InventorySlot>();
+            if (StorageManager.Instance != null)
+            {
+                allSlots.AddRange(StorageManager.Instance.GetStorageSlots());
+                allSlots.AddRange(StorageManager.Instance.GetReserveChestSlots());
+            }
+
+            foreach (var slot in allSlots)
+            {
+                if (slot == null || slot.item == null) continue;
+                GameObject newSlot = new GameObject("Slot", typeof(RectTransform), typeof(Image), typeof(Outline));
+                newSlot.transform.SetParent(storageChestContainer, false);
+
+                RectTransform slotRect = newSlot.GetComponent<RectTransform>();
+                slotRect.sizeDelta = new Vector2(80f, 80f);
+
+                Image slotImg = newSlot.GetComponent<Image>();
+                slotImg.color = new Color(0.15f, 0.12f, 0.09f, 0.95f);
+
+                Outline outline = newSlot.GetComponent<Outline>();
+                outline.effectColor = new Color(0.6f, 0.45f, 0.25f, 0.8f);
+
+                GameObject iconObj = new GameObject("Icon", typeof(RectTransform), typeof(Image));
+                iconObj.transform.SetParent(newSlot.transform, false);
+                RectTransform iconRect = iconObj.GetComponent<RectTransform>();
+                iconRect.anchorMin = new Vector2(0.5f, 0.5f);
+                iconRect.anchorMax = new Vector2(0.5f, 0.5f);
+                iconRect.pivot = new Vector2(0.5f, 0.5f);
+                iconRect.anchoredPosition = Vector2.zero;
+                iconRect.sizeDelta = new Vector2(60f, 60f);
+
+                Image img = iconObj.GetComponent<Image>();
+                if (slot.item.Icon != null) img.sprite = slot.item.Icon;
+
+                GameObject textObj = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI));
+                textObj.transform.SetParent(newSlot.transform, false);
+                RectTransform textRect = textObj.GetComponent<RectTransform>();
+                textRect.anchorMin = new Vector2(1f, 0f);
+                textRect.anchorMax = new Vector2(1f, 0f);
+                textRect.pivot = new Vector2(1f, 0f);
+                textRect.anchoredPosition = new Vector2(-4f, 4f);
+                textRect.sizeDelta = new Vector2(50f, 20f);
+
+                TextMeshProUGUI txt = textObj.GetComponent<TextMeshProUGUI>();
+                txt.text = $"x{slot.quantity}";
+                txt.fontSize = 14;
+                txt.alignment = TextAlignmentOptions.Right;
+                txt.color = Color.white;
+                if (speakerNameText != null) txt.font = speakerNameText.font;
+            }
+        }
+
         public void ToggleInventory()
         {
+            EnsureInventoryPanelExists();
             isInventoryOpen = !isInventoryOpen;
             if (inventoryPanel != null)
             {
+                inventoryPanel.transform.SetAsLastSibling();
+                CanvasGroup cg = inventoryPanel.GetComponent<CanvasGroup>();
+                if (cg == null) cg = inventoryPanel.AddComponent<CanvasGroup>();
+                cg.alpha = isInventoryOpen ? 1f : 0f;
+                cg.blocksRaycasts = isInventoryOpen;
+                cg.interactable = isInventoryOpen;
+
                 inventoryPanel.SetActive(isInventoryOpen);
                 if (isInventoryOpen)
                 {
@@ -945,12 +1196,18 @@ namespace SownInStone.UI
                     CloseWeatherDetailsPanel();
 
                     RefreshInventoryUI();
+
+                    if (HotbarManager.Instance != null && PlayerPrefs.GetInt("HotbarTutorialShown", 0) == 0)
+                    {
+                        HotbarManager.Instance.ShowHotbarTutorial();
+                    }
                 }
             }
         }
 
         public void RefreshInventoryUI()
         {
+            EnsureInventoryPanelExists();
             if (itemSlotContainer == null || itemSlotPrefab == null || StorageManager.Instance == null) return;
 
             // Xóa sạch ô lưới cũ tránh bị trùng lặp
@@ -959,11 +1216,19 @@ namespace SownInStone.UI
                 Destroy(child.gameObject);
             }
 
-            // Tạo các ô lưới mới
-            var slots = StorageManager.Instance.GetStorageSlots();
+            // Tạo các ô lưới mới tổng hợp cả Balo lẫn Rương dự trữ ở nhà
+            List<InventorySlot> slots = new List<InventorySlot>();
+            slots.AddRange(StorageManager.Instance.GetStorageSlots());
+            slots.AddRange(StorageManager.Instance.GetReserveChestSlots());
+
             foreach (var slot in slots)
             {
+                if (slot == null || slot.item == null) continue;
                 GameObject newSlot = Instantiate(itemSlotPrefab, itemSlotContainer);
+                newSlot.SetActive(true);
+                DragItemUI drag = newSlot.GetComponent<DragItemUI>();
+                if (drag == null) drag = newSlot.AddComponent<DragItemUI>();
+                drag.itemData = slot.item;
 
                 // Căn chỉnh kích thước ô vật phẩm thành hình vuông và thêm style nền/viền
                 RectTransform slotRect = newSlot.GetComponent<RectTransform>();
@@ -1152,6 +1417,50 @@ namespace SownInStone.UI
             containerRect.pivot = new Vector2(0.5f, 1f);
             containerRect.anchoredPosition = Vector2.zero;
             containerRect.sizeDelta = new Vector2(0f, 200f);
+
+            // 6. Tạo thanh cuộn dọc (Vertical Scrollbar) bên cạnh phải của Balo
+            GameObject scrollbarObj = new GameObject("VerticalScrollbar", typeof(RectTransform), typeof(Image), typeof(Scrollbar));
+            scrollbarObj.transform.SetParent(inventoryPanel.transform, false);
+
+            RectTransform sbRect = scrollbarObj.GetComponent<RectTransform>();
+            sbRect.anchorMin = new Vector2(1f, 0f);
+            sbRect.anchorMax = new Vector2(1f, 1f);
+            sbRect.pivot = new Vector2(1f, 0.5f);
+            sbRect.anchoredPosition = new Vector2(-8f, -5f);
+            sbRect.sizeDelta = new Vector2(16f, -130f); // Rộng 16px, chừa lề trên dưới
+
+            Image sbBg = scrollbarObj.GetComponent<Image>();
+            sbBg.color = new Color(0.1f, 0.08f, 0.06f, 0.85f); // Nền thanh cuộn nâu tối
+
+            // Tạo Sliding Area & Handle (Con trượt kéo thả)
+            GameObject slidingArea = new GameObject("Sliding Area", typeof(RectTransform));
+            slidingArea.transform.SetParent(scrollbarObj.transform, false);
+            RectTransform saRect = slidingArea.GetComponent<RectTransform>();
+            saRect.anchorMin = Vector2.zero;
+            saRect.anchorMax = Vector2.one;
+            saRect.sizeDelta = Vector2.zero;
+
+            GameObject handleObj = new GameObject("Handle", typeof(RectTransform), typeof(Image), typeof(Outline));
+            handleObj.transform.SetParent(slidingArea.transform, false);
+            RectTransform handleRect = handleObj.GetComponent<RectTransform>();
+            handleRect.anchorMin = Vector2.zero;
+            handleRect.anchorMax = Vector2.one;
+            handleRect.sizeDelta = Vector2.zero;
+
+            Image handleImg = handleObj.GetComponent<Image>();
+            handleImg.color = new Color(0.55f, 0.42f, 0.25f, 0.95f); // Con trượt màu đồng vàng mộc mạc
+
+            Outline handleOutline = handleObj.GetComponent<Outline>();
+            handleOutline.effectColor = new Color(0.8f, 0.65f, 0.35f, 0.9f);
+            handleOutline.effectDistance = new Vector2(1f, 1f);
+
+            Scrollbar scrollbarComp = scrollbarObj.GetComponent<Scrollbar>();
+            scrollbarComp.targetGraphic = handleImg;
+            scrollbarComp.handleRect = handleRect;
+            scrollbarComp.direction = Scrollbar.Direction.BottomToTop;
+
+            scroll.verticalScrollbar = scrollbarComp;
+            scroll.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.Permanent;
         }
 
         public void ActionCraftPreservedItem()
@@ -2573,6 +2882,176 @@ namespace SownInStone.UI
             }
         }
 
+        private void OnPhaseChangedHandler(GamePhase newPhase)
+        {
+            if (newPhase == GamePhase.MuaBao)
+            {
+                ShowPhase3QuestPopup();
+            }
+        }
+
+        private GameObject phase3QuestPanelObj;
+
+        /// <summary>
+        /// Hiển thị bảng thông báo danh sách Nhiệm Vụ Sinh Tồn Mùa Bão Lũ (Phase 3).
+        /// </summary>
+        public void ShowPhase3QuestPopup()
+        {
+            if (phase3QuestPanelObj != null)
+            {
+                phase3QuestPanelObj.SetActive(true);
+                return;
+            }
+
+            Canvas canvas = GetComponentInParent<Canvas>();
+            if (canvas == null) canvas = FindFirstObjectByType<Canvas>();
+            if (canvas == null) return;
+
+            phase3QuestPanelObj = new GameObject("Phase3QuestPanel", typeof(RectTransform), typeof(Image), typeof(Outline));
+            phase3QuestPanelObj.transform.SetParent(canvas.transform, false);
+            phase3QuestPanelObj.transform.SetAsLastSibling();
+
+            RectTransform panelRect = phase3QuestPanelObj.GetComponent<RectTransform>();
+            panelRect.anchorMin = new Vector2(0.5f, 0.5f);
+            panelRect.anchorMax = new Vector2(0.5f, 0.5f);
+            panelRect.pivot = new Vector2(0.5f, 0.5f);
+            panelRect.anchoredPosition = Vector2.zero;
+            panelRect.sizeDelta = new Vector2(540f, 360f);
+
+            Image bg = phase3QuestPanelObj.GetComponent<Image>();
+            bg.color = new Color(0.14f, 0.11f, 0.08f, 0.98f);
+
+            Outline outline = phase3QuestPanelObj.GetComponent<Outline>();
+            outline.effectColor = new Color(0.85f, 0.7f, 0.35f, 1f);
+            outline.effectDistance = new Vector2(2.5f, 2.5f);
+
+            // 1. Tiêu đề
+            GameObject titleObj = new GameObject("TitleText", typeof(RectTransform), typeof(TextMeshProUGUI));
+            titleObj.transform.SetParent(phase3QuestPanelObj.transform, false);
+            TextMeshProUGUI titleTxt = titleObj.GetComponent<TextMeshProUGUI>();
+            titleTxt.text = "⚠️ DANH SÁCH NHIỆM VỤ MÙA BÃO LŨ (PHASE 3)";
+            titleTxt.fontSize = 17;
+            titleTxt.fontStyle = FontStyles.Bold;
+            titleTxt.alignment = TextAlignmentOptions.Center;
+            titleTxt.color = new Color(0.95f, 0.85f, 0.35f, 1f);
+
+            RectTransform titleRect = titleObj.GetComponent<RectTransform>();
+            titleRect.anchorMin = new Vector2(0f, 1f);
+            titleRect.anchorMax = new Vector2(1f, 1f);
+            titleRect.pivot = new Vector2(0.5f, 1f);
+            titleRect.anchoredPosition = new Vector2(0f, -15f);
+            titleRect.sizeDelta = new Vector2(0f, 40f);
+
+            // 2. Nội dung các nhiệm vụ
+            GameObject bodyObj = new GameObject("BodyText", typeof(RectTransform), typeof(TextMeshProUGUI));
+            bodyObj.transform.SetParent(phase3QuestPanelObj.transform, false);
+            TextMeshProUGUI bodyTxt = bodyObj.GetComponent<TextMeshProUGUI>();
+            bodyTxt.text = "<b>1. 🌾 PHỦ MÀNG NILON BẢO VỆ RUỘNG:</b>\n" +
+                           "   Dùng Màng bọc Nilon bọc toàn bộ các ô ruộng để khoai không bị ngập úng.\n\n" +
+                           "<b>2. 🏠 GIA CỐ NÓC NHÀ & SINH TỒN TRONG NHÀ:</b>\n" +
+                           "   Đặt Bao cát <b>[5]</b> lên nóc nhà chằng chống mái, vào nhà trú ẩn và ăn khoai gieo khô từ rương.\n\n" +
+                           "<b>3. 🧡 CỨU TRỢ NGHĨA TÌNH DÂN LÀNG:</b>\n" +
+                           "   Gặp <b>Bác Năm</b> & <b>O Thắm</b> bấm phím <b>[4]</b> tặng Tấm Chắn Lũ để gia cố nhà nhận điểm Nghĩa Tình.";
+            bodyTxt.fontSize = 13.5f;
+            bodyTxt.lineSpacing = 6;
+            bodyTxt.alignment = TextAlignmentOptions.Left;
+            bodyTxt.color = new Color(0.9f, 0.9f, 0.9f, 1f);
+
+            RectTransform bodyRect = bodyObj.GetComponent<RectTransform>();
+            bodyRect.anchorMin = Vector2.zero;
+            bodyRect.anchorMax = Vector2.one;
+            bodyRect.offsetMin = new Vector2(25f, 70f);
+            bodyRect.offsetMax = new Vector2(-25f, -60f);
+
+            // 3. Nút Đồng Ý / Đã Nhận
+            GameObject btnObj = new GameObject("CloseBtn", typeof(RectTransform), typeof(Image), typeof(Button), typeof(Outline));
+            btnObj.transform.SetParent(phase3QuestPanelObj.transform, false);
+
+            RectTransform btnRect = btnObj.GetComponent<RectTransform>();
+            btnRect.anchorMin = new Vector2(0.5f, 0f);
+            btnRect.anchorMax = new Vector2(0.5f, 0f);
+            btnRect.pivot = new Vector2(0.5f, 0f);
+            btnRect.anchoredPosition = new Vector2(0f, 15f);
+            btnRect.sizeDelta = new Vector2(220f, 42f);
+
+            Image btnImg = btnObj.GetComponent<Image>();
+            btnImg.color = new Color(0.45f, 0.32f, 0.18f, 1f);
+
+            Outline btnOutline = btnObj.GetComponent<Outline>();
+            btnOutline.effectColor = new Color(0.8f, 0.7f, 0.4f, 1f);
+
+            Button btn = btnObj.GetComponent<Button>();
+            btn.onClick.AddListener(() => {
+                phase3QuestPanelObj.SetActive(false);
+            });
+
+            GameObject btnTextObj = new GameObject("BtnText", typeof(RectTransform), typeof(TextMeshProUGUI));
+            btnTextObj.transform.SetParent(btnObj.transform, false);
+            TextMeshProUGUI btnTxt = btnTextObj.GetComponent<TextMeshProUGUI>();
+            btnTxt.text = "ĐÃ NHẬN NHIỆM VỤ";
+            btnTxt.fontSize = 13;
+            btnTxt.fontStyle = FontStyles.Bold;
+            btnTxt.alignment = TextAlignmentOptions.Center;
+            btnTxt.color = Color.white;
+
+            RectTransform btnTxtRect = btnTextObj.GetComponent<RectTransform>();
+            btnTxtRect.anchorMin = Vector2.zero;
+            btnTxtRect.anchorMax = Vector2.one;
+            btnTxtRect.sizeDelta = Vector2.zero;
+        }
+
+        #endregion
+
+        #region SCREEN FADE OVERLAY
+        private CanvasGroup fadeOverlayCanvasGroup;
+
+        private void CreateFadeOverlay()
+        {
+            if (fadeOverlayCanvasGroup != null) return;
+            GameObject fadeObj = new GameObject("Panel_ScreenFadeOverlay", typeof(RectTransform), typeof(CanvasGroup), typeof(Image));
+            fadeObj.transform.SetParent(this.transform, false);
+            fadeObj.transform.SetAsLastSibling();
+
+            RectTransform rt = fadeObj.GetComponent<RectTransform>();
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.sizeDelta = Vector2.zero;
+
+            Image img = fadeObj.GetComponent<Image>();
+            img.color = Color.black;
+
+            fadeOverlayCanvasGroup = fadeObj.GetComponent<CanvasGroup>();
+            fadeOverlayCanvasGroup.alpha = 0f;
+            fadeOverlayCanvasGroup.blocksRaycasts = false;
+        }
+
+        public Coroutine FadeToBlack(float duration)
+        {
+            if (fadeOverlayCanvasGroup == null) CreateFadeOverlay();
+            fadeOverlayCanvasGroup.transform.SetAsLastSibling();
+            return StartCoroutine(FadeRoutine(fadeOverlayCanvasGroup.alpha, 1f, duration));
+        }
+
+        public Coroutine FadeFromBlack(float duration)
+        {
+            if (fadeOverlayCanvasGroup == null) CreateFadeOverlay();
+            fadeOverlayCanvasGroup.transform.SetAsLastSibling();
+            return StartCoroutine(FadeRoutine(fadeOverlayCanvasGroup.alpha, 0f, duration));
+        }
+
+        private System.Collections.IEnumerator FadeRoutine(float startAlpha, float targetAlpha, float duration)
+        {
+            fadeOverlayCanvasGroup.blocksRaycasts = (targetAlpha > 0.5f);
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+                fadeOverlayCanvasGroup.alpha = Mathf.Lerp(startAlpha, targetAlpha, elapsed / duration);
+                yield return null;
+            }
+            fadeOverlayCanvasGroup.alpha = targetAlpha;
+            fadeOverlayCanvasGroup.blocksRaycasts = (targetAlpha > 0.5f);
+        }
         #endregion
     }
 }

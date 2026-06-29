@@ -360,14 +360,20 @@ namespace SownInStone.Core
         // ─────────────────────────────────────────────────────────────────────
         private void UpdateThirdPerson()
         {
-            // 1. Mouse wheel zoom
+            // 1. Mouse wheel zoom (Tắt zoom khi đang mở Balo hoặc thao tác UI)
             float scroll = 0f;
+            bool isUIOpen = (SownInStone.UI.SurvivalUIManager.Instance != null && SownInStone.UI.SurvivalUIManager.Instance.IsInventoryOpen) ||
+                            (UnityEngine.EventSystems.EventSystem.current != null && UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject());
+
+            if (!isUIOpen)
+            {
 #if ENABLE_INPUT_SYSTEM
-            if (Mouse.current != null)
-                scroll = Mouse.current.scroll.ReadValue().y * 0.01f;
+                if (Mouse.current != null)
+                    scroll = Mouse.current.scroll.ReadValue().y * 0.01f;
 #else
-            scroll = Input.GetAxis("Mouse ScrollWheel") * 10f;
+                scroll = Input.GetAxis("Mouse ScrollWheel") * 10f;
 #endif
+            }
             if (Mathf.Abs(scroll) > 0.01f)
                 targetDistance = Mathf.Clamp(targetDistance - scroll * zoomSpeed, minDistance, maxDistance);
             distance = Mathf.Lerp(distance, targetDistance, Time.deltaTime * 10f);
@@ -395,13 +401,21 @@ namespace SownInStone.Core
             Vector3 desiredDir     = rotation * Vector3.back;
             float   checkDistance  = distance;
 
-            RaycastHit[] hits = Physics.SphereCastAll(pivot, cameraRadius, desiredDir, distance, collisionLayers, QueryTriggerInteraction.Ignore);
-            System.Array.Sort(hits, (x, y) => x.distance.CompareTo(y.distance));
-            foreach (var h in hits)
+            bool isInsideHouse = PlayerController.Instance != null && PlayerController.Instance.IsInsideHouse;
+            if (isInsideHouse)
             {
-                if (h.collider.transform == target || h.collider.transform.IsChildOf(target)) continue;
-                checkDistance = Mathf.Clamp(h.distance, minDistance, distance);
-                break;
+                checkDistance = 1.2f; // Góc nhìn 3D cận cảnh ngang vai PUBG khi ở trong nhà
+            }
+            else
+            {
+                RaycastHit[] hits = Physics.SphereCastAll(pivot, cameraRadius, desiredDir, distance, collisionLayers, QueryTriggerInteraction.Ignore);
+                System.Array.Sort(hits, (x, y) => x.distance.CompareTo(y.distance));
+                foreach (var h in hits)
+                {
+                    if (h.collider.transform == target || h.collider.transform.IsChildOf(target)) continue;
+                    checkDistance = Mathf.Clamp(h.distance, minDistance, distance);
+                    break;
+                }
             }
 
             Vector3 finalPos = pivot + desiredDir * checkDistance;
