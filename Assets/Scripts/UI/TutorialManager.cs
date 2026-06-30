@@ -6,6 +6,7 @@ using SownInStone.Core;
 using SownInStone.UI;
 using SownInStone.Agriculture;
 using SownInStone.Storage;
+using SownInStone.Weather;
 
 namespace SownInStone
 {
@@ -28,6 +29,9 @@ namespace SownInStone
             PrepareOwnHouse,      // Stage 8: Prepare own house
             TalkToCuBayWorship,   // Stage 9: Talk to Cụ Bảy about ancestral worship
             WorshipAltar,         // Stage 10: Burn incense at ancestral altar
+            RescuingNPCs,         // Stage 11: Rescue 4 NPCs from flood
+            RoofSurvivalSharing,  // Stage 12: Share remaining food on the roof
+            PostStormCleanup,     // Stage 13: Clean up and replant crops after flood (PhuSa)
             Completed             // Finished
         }
 
@@ -56,20 +60,51 @@ namespace SownInStone
         public bool oThamPrepped = false;
         public bool bacNamPrepped = false;
         public bool shouldTriggerLoudspeakerOnDialogueClose = false;
-        
-        public enum ActiveStormJob
-        {
-            None,
-            OThamFloodboards,
-            BacNamSandbags
-        }
-        public ActiveStormJob activeStormJob = ActiveStormJob.None;
-        public bool[] oThamTargetsPlaced = new bool[4];
-        public bool[] bacNamTargetsPlaced = new bool[4];
 
+        [Header("--- SINH TỒN & CỨU HỘ ---")]
+        public int rescuedNPCsCount = 0;
+        public float rescueTimeRemaining = 120f;
+        public bool oThamRescued = false;
+        public bool bacNamRescued = false;
+        public bool cuBayRescued = false;
+        public bool beTiRescued = false;
+
+        public bool oThamFed = false;
+        public bool bacNamFed = false;
+        public bool cuBayFed = false;
+        public bool beTiFed = false;
+
+        public bool oThamHouseCleaned = false;
+        public bool bacNamHouseCleaned = false;
+        public bool cuBayHouseCleaned = false;
+        public bool beTiHouseCleaned = false;
+        public int postStormCropsPlanted = 0;
+        
+        // ── Phase 2 independent-task system ─────────────────────────────
+        // ── Bác Năm task (gia cố nhà: bao cát + tấm chắn lũ) ───────────
+        public bool[] bacNamTargetsPlaced = new bool[10];
+        public int bacNamSandbagsPlaced = 0;    // target = 4
+        public int bacNamFloodBoardsPlaced = 0; // target = 2
+        public bool bacNamSandbagsDone = false;
+        public bool bacNamFloodBoardsDone = false;
+        public bool bacNamJobAccepted = false;   // player visited Bác Năm and started
+
+        // ── O Thắm task (cất đồ vào rương của O Thắm) ───────────────────
+        public int oThamItemsStored = 0;        // target = 5 (total stored in chest)
+        public bool oThamStoreDone = false;
+        public int oThamCarryingCount = 0;      // how many O Thắm's items player currently holds
+        public bool oThamJobAccepted = false;    // player talked to O Thắm and got items
+        public bool[] oThamTargetsPlaced = new bool[10]; // kept for ghost snap positions
+
+        // ── Own House task (tự gia cố nhà) ───────────────────
+        public System.Collections.Generic.List<GameObject> ownHouseGhostFloodboards = new System.Collections.Generic.List<GameObject>();
+        public bool[] ownHouseFloodboardsPlaced = new bool[4];
+
+        // Legacy compat shims
         public int oThamBoardsPlaced = 0;
-        public int bacNamSandbagsPlaced = 0;
-        public int ownHouseSandbagsPlaced = 0;
+        public int ownHouseSandbagsPlaced = 0; // mapped to ownHouseFloodboardsPlacedCount internally
+        public enum ActiveStormJob { None, OThamFloodboards, BacNamSandbags }
+        public ActiveStormJob activeStormJob = ActiveStormJob.None;
 
         private bool talkDialogueActive = false;
         private string currentTalkSpeaker = "";
@@ -244,6 +279,10 @@ namespace SownInStone
                 {
                     shouldTriggerLoudspeakerOnDialogueClose = false;
                     currentStage = TutorialStage.PrepareForStorm;
+                    if (GameManager.Instance != null)
+                    {
+                        GameManager.Instance.TransitionToPhase(GamePhase.ChuanBiBao);
+                    }
                     TriggerLoudspeakerAnnouncement();
                     UpdateHUDPanel();
                     npcsInScene = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Exclude);
@@ -272,9 +311,18 @@ namespace SownInStone
 
         public void OnCropPlanted()
         {
-            if (!isTutorialActive || currentStage != TutorialStage.FarmingTutorial) return;
-            subTask2Completed = true;
-            UpdateHUDPanel();
+            if (!isTutorialActive) return;
+
+            if (currentStage == TutorialStage.FarmingTutorial)
+            {
+                subTask2Completed = true;
+                UpdateHUDPanel();
+            }
+            else if (currentStage == TutorialStage.PostStormCleanup)
+            {
+                postStormCropsPlanted++;
+                CheckPostStormCleanupProgress();
+            }
         }
         public void OnSoilWatered()
         {
@@ -404,99 +452,279 @@ namespace SownInStone
             }
         }
 
-        public void StartOThamJob()
+        // ── Phase 2 initialisation ──────────────────────────────────────
+        /// <summary>Reset tất cả trạng thái Phase 2. Gọi khi bước vào giai đoạn này.</summary>
+        public void InitPhase2()
         {
-            activeStormJob = ActiveStormJob.OThamFloodboards;
-            oThamBoardsPlaced = 0;
+            // Bác Năm
+            bacNamSandbagsPlaced = 0;
+            bacNamFloodBoardsPlaced = 0;
+            bacNamSandbagsDone = false;
+            bacNamFloodBoardsDone = false;
+            bacNamJobAccepted = false;
+            System.Array.Clear(bacNamTargetsPlaced, 0, bacNamTargetsPlaced.Length);
+            // Hide ghost objects until player accepts Bác Năm's task
+            foreach (var bag in ghostSandbags)   { if (bag != null) bag.SetActive(false); }
+            foreach (var board in ghostFloodboards) { if (board != null) board.SetActive(false); }
+
+            // O Thắm
+            oThamItemsStored = 0;
+            oThamStoreDone = false;
+            oThamCarryingCount = 0;
+            oThamJobAccepted = false;
             System.Array.Clear(oThamTargetsPlaced, 0, oThamTargetsPlaced.Length);
-            
-            foreach (var board in ghostFloodboards)
-            {
-                if (board != null) board.SetActive(true);
-            }
+
+            // Legacy
+            oThamPrepped = false;
+            bacNamPrepped = false;
+            oThamBoardsPlaced = 0;
+            activeStormJob = ActiveStormJob.None;
 
             UpdateHUDPanel();
+            EnsureOThamChestExists();
             npcsInScene = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Exclude);
+            SurvivalUIManager.Instance?.ShowHUDToast("Đến nhà Bác Năm hoặc nhà O Thắm để nhận và làm nhiệm vụ!");
         }
 
+        // Kept for legacy callers — both now call InitPhase2 then immediately start their specific job
+        public void StartBothStormJobs() { InitPhase2(); }
+
+        // ── Bác Năm task ────────────────────────────────────────────────
+        /// <summary>
+        /// Gọi khi người chơi nói chuyện với Bác Năm và nhận nhiệm vụ.
+        /// Teleport lên mái nhà, kích hoạt ghost objects.
+        /// </summary>
         public void StartBacNamJob()
         {
+            if (currentStage != TutorialStage.PrepareForStorm) return;
+            bacNamJobAccepted = true;
             activeStormJob = ActiveStormJob.BacNamSandbags;
-            bacNamSandbagsPlaced = 0;
-            System.Array.Clear(bacNamTargetsPlaced, 0, bacNamTargetsPlaced.Length);
 
-            foreach (var bag in ghostSandbags)
+            // Chỉ kích hoạt ván chắn trước cửa lúc bắt đầu
+            foreach (var bag in ghostSandbags)    { if (bag != null) bag.SetActive(false); }
+            for (int i = 0; i < Mathf.Min(ghostFloodboards.Count, 2); i++)
             {
-                if (bag != null) bag.SetActive(true);
+                if (ghostFloodboards[i] != null) ghostFloodboards[i].SetActive(true);
             }
 
-            // Dịch chuyển người chơi lên mái nhà Bác Năm
-            GameObject bacNamHouse = GameObject.Find("BacNam_House");
-            if (bacNamHouse != null)
-            {
-                Vector3 roofCenter = bacNamHouse.transform.position + Vector3.up * 4.3f;
-                if (PlayerController.Instance != null)
-                {
-                    PlayerController.Instance.transform.position = roofCenter;
-                    SurvivalUIManager.Instance?.ShowHUDToast("Đã lên mái nhà chằng chống");
-                }
-            }
+            // Giữ người chơi dưới đất nói chuyện
+            SurvivalUIManager.Instance?.ShowHUDToast("Hãy lắp 2 Tấm chắn lũ trước cửa nhà Bác Năm trước!");
 
             UpdateHUDPanel();
             npcsInScene = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Exclude);
-        }
-
-        public void OnOThamFloodBoardPlaced()
-        {
-            if (!isTutorialActive || currentStage != TutorialStage.PrepareForStorm) return;
-            oThamBoardsPlaced++;
-            if (oThamBoardsPlaced >= 4)
-            {
-                oThamPrepped = true;
-                if (SurvivalUIManager.Instance != null)
-                {
-                    SurvivalUIManager.Instance.ShowDialogue("O Thắm", "\"O cảm ơn con nhiều nha! 4 tấm chắn lũ đã được dựng vững vàng trước cửa tiệm rồi!\"");
-                }
-            }
-            CheckPrepStormComplete();
         }
 
         public void OnBacNamSandbagPlaced()
         {
             if (!isTutorialActive || currentStage != TutorialStage.PrepareForStorm) return;
             bacNamSandbagsPlaced++;
-            if (bacNamSandbagsPlaced >= 4)
+            if (bacNamSandbagsPlaced >= 4 && !bacNamSandbagsDone)
             {
-                bacNamPrepped = true;
-                if (SurvivalUIManager.Instance != null)
-                {
-                    SurvivalUIManager.Instance.ShowDialogue("Bác Năm", "\"Tốt lắm Thành ơi! 4 bao cát đã chằng chắc chắn trên nóc mái tranh của bác rồi, không sợ lốc thổi bay nữa!\"");
-                }
-
-                // Dịch chuyển xuống đất cạnh Bác Năm
-                var npcs = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Exclude);
-                var bacNamNPC = System.Array.Find(npcs, n => n.characterType == SownInStone.Community.NPCCharacter.StoryCharacterType.BacNam);
-                if (bacNamNPC != null && PlayerController.Instance != null)
-                {
-                    PlayerController.Instance.transform.position = bacNamNPC.transform.position + bacNamNPC.transform.forward * 1.5f;
-                }
+                bacNamSandbagsDone = true;
+                SurvivalUIManager.Instance?.ShowHUDToast("✓ Xếp đủ 4 bao cát quanh nhà Bác Năm!");
             }
-            CheckPrepStormComplete();
+            CheckBacNamJobComplete();
         }
 
-        private void CheckPrepStormComplete()
+        public void OnBacNamFloodBoardPlaced()
         {
-            if (activeStormJob == ActiveStormJob.OThamFloodboards && oThamPrepped)
+            if (!isTutorialActive || currentStage != TutorialStage.PrepareForStorm) return;
+            bacNamFloodBoardsPlaced++;
+            if (bacNamFloodBoardsPlaced >= 2 && !bacNamFloodBoardsDone)
             {
-                StartPrepareOwnHouseStage();
+                bacNamFloodBoardsDone = true;
+                SurvivalUIManager.Instance?.ShowHUDToast("✓ Lắp đủ 2 tấm chắn cửa nhà Bác Năm!");
+
+                // Dịch chuyển người chơi lên mái nhà để đặt bao cát
+                GameObject bacNamHouse = GameObject.Find("BacNam_House");
+                if (bacNamHouse != null)
+                {
+                    Vector3 roofCenter = bacNamHouse.transform.position + Vector3.up * 4.3f;
+                    SafeTeleportPlayer(roofCenter);
+                    SurvivalUIManager.Instance?.ShowHUDToast("Đã lên mái nhà Bác Năm – Hãy đặt 4 Bao cát gia cố!");
+                }
+
+                // Kích hoạt 4 bao cát chỉ dẫn trên mái
+                foreach (var bag in ghostSandbags)
+                {
+                    if (bag != null) bag.SetActive(true);
+                }
             }
-            else if (activeStormJob == ActiveStormJob.BacNamSandbags && bacNamPrepped)
+            CheckBacNamJobComplete();
+        }
+
+        public void SafeTeleportPlayer(Vector3 position)
+        {
+            if (PlayerController.Instance != null)
             {
-                StartPrepareOwnHouseStage();
+                var cc = PlayerController.Instance.GetComponent<CharacterController>();
+                if (cc != null) cc.enabled = false;
+
+                var rb = PlayerController.Instance.GetComponent<Rigidbody>();
+                if (rb != null)
+                {
+                    rb.linearVelocity = Vector3.zero;
+                    rb.angularVelocity = Vector3.zero;
+                    rb.position = position;
+                }
+
+                PlayerController.Instance.transform.position = position;
+
+                if (cc != null) cc.enabled = true;
+                Debug.Log($"[SAFE TELEPORT] Player teleported to {position}");
+            }
+        }
+
+        private void TeleportPlayerToBacNam()
+        {
+            var npcs = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Exclude);
+            var bacNamNPC = System.Array.Find(npcs, n => n.characterType == SownInStone.Community.NPCCharacter.StoryCharacterType.BacNam);
+            if (bacNamNPC != null)
+            {
+                SafeTeleportPlayer(bacNamNPC.transform.position + bacNamNPC.transform.forward * 1.5f);
             }
             else
             {
+                GameObject bacNamHouse = GameObject.Find("BacNam_House");
+                if (bacNamHouse != null)
+                {
+                    Vector3 yardPos = bacNamHouse.transform.position + bacNamHouse.transform.forward * 4.5f + bacNamHouse.transform.right * 1.5f;
+                    yardPos.y = 0.2f;
+                    SafeTeleportPlayer(yardPos);
+                }
+                else
+                {
+                    SafeTeleportPlayer(new Vector3(20f, 0.2f, 10f));
+                }
+            }
+        }
+
+        private void CheckBacNamJobComplete()
+        {
+            UpdateHUDPanel();
+            if (bacNamSandbagsDone && bacNamFloodBoardsDone && !bacNamPrepped)
+            {
+                bacNamPrepped = true;
+                TeleportPlayerToBacNam();
+                SurvivalUIManager.Instance?.ShowDialogue("Bác Năm", "\"Tốt lắm Thành ơi! Nhà bác đã được gia cố bao cát và tấm chắn lũ cẩn thận rồi, cảm ơn con nhiều!\"");
+                CheckBothJobsComplete();
+            }
+            npcsInScene = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Exclude);
+        }
+
+        private int GetNoodlesCapacityLeft()
+        {
+            if (StorageManager.Instance == null) return 0;
+            ItemData noodles = StorageManager.Instance.GetItemDataByID("item_mi_tom");
+            if (noodles == null) return 0;
+            int maxStack = StorageManager.Instance.GetMaxBackpackStack(noodles);
+            var slot = StorageManager.Instance.GetStorageSlots().Find(s => s.item != null && s.item.ItemID == noodles.ItemID);
+            int currentQty = slot != null ? slot.quantity : 0;
+            return Mathf.Max(0, maxStack - currentQty);
+        }
+
+        // ── O Thắm task ─────────────────────────────────────────────────
+        /// <summary>
+        /// Gọi khi người chơi nói chuyện với O Thắm và nhận đồ.
+        /// O Thắm đưa thêm một lô đồ (tối đa 5 lần tổng cộng) vào oThamCarryingCount.
+        /// Nếu balo quá đầy, thông báo về cất đồ trước.
+        /// </summary>
+        public void StartOThamJob()
+        {
+            if (currentStage != TutorialStage.PrepareForStorm) return;
+            oThamJobAccepted = true;
+            activeStormJob = ActiveStormJob.OThamFloodboards;
+
+            int remaining = 5 - oThamItemsStored - oThamCarryingCount;
+            if (remaining <= 0)
+            {
+                SurvivalUIManager.Instance?.ShowHUDToast("Bạn đã cất hoặc đang mang đủ đồ cho O Thắm rồi!");
+                return;
+            }
+
+            if (StorageManager.Instance == null) return;
+            ItemData noodles = StorageManager.Instance.GetItemDataByID("item_mi_tom");
+            if (noodles == null)
+            {
+                SurvivalUIManager.Instance?.ShowHUDToast("Lỗi: Không tìm thấy vật phẩm Mì tôm cứu trợ!");
+                return;
+            }
+
+            // Check if backpack can hold the noodles without overflowing
+            int capacityLeft = GetNoodlesCapacityLeft();
+            if (capacityLeft < remaining)
+            {
+                SurvivalUIManager.Instance?.ShowDialogue("O Thắm", "\"Balo con không đủ chỗ chứa thêm Mì tôm đâu! Hãy cất bớt đồ rồi quay lại lấy nhé!\"");
+                SurvivalUIManager.Instance?.ShowHUDToast("⚠️ Balo đầy! Hãy cất bớt đồ khác ở hòm đồ nhà mình rồi quay lại.");
+                return;
+            }
+
+            // Give noodles to player's backpack
+            StorageManager.Instance.AddItem(noodles, remaining);
+            oThamCarryingCount += remaining;
+            
+            SurvivalUIManager.Instance?.ShowDialogue("O Thắm", $"\"O gửi con {remaining} gói mì tôm cứu trợ này, mau đem cất vào rương gỗ trước cửa tiệm giúp o nhé!\"");
+            SurvivalUIManager.Instance?.ShowHUDToast($"Nhận {remaining} gói Mì tôm cứu trợ – Mang ra rương gỗ trước tiệm cất!");
+
+            UpdateHUDPanel();
+            npcsInScene = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Exclude);
+        }
+
+        /// <summary>
+        /// Gọi khi người chơi bấm E vào rương O Thắm để cất đồ đang mang.
+        /// </summary>
+        public void OnOThamItemStored()
+        {
+            if (!isTutorialActive || currentStage != TutorialStage.PrepareForStorm) return;
+            
+            if (StorageManager.Instance == null) return;
+            ItemData noodles = StorageManager.Instance.GetItemDataByID("item_mi_tom");
+            if (noodles == null) return;
+
+            var slot = StorageManager.Instance.GetStorageSlots().Find(s => s.item != null && s.item.ItemID == noodles.ItemID);
+            int carryingInBackpack = slot != null ? slot.quantity : 0;
+
+            // We only take noodles up to what O Thắm gave us for this job
+            int toStore = Mathf.Min(carryingInBackpack, oThamCarryingCount);
+
+            if (toStore <= 0)
+            {
+                SurvivalUIManager.Instance?.ShowHUDToast("Bạn không mang gói Mì tôm cứu trợ nào của O Thắm!");
+                return;
+            }
+
+            // Remove noodles from backpack
+            if (StorageManager.Instance.RemoveItem(noodles, toStore))
+            {
+                oThamItemsStored += toStore;
+                oThamCarryingCount = Mathf.Max(0, oThamCarryingCount - toStore);
+
+                if (oThamItemsStored >= 5 && !oThamStoreDone)
+                {
+                    oThamStoreDone = true;
+                    oThamPrepped = true;
+                    SurvivalUIManager.Instance?.ShowDialogue("O Thắm", "\"O cảm ơn con nhiều nha! Đồ đạc đã cất gọn vào rương tránh bão hết rồi, yên tâm lắm!\"");
+                    CheckBothJobsComplete();
+                }
+                else
+                {
+                    int left = 5 - oThamItemsStored;
+                    SurvivalUIManager.Instance?.ShowHUDToast(
+                        $"Đã cất {toStore} gói Mì tôm vào rương O Thắm! ({oThamItemsStored}/5) – Còn {left} món, quay lại lấy tiếp nhé!");
+                }
                 UpdateHUDPanel();
+            }
+            npcsInScene = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Exclude);
+        }
+
+        // Legacy shim for old placement callers
+        public void OnOThamFloodBoardPlaced() { OnBacNamFloodBoardPlaced(); }
+
+        private void CheckBothJobsComplete()
+        {
+            if (bacNamPrepped && oThamPrepped)
+            {
+                StartPrepareOwnHouseStage();
             }
             npcsInScene = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Exclude);
         }
@@ -506,13 +734,20 @@ namespace SownInStone
             currentStage = TutorialStage.PrepareOwnHouse;
             if (StorageManager.Instance != null && SurvivalUIManager.Instance != null)
             {
-                ItemData sandbag = SurvivalUIManager.Instance.SandbagItem;
-                if (sandbag != null)
+                ItemData floodboard = SurvivalUIManager.Instance.FloodBoardItem;
+                if (floodboard != null)
                 {
-                    StorageManager.Instance.AddItem(sandbag, 4);
-                    SurvivalUIManager.Instance.ShowHUDToast("Bạn nhận được 4 Bao cát để gia cố nhà mình");
+                    StorageManager.Instance.AddItem(floodboard, 4);
+                    SurvivalUIManager.Instance.ShowHUDToast("Bạn nhận được 4 Tấm chắn để gia cố nhà mình");
                 }
             }
+
+            ownHouseGhostFloodboards.Clear();
+            for (int i = 0; i < 4; i++) ownHouseGhostFloodboards.Add(null);
+            for (int i = 0; i < 4; i++) ownHouseFloodboardsPlaced[i] = false;
+
+            EnsureOwnHouseGhostsExist();
+
             UpdateHUDPanel();
             npcsInScene = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Exclude);
         }
@@ -527,7 +762,7 @@ namespace SownInStone
                 {
                     SurvivalUIManager.Instance.ShowDialogue(
                         "Nhà của bạn", 
-                        "\"Bạn đã chất đủ 4 bao cát gia cố xung quanh cửa và mái nhà. Ngôi nhà của bạn hiện đã sẵn sàng ứng phó với cơn bão sắp tới!\""
+                        "\"Bạn đã lắp đủ 4 tấm chắn gia cố trước cửa nhà. Ngôi nhà của bạn hiện đã sẵn sàng ứng phó với cơn bão sắp tới!\""
                     );
                 }
                 currentStage = TutorialStage.TalkToCuBayWorship;
@@ -548,10 +783,331 @@ namespace SownInStone
             npcsInScene = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Exclude);
         }
 
+        private System.Collections.Generic.Dictionary<string, Vector3> npcHomePositions = new System.Collections.Generic.Dictionary<string, Vector3>();
+
+        public void StoreNPCHomePositions()
+        {
+            if (npcsInScene == null) return;
+            npcHomePositions.Clear();
+            foreach (var npc in npcsInScene)
+            {
+                if (npc != null)
+                {
+                    npcHomePositions[npc.NPCName] = npc.transform.position;
+                }
+            }
+            if (npcHomePositions.Count < 4)
+            {
+                var allNPCs = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Include);
+                foreach (var npc in allNPCs)
+                {
+                    if (npc != null && !npcHomePositions.ContainsKey(npc.NPCName))
+                    {
+                        npcHomePositions[npc.NPCName] = npc.transform.position;
+                    }
+                }
+            }
+        }
+
+        public void ResetNPCsToHomePositions()
+        {
+            var allNPCs = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Include);
+            foreach (var npc in allNPCs)
+            {
+                if (npc != null)
+                {
+                    npc.gameObject.SetActive(true);
+                    var visual = npc.transform.Find("Visual");
+                    if (visual != null) visual.gameObject.SetActive(true);
+
+                    if (npcHomePositions.TryGetValue(npc.NPCName, out Vector3 homePos))
+                    {
+                        npc.transform.position = homePos;
+                        var rb = npc.GetComponent<Rigidbody>();
+                        if (rb != null)
+                        {
+                            rb.linearVelocity = Vector3.zero;
+                            rb.position = homePos;
+                        }
+                    }
+                }
+            }
+        }
+
         public void OnAltarWorshipped()
         {
             if (!isTutorialActive || currentStage != TutorialStage.WorshipAltar) return;
-            CompleteTutorial();
+            
+            // Store NPC positions first to ensure reset works correctly
+            StoreNPCHomePositions();
+            StartRescuingNPCsStage();
+        }
+
+        public void StartRescuingNPCsStage()
+        {
+            currentStage = TutorialStage.RescuingNPCs;
+            rescuedNPCsCount = 0;
+            rescueTimeRemaining = 120f;
+            oThamRescued = false;
+            bacNamRescued = false;
+            cuBayRescued = false;
+            beTiRescued = false;
+
+            oThamFed = false;
+            bacNamFed = false;
+            cuBayFed = false;
+            beTiFed = false;
+
+            oThamHouseCleaned = false;
+            bacNamHouseCleaned = false;
+            cuBayHouseCleaned = false;
+            beTiHouseCleaned = false;
+            postStormCropsPlanted = 0;
+
+            ResetNPCsToHomePositions();
+
+            if (GameManager.Instance != null)
+            {
+                GameManager.Instance.TransitionToPhase(GamePhase.MuaBao);
+            }
+
+            if (WeatherManager.Instance != null)
+            {
+                WeatherManager.Instance.SetFloodLevelDirectly(1.2f);
+            }
+
+            SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_emergency_alarm");
+
+            if (SurvivalUIManager.Instance != null)
+            {
+                SurvivalUIManager.Instance.ShowDialogue(
+                    "BÁO ĐỘNG LŨ LỤT",
+                    "Nước lũ dâng cao khẩn cấp ngập lụt làng quê! Bạn hãy chạy thật nhanh qua nhà từng người (O Thắm, Bác Năm, Cụ Bảy, Bé Tí) để cõng họ sơ tán về nóc nhà Thành lánh nạn. Chú ý: Chỉ cõng được từng người một và phải cứu tất cả trước khi nước dâng ngập hoàn toàn!"
+                );
+            }
+
+            UpdateHUDPanel();
+        }
+
+        public void OnNPCRescued(SownInStone.Community.NPCCharacter.StoryCharacterType charType)
+        {
+            if (charType == SownInStone.Community.NPCCharacter.StoryCharacterType.OTham) oThamRescued = true;
+            else if (charType == SownInStone.Community.NPCCharacter.StoryCharacterType.BacNam) bacNamRescued = true;
+            else if (charType == SownInStone.Community.NPCCharacter.StoryCharacterType.CuBay) cuBayRescued = true;
+            else if (charType == SownInStone.Community.NPCCharacter.StoryCharacterType.BeTi) beTiRescued = true;
+
+            rescuedNPCsCount = 0;
+            if (oThamRescued) rescuedNPCsCount++;
+            if (bacNamRescued) rescuedNPCsCount++;
+            if (cuBayRescued) rescuedNPCsCount++;
+            if (beTiRescued) rescuedNPCsCount++;
+
+            SurvivalUIManager.Instance?.ShowHUDToast($"💚 SƠ TÁN THÀNH CÔNG: Đã đưa {rescuedNPCsCount}/4 người lên nóc nhà lánh nạn!");
+
+            if (rescuedNPCsCount >= 4)
+            {
+                StartRoofSurvivalSharingStage();
+            }
+            else
+            {
+                UpdateHUDPanel();
+            }
+        }
+
+        public void ResetRescueStage()
+        {
+            if (PlayerController.Instance != null)
+            {
+                PlayerController.Instance.DropCarriedNPCForced();
+                GameObject houseObj = GameObject.Find("Thanh_House");
+                Vector3 groundPos = houseObj != null ? houseObj.transform.position + new Vector3(0f, 0.2f, -4.2f) : new Vector3(10.66f, 0.2f, -14.2f);
+                SafeTeleportPlayer(groundPos);
+                var rb = PlayerController.Instance.GetComponent<Rigidbody>();
+                if (rb != null)
+                {
+                    rb.linearVelocity = Vector3.zero;
+                    rb.position = groundPos;
+                }
+            }
+
+            ResetNPCsToHomePositions();
+
+            rescuedNPCsCount = 0;
+            rescueTimeRemaining = 120f;
+            oThamRescued = false;
+            bacNamRescued = false;
+            cuBayRescued = false;
+            beTiRescued = false;
+
+            if (WeatherManager.Instance != null)
+            {
+                WeatherManager.Instance.SetFloodLevelDirectly(1.2f);
+            }
+
+            if (SurvivalUIManager.Instance != null)
+            {
+                SurvivalUIManager.Instance.ShowDialogue(
+                    "THẤT BẠI SƠ TÁN",
+                    "Nước lũ đã dâng ngập quá cao trước khi bạn kịp sơ tán mọi người! Hãy thử lại lần nữa để cứu sống tất cả bà con trong xóm!"
+                );
+            }
+
+            UpdateHUDPanel();
+        }
+
+        private void StartRoofSurvivalSharingStage()
+        {
+            currentStage = TutorialStage.RoofSurvivalSharing;
+            
+            // Dâng mực nước lụt cao hẳn che hết vườn tược
+            if (WeatherManager.Instance != null)
+            {
+                WeatherManager.Instance.SetFloodLevelDirectly(2.0f);
+            }
+
+            // Dịch chuyển người chơi lên nóc nhà Thành cùng mọi người
+            if (PlayerController.Instance != null)
+            {
+                GameObject houseObj = GameObject.Find("Thanh_House");
+                Vector3 roofPos = houseObj != null ? houseObj.transform.position + new Vector3(0f, 3.4f, 0f) : new Vector3(10.66f, 3.4f, -10.0f);
+                SafeTeleportPlayer(roofPos);
+                var rb = PlayerController.Instance.GetComponent<Rigidbody>();
+                if (rb != null)
+                {
+                    rb.linearVelocity = Vector3.zero;
+                    rb.position = roofPos;
+                }
+            }
+
+            // Phát mì tôm cứu trợ giống như thiết lập cũ
+            if (StorageManager.Instance != null && PlayerController.Instance != null && PlayerController.Instance.seedItem != null)
+            {
+                // Cho thêm mì gói và khoai gieo nếu người chơi không có đủ khoai chia sẻ
+                ItemData noodles = StorageManager.Instance.GetItemDataByID("item_mi_tom");
+                if (noodles == null) noodles = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Noodles.asset");
+                if (noodles != null) StorageManager.Instance.AddItem(noodles, 4);
+
+                ItemData preserved = StorageManager.Instance.GetItemDataByID("item_khoai_gieo");
+                if (preserved == null) preserved = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_PreservedCrop.asset");
+                if (preserved != null) StorageManager.Instance.AddItem(preserved, 2);
+            }
+
+            if (SurvivalUIManager.Instance != null)
+            {
+                SurvivalUIManager.Instance.ShowDialogue(
+                    "CẮM TRẠI NÓC NHÀ",
+                    "Cả xóm đã sơ tán lên nóc nhà Thành an toàn! Bên ngoài nước lũ đang ngập úng mênh mông cô lập. Hãy tương tác với lò sưởi ấm, xô nước mưa để sinh tồn, và quan trọng nhất: Hãy chia sẻ khoai gieo dự trữ cho 4 dân làng trên nóc nhà cùng sống qua ngày!"
+                );
+            }
+
+            UpdateHUDPanel();
+        }
+
+        public void FeedNPC(SownInStone.Community.NPCCharacter.StoryCharacterType charType)
+        {
+            if (charType == SownInStone.Community.NPCCharacter.StoryCharacterType.OTham) oThamFed = true;
+            else if (charType == SownInStone.Community.NPCCharacter.StoryCharacterType.BacNam) bacNamFed = true;
+            else if (charType == SownInStone.Community.NPCCharacter.StoryCharacterType.CuBay) cuBayFed = true;
+            else if (charType == SownInStone.Community.NPCCharacter.StoryCharacterType.BeTi) beTiFed = true;
+
+            int fedCount = 0;
+            if (oThamFed) fedCount++;
+            if (bacNamFed) fedCount++;
+            if (cuBayFed) fedCount++;
+            if (beTiFed) fedCount++;
+
+            if (fedCount >= 4)
+            {
+                StartPostStormCleanupStage();
+            }
+            else
+            {
+                UpdateHUDPanel();
+            }
+        }
+
+        public void StartPostStormCleanupStage()
+        {
+            currentStage = TutorialStage.PostStormCleanup;
+
+            // Bão lụt đi qua, nước lũ rút hết về 0
+            if (WeatherManager.Instance != null)
+            {
+                WeatherManager.Instance.SetFloodLevelDirectly(0f);
+            }
+
+            if (GameManager.Instance != null)
+            {
+                GameManager.Instance.TransitionToPhase(GamePhase.PhuSa); // Chuyển sang Giai đoạn Phù Sa
+            }
+
+            // Trở lại đất liền
+            if (PlayerController.Instance != null)
+            {
+                GameObject houseObj = GameObject.Find("Thanh_House");
+                Vector3 groundPos = houseObj != null ? houseObj.transform.position + new Vector3(0f, 0.2f, -4.2f) : new Vector3(10.66f, 0.2f, -14.2f);
+                SafeTeleportPlayer(groundPos);
+                var rb = PlayerController.Instance.GetComponent<Rigidbody>();
+                if (rb != null)
+                {
+                    rb.linearVelocity = Vector3.zero;
+                    rb.position = groundPos;
+                }
+            }
+
+            // Đưa các NPC trở về lại vị trí nhà ban đầu của họ
+            ResetNPCsToHomePositions();
+
+            if (SurvivalUIManager.Instance != null)
+            {
+                SurvivalUIManager.Instance.ShowDialogue(
+                    "TÁI THIẾT SAU LŨ",
+                    "Thiên tai đi qua, nước lũ đã rút hết để lại bùn phù sa trù phú! Tuy nhiên nhà cửa của bà con đang đầy gạch đá đổ nát. Hãy đi đến nhà từng người để phụ giúp dọn dẹp đống đổ nát, và trồng lại 4 luống cây trên ruộng nhà bạn để bắt đầu vụ mùa mới!"
+                );
+            }
+
+            UpdateHUDPanel();
+        }
+
+        public void CleanHouse(SownInStone.Community.NPCCharacter.StoryCharacterType charType)
+        {
+            if (charType == SownInStone.Community.NPCCharacter.StoryCharacterType.OTham) oThamHouseCleaned = true;
+            else if (charType == SownInStone.Community.NPCCharacter.StoryCharacterType.BacNam) bacNamHouseCleaned = true;
+            else if (charType == SownInStone.Community.NPCCharacter.StoryCharacterType.CuBay || charType == SownInStone.Community.NPCCharacter.StoryCharacterType.BeTi) cuBayHouseCleaned = true;
+
+            CheckPostStormCleanupProgress();
+        }
+
+        private void CheckPostStormCleanupProgress()
+        {
+            if (oThamHouseCleaned && bacNamHouseCleaned && cuBayHouseCleaned && postStormCropsPlanted >= 4)
+            {
+                CompleteTutorialCampaign();
+            }
+            else
+            {
+                UpdateHUDPanel();
+            }
+        }
+
+        private void CompleteTutorialCampaign()
+        {
+            currentStage = TutorialStage.Completed;
+            isTutorialActive = false;
+
+            if (hudPanel != null)
+            {
+                Destroy(hudPanel);
+                hudPanel = null;
+            }
+
+            if (SurvivalUIManager.Instance != null)
+            {
+                SurvivalUIManager.Instance.ShowDialogue(
+                    "HOÀN THÀNH TÁI THIẾT",
+                    "Bạn thật tuyệt vời! Làng quê nghèo đã bắt đầu nảy mầm xanh trên lớp phù sa trù phú. Cả xóm vô cùng biết ơn tấm lòng của bạn. Trò chơi sẽ tiếp tục tự động trôi ngày đến Ngày 8 để đưa ra kết cục câu chuyện dựa trên điểm Nghĩa Tình Karma của bạn!"
+                );
+            }
         }
 
         private void CreateHUDPanel()
@@ -664,9 +1220,70 @@ namespace SownInStone
             UpdateHUDPanel();
         }
 
+        private void EnsureOwnHouseGhostsExist()
+        {
+            if (currentStage == TutorialStage.PrepareOwnHouse)
+            {
+                // Pad list to 4 elements if needed
+                while (ownHouseGhostFloodboards.Count < 4)
+                {
+                    ownHouseGhostFloodboards.Add(null);
+                }
+
+                GameObject ownHouse = GameObject.Find("Thanh_House");
+                if (ownHouse != null)
+                {
+                    Vector3 houseCenter = ownHouse.transform.position;
+                    Vector3[] houseOffsets = new Vector3[]
+                    {
+                        houseCenter + new Vector3(-3.2f, 0.1f, -2.2f),
+                        houseCenter + new Vector3(3.2f, 0.1f, -2.2f),
+                        houseCenter + new Vector3(-3.2f, 0.1f, 1.8f),
+                        houseCenter + new Vector3(3.2f, 0.1f, 1.8f)
+                    };
+
+                    for (int i = 0; i < 4; i++)
+                    {
+                        if (ownHouseGhostFloodboards[i] != null && Vector3.Distance(ownHouseGhostFloodboards[i].transform.position, houseOffsets[i]) > 0.5f)
+                        {
+                            Destroy(ownHouseGhostFloodboards[i]);
+                            ownHouseGhostFloodboards[i] = null;
+                        }
+
+                        if (ownHouseFloodboardsPlaced[i])
+                        {
+                            if (ownHouseGhostFloodboards[i] != null)
+                            {
+                                ownHouseGhostFloodboards[i].SetActive(false);
+                            }
+                            continue;
+                        }
+
+                        if (ownHouseGhostFloodboards[i] == null)
+                        {
+                            string prefabPath = "Prefabs/FloodBoard";
+                            GameObject prefab = Resources.Load<GameObject>(prefabPath);
+                            if (prefab != null)
+                            {
+                                GameObject newGhost = Instantiate(prefab);
+                                newGhost.name = $"OwnHouse_Ghost_Floodboard_{i}";
+                                newGhost.transform.position = houseOffsets[i];
+                                newGhost.transform.rotation = ownHouse.transform.rotation;
+                                MakeGhostModel(newGhost);
+                                newGhost.SetActive(true);
+                                ownHouseGhostFloodboards[i] = newGhost;
+                                Debug.Log($"[GHOST OWN HOUSE] Instantiated ghost floodboard {i} at {newGhost.transform.position}");
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         public void UpdateHUDPanel()
         {
             if (hudPanel == null) return;
+            EnsureOwnHouseGhostsExist();
 
             if (currentStage == TutorialStage.IntroQuests)
             {
@@ -800,23 +1417,34 @@ namespace SownInStone
                 hudPanel.SetActive(true);
                 hudTitleText.text = "GIA CỐ TRƯỚC BÃO";
 
-                if (activeStormJob == ActiveStormJob.None)
+                // Task A: Bác Năm – fortify house (sandbags + flood boards)
+                bool bacNamAllDone = bacNamSandbagsDone && bacNamFloodBoardsDone;
+                if (!bacNamJobAccepted)
+                    hudTaskAText.text = " <color=#F39C12>►</color> Bác Năm – Chưa nhận việc";
+                else if (bacNamAllDone)
+                    hudTaskAText.text = " <color=#2ECC71>✓</color> Bác Năm – Đã gia cố xong nhà!";
+                else
+                    hudTaskAText.text =
+                        (bacNamSandbagsDone ? " <color=#2ECC71>✓</color> " : " <color=#E74C3C>☐</color> ") +
+                        $"Bao cát ({bacNamSandbagsPlaced}/4)" +
+                        "  " +
+                        (bacNamFloodBoardsDone ? "<color=#2ECC71>✓</color> " : "<color=#E74C3C>☐</color> ") +
+                        $"Tấm chắn ({bacNamFloodBoardsPlaced}/2)";
+                hudTaskAText.color = bacNamAllDone ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
+
+                // Task B: O Thắm – store items in chest
+                if (hudTaskBText != null)
                 {
-                    hudTaskAText.text = " <color=#E74C3C>☐</color> Chọn 1 việc trong làng để hỗ trợ";
-                    hudTaskAText.color = Color.white;
-                    if (hudTaskBText != null) hudTaskBText.gameObject.SetActive(false);
-                }
-                else if (activeStormJob == ActiveStormJob.OThamFloodboards)
-                {
-                    hudTaskAText.text = (oThamPrepped ? " <color=#2ECC71>✓</color> " : " <color=#E74C3C>☐</color> ") + $"Hỗ trợ O Thắm chắn lũ ({oThamBoardsPlaced}/4)";
-                    hudTaskAText.color = oThamPrepped ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
-                    if (hudTaskBText != null) hudTaskBText.gameObject.SetActive(false);
-                }
-                else if (activeStormJob == ActiveStormJob.BacNamSandbags)
-                {
-                    hudTaskAText.text = (bacNamPrepped ? " <color=#2ECC71>✓</color> " : " <color=#E74C3C>☐</color> ") + $"Hỗ trợ Bác Năm chằng chống mái ({bacNamSandbagsPlaced}/4)";
-                    hudTaskAText.color = bacNamPrepped ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
-                    if (hudTaskBText != null) hudTaskBText.gameObject.SetActive(false);
+                    hudTaskBText.gameObject.SetActive(true);
+                    if (!oThamJobAccepted)
+                        hudTaskBText.text = " <color=#F39C12>►</color> O Thắm – Chưa nhận việc";
+                    else if (oThamStoreDone)
+                        hudTaskBText.text = " <color=#2ECC71>✓</color> O Thắm – Đã cất đủ đồ vào rương!";
+                    else if (oThamCarryingCount > 0)
+                        hudTaskBText.text = $" <color=#E8C73A>▲</color> Đang mang {oThamCarryingCount} món – Ra rương O Thắm cất!";
+                    else
+                        hudTaskBText.text = $" <color=#E74C3C>☐</color> O Thắm – Cất đồ vào rương ({oThamItemsStored}/5)";
+                    hudTaskBText.color = oThamStoreDone ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
                 }
 
                 if (hudTaskCText != null) hudTaskCText.gameObject.SetActive(false);
@@ -827,7 +1455,7 @@ namespace SownInStone
                 hudPanel.SetActive(true);
                 hudTitleText.text = "GIA CỐ NHÀ MÌNH";
 
-                hudTaskAText.text = (ownHouseSandbagsPlaced >= 4 ? " <color=#2ECC71>✓</color> " : " <color=#E74C3C>☐</color> ") + $"Chuẩn bị bao cát bảo vệ nhà mình ({ownHouseSandbagsPlaced}/4)";
+                hudTaskAText.text = (ownHouseSandbagsPlaced >= 4 ? " <color=#2ECC71>✓</color> " : " <color=#E74C3C>☐</color> ") + $"Chuẩn bị tấm chắn bảo vệ nhà mình ({ownHouseSandbagsPlaced}/4)";
                 hudTaskAText.color = ownHouseSandbagsPlaced >= 4 ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
 
                 if (hudTaskBText != null) hudTaskBText.gameObject.SetActive(false);
@@ -858,6 +1486,66 @@ namespace SownInStone
                 if (hudTaskCText != null) hudTaskCText.gameObject.SetActive(false);
                 if (hudTaskDText != null) hudTaskDText.gameObject.SetActive(false);
             }
+            else if (currentStage == TutorialStage.RescuingNPCs)
+            {
+                hudPanel.SetActive(true);
+                hudTitleText.text = $"CỨU HỘ DÂN LÀNG (Còn {(int)rescueTimeRemaining}s)";
+
+                hudTaskAText.text = (oThamRescued ? " <color=#2ECC71>✓</color> " : " <color=#E74C3C>☐</color> ") + "Cứu hộ O Thắm";
+                hudTaskAText.color = oThamRescued ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
+
+                hudTaskBText.text = (bacNamRescued ? " <color=#2ECC71>✓</color> " : " <color=#E74C3C>☐</color> ") + "Cứu hộ Bác Năm";
+                hudTaskBText.color = bacNamRescued ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
+                hudTaskBText.gameObject.SetActive(true);
+
+                hudTaskCText.text = (cuBayRescued ? " <color=#2ECC71>✓</color> " : " <color=#E74C3C>☐</color> ") + "Cứu hộ Cụ Bảy";
+                hudTaskCText.color = cuBayRescued ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
+                hudTaskCText.gameObject.SetActive(true);
+
+                hudTaskDText.text = (beTiRescued ? " <color=#2ECC71>✓</color> " : " <color=#E74C3C>☐</color> ") + "Cứu hộ Bé Tí";
+                hudTaskDText.color = beTiRescued ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
+                hudTaskDText.gameObject.SetActive(true);
+            }
+            else if (currentStage == TutorialStage.RoofSurvivalSharing)
+            {
+                hudPanel.SetActive(true);
+                hudTitleText.text = "CHIA SẺ KHOAI GIEO NÓC NHÀ";
+
+                hudTaskAText.text = (oThamFed ? " <color=#2ECC71>✓</color> " : " <color=#E74C3C>☐</color> ") + "O Thắm (Đã no)";
+                hudTaskAText.color = oThamFed ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
+
+                hudTaskBText.text = (bacNamFed ? " <color=#2ECC71>✓</color> " : " <color=#E74C3C>☐</color> ") + "Bác Năm (Đã no)";
+                hudTaskBText.color = bacNamFed ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
+                hudTaskBText.gameObject.SetActive(true);
+
+                hudTaskCText.text = (cuBayFed ? " <color=#2ECC71>✓</color> " : " <color=#E74C3C>☐</color> ") + "Cụ Bảy (Đã no)";
+                hudTaskCText.color = cuBayFed ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
+                hudTaskCText.gameObject.SetActive(true);
+
+                hudTaskDText.text = (beTiFed ? " <color=#2ECC71>✓</color> " : " <color=#E74C3C>☐</color> ") + "Bé Tí (Đã no)";
+                hudTaskDText.color = beTiFed ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
+                hudTaskDText.gameObject.SetActive(true);
+            }
+            else if (currentStage == TutorialStage.PostStormCleanup)
+            {
+                hudPanel.SetActive(true);
+                hudTitleText.text = "TÁI THIẾT SAU LŨ LỤT";
+
+                hudTaskAText.text = (oThamHouseCleaned ? " <color=#2ECC71>✓</color> " : " <color=#E74C3C>☐</color> ") + "Phụ dọn dẹp nhà O Thắm";
+                hudTaskAText.color = oThamHouseCleaned ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
+
+                hudTaskBText.text = (bacNamHouseCleaned ? " <color=#2ECC71>✓</color> " : " <color=#E74C3C>☐</color> ") + "Phụ dọn dẹp nhà Bác Năm";
+                hudTaskBText.color = bacNamHouseCleaned ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
+                hudTaskBText.gameObject.SetActive(true);
+
+                hudTaskCText.text = (cuBayHouseCleaned ? " <color=#2ECC71>✓</color> " : " <color=#E74C3C>☐</color> ") + "Phụ dọn dẹp nhà Cụ Bảy & Bé Tí";
+                hudTaskCText.color = cuBayHouseCleaned ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
+                hudTaskCText.gameObject.SetActive(true);
+
+                hudTaskDText.text = (postStormCropsPlanted >= 4 ? " <color=#2ECC71>✓</color> " : " <color=#E74C3C>☐</color> ") + $"Gieo trồng lại hoa màu ({postStormCropsPlanted}/4)";
+                hudTaskDText.color = postStormCropsPlanted >= 4 ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
+                hudTaskDText.gameObject.SetActive(true);
+            }
             else
             {
                 hudPanel.SetActive(false);
@@ -871,6 +1559,55 @@ namespace SownInStone
             if (hudPanel == null && SurvivalUIManager.Instance != null)
             {
                 CreateHUDPanel();
+            }
+
+            EnsureOwnHouseGhostsExist();
+
+            if (currentStage == TutorialStage.PrepareForStorm)
+            {
+                if (bacNamFloodBoardsPlaced >= 2 && !bacNamSandbagsDone)
+                {
+                    if (PlayerController.Instance != null && PlayerController.Instance.transform.position.y < 2.0f)
+                    {
+                        GameObject bacNamHouse = GameObject.Find("BacNam_House");
+                        if (bacNamHouse != null)
+                        {
+                            Vector3 roofCenter = bacNamHouse.transform.position + Vector3.up * 4.3f;
+                            SafeTeleportPlayer(roofCenter);
+                            SurvivalUIManager.Instance?.ShowHUDToast("Đã lên mái nhà Bác Năm – Hãy đặt 4 Bao cát gia cố!");
+                        }
+                    }
+
+                    foreach (var bag in ghostSandbags)
+                    {
+                        if (bag != null && !bag.activeSelf) bag.SetActive(true);
+                    }
+                }
+            }
+
+            if (currentStage == TutorialStage.PrepareOwnHouse)
+            {
+                if (PlayerController.Instance != null && PlayerController.Instance.transform.position.y > 2.0f)
+                {
+                    GameObject bacNamHouse = GameObject.Find("BacNam_House");
+                    if (bacNamHouse != null && Vector3.Distance(PlayerController.Instance.transform.position, bacNamHouse.transform.position) < 15f)
+                    {
+                        Vector3 yardPos = bacNamHouse.transform.position + bacNamHouse.transform.forward * 4.5f + bacNamHouse.transform.right * 1.5f;
+                        yardPos.y = 0.2f;
+                        SafeTeleportPlayer(yardPos);
+                        SurvivalUIManager.Instance?.ShowHUDToast("Đã tự động đưa bạn xuống đất để làm nhiệm vụ gia cố nhà mình!");
+                    }
+                }
+            }
+
+            if (currentStage == TutorialStage.RescuingNPCs)
+            {
+                rescueTimeRemaining -= Time.deltaTime;
+                UpdateHUDPanel();
+                if (rescueTimeRemaining <= 0f)
+                {
+                    ResetRescueStage();
+                }
             }
 
             if (currentStage == TutorialStage.FarmingTutorial)
@@ -1238,77 +1975,10 @@ namespace SownInStone
 
             if (currentStage == TutorialStage.PrepareForStorm)
             {
-                if (activeStormJob == ActiveStormJob.OThamFloodboards)
+                // 1. Bác Năm task indicators (Sandbags on roof + Flood boards at door)
+                if (bacNamJobAccepted && !bacNamPrepped)
                 {
-                    if (ghostFloodboards.Count > 0)
-                    {
-                        for (int i = 0; i < ghostFloodboards.Count; i++)
-                        {
-                            if (ghostFloodboards[i] == null || oThamTargetsPlaced[i]) continue;
-
-                            Vector3 worldPos = ghostFloodboards[i].transform.position + Vector3.up * (1.2f + Mathf.Sin(Time.time * 6f) * 0.15f);
-                            Vector3 screenPos = Camera.main.WorldToScreenPoint(worldPos);
-
-                            if (screenPos.z > 0)
-                            {
-                                float guiY = Screen.height - screenPos.y;
-                                GUIStyle exShadow = new GUIStyle(exclamationStyle);
-                                exShadow.normal.textColor = new Color(0f, 0f, 0f, 0.8f);
-                                GUI.Label(new Rect(screenPos.x - 20 + 1, guiY - 25 + 1, 40, 25), "!", exShadow);
-                                GUI.Label(new Rect(screenPos.x - 20, guiY - 25, 40, 25), "!", exclamationStyle);
-
-                                GUIStyle nameShadow = new GUIStyle(nameStyle);
-                                nameShadow.normal.textColor = new Color(0f, 0f, 0f, 0.8f);
-                                GUI.Label(new Rect(screenPos.x - 100 + 1, guiY + 1, 200, 20), "Đặt ván chắn lũ", nameShadow);
-                                GUI.Label(new Rect(screenPos.x - 100, guiY, 200, 20), "Đặt ván chắn lũ", nameStyle);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        // Lấy vị trí NPC O Thắm để tính toán dự phòng
-                        var npcs = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Exclude);
-                        var oTham = System.Array.Find(npcs, n => n.characterType == SownInStone.Community.NPCCharacter.StoryCharacterType.OTham);
-                        if (oTham != null)
-                        {
-                            Vector3 oThamPos = oTham.transform.position;
-                            Vector3 forward = oTham.transform.forward;
-                            Vector3 right = oTham.transform.right;
-
-                            Vector3[] targets = new Vector3[]
-                            {
-                                oThamPos + forward * 2.5f + right * -1.8f,
-                                oThamPos + forward * 2.5f + right * -0.6f,
-                                oThamPos + forward * 2.5f + right * 0.6f,
-                                oThamPos + forward * 2.5f + right * 1.8f
-                            };
-
-                            for (int i = 0; i < 4; i++)
-                            {
-                                if (oThamTargetsPlaced[i]) continue;
-
-                                Vector3 worldPos = targets[i] + Vector3.up * (1.2f + Mathf.Sin(Time.time * 6f) * 0.15f);
-                                Vector3 screenPos = Camera.main.WorldToScreenPoint(worldPos);
-
-                                if (screenPos.z > 0)
-                                {
-                                    float guiY = Screen.height - screenPos.y;
-                                    GUIStyle exShadow = new GUIStyle(exclamationStyle);
-                                    exShadow.normal.textColor = new Color(0f, 0f, 0f, 0.8f);
-                                    GUI.Label(new Rect(screenPos.x - 20 + 1, guiY - 25 + 1, 40, 25), "!", exShadow);
-                                    GUI.Label(new Rect(screenPos.x - 20, guiY - 25, 40, 25), "!", exclamationStyle);
-
-                                    GUIStyle nameShadow = new GUIStyle(nameStyle);
-                                    nameShadow.normal.textColor = new Color(0f, 0f, 0f, 0.8f);
-                                    GUI.Label(new Rect(screenPos.x - 100 + 1, guiY + 1, 200, 20), "Đặt ván chắn lũ", nameShadow);
-                                    GUI.Label(new Rect(screenPos.x - 100, guiY, 200, 20), "Đặt ván chắn lũ", nameStyle);
-                                }
-                            }
-                        }
-                    }
-                }
-                else if (activeStormJob == ActiveStormJob.BacNamSandbags)
-                {
+                    // Sandbags on roof
                     if (ghostSandbags.Count > 0)
                     {
                         for (int i = 0; i < ghostSandbags.Count; i++)
@@ -1333,50 +2003,59 @@ namespace SownInStone
                             }
                         }
                     }
-                    else
+                    
+                    // Flood boards flanking the front door
+                    if (ghostFloodboards.Count > 0)
                     {
-                        GameObject bacNamHouse = GameObject.Find("BacNam_House");
-                        if (bacNamHouse != null)
+                        for (int i = 0; i < Mathf.Min(ghostFloodboards.Count, 2); i++)
                         {
-                            Vector3 roofCenter = bacNamHouse.transform.position + Vector3.up * 3.8f;
-                            Vector3[] targets = new Vector3[]
-                            {
-                                roofCenter + new Vector3(-1.2f, 0f, -0.8f),
-                                roofCenter + new Vector3(1.2f, 0.1f, -0.8f),
-                                roofCenter + new Vector3(-1.2f, 0.1f, 0.8f),
-                                roofCenter + new Vector3(1.2f, 0f, 0.8f)
-                            };
+                            if (ghostFloodboards[i] == null || oThamTargetsPlaced[i]) continue;
 
-                            for (int i = 0; i < 4; i++)
-                            {
-                                if (bacNamTargetsPlaced[i]) continue;
-
-                            Vector3 worldPos = targets[i] + Vector3.up * (1.2f + Mathf.Sin(Time.time * 6f) * 0.15f);
+                            Vector3 worldPos = ghostFloodboards[i].transform.position + Vector3.up * (1.2f + Mathf.Sin(Time.time * 6f) * 0.15f);
                             Vector3 screenPos = Camera.main.WorldToScreenPoint(worldPos);
 
                             if (screenPos.z > 0)
                             {
                                 float guiY = Screen.height - screenPos.y;
-                                
-                                // Shadow
                                 GUIStyle exShadow = new GUIStyle(exclamationStyle);
                                 exShadow.normal.textColor = new Color(0f, 0f, 0f, 0.8f);
                                 GUI.Label(new Rect(screenPos.x - 20 + 1, guiY - 25 + 1, 40, 25), "!", exShadow);
-                                
-                                // Exclamation mark
                                 GUI.Label(new Rect(screenPos.x - 20, guiY - 25, 40, 25), "!", exclamationStyle);
 
-                                // Target text
                                 GUIStyle nameShadow = new GUIStyle(nameStyle);
                                 nameShadow.normal.textColor = new Color(0f, 0f, 0f, 0.8f);
-                                GUI.Label(new Rect(screenPos.x - 100 + 1, guiY + 1, 200, 20), "Đặt bao cát mái", nameShadow);
-                                GUI.Label(new Rect(screenPos.x - 100, guiY, 200, 20), "Đặt bao cát mái", nameStyle);
+                                GUI.Label(new Rect(screenPos.x - 100 + 1, guiY + 1, 200, 20), "Dựng vách chắn", nameShadow);
+                                GUI.Label(new Rect(screenPos.x - 100, guiY, 200, 20), "Dựng vách chắn", nameStyle);
                             }
                         }
                     }
                 }
+
+                // 2. O Thắm task indicator: Chest location
+                if (oThamJobAccepted && !oThamStoreDone)
+                {
+                    var chest = GameObject.FindAnyObjectByType<Interactions.OThamChest>();
+                    if (chest != null)
+                    {
+                        Vector3 worldPos = chest.transform.position + Vector3.up * (1.5f + Mathf.Sin(Time.time * 6f) * 0.15f);
+                        Vector3 screenPos = Camera.main.WorldToScreenPoint(worldPos);
+
+                        if (screenPos.z > 0)
+                        {
+                            float guiY = Screen.height - screenPos.y;
+                            GUIStyle exShadow = new GUIStyle(exclamationStyle);
+                            exShadow.normal.textColor = new Color(0f, 0f, 0f, 0.8f);
+                            GUI.Label(new Rect(screenPos.x - 20 + 1, guiY - 25 + 1, 40, 25), "!", exShadow);
+                            GUI.Label(new Rect(screenPos.x - 20, guiY - 25, 40, 25), "!", exclamationStyle);
+
+                            GUIStyle nameShadow = new GUIStyle(nameStyle);
+                            nameShadow.normal.textColor = new Color(0f, 0f, 0f, 0.8f);
+                            GUI.Label(new Rect(screenPos.x - 100 + 1, guiY + 1, 200, 20), "Rương cất mì tôm", nameShadow);
+                            GUI.Label(new Rect(screenPos.x - 100, guiY, 200, 20), "Rương cất mì tôm", nameStyle);
+                        }
+                    }
+                }
             }
-        }
             else if (currentStage == TutorialStage.PrepareOwnHouse)
             {
                 // Hướng dẫn đặt bao cát cho chính nhà mình
@@ -1386,10 +2065,10 @@ namespace SownInStone
                     Vector3 houseCenter = ownHouse.transform.position;
                     Vector3[] targets = new Vector3[]
                     {
-                        houseCenter + new Vector3(-1.5f, 0.1f, -1.0f),
-                        houseCenter + new Vector3(-0.5f, 0.1f, -1.0f),
-                        houseCenter + new Vector3(0.5f, 0.1f, -1.0f),
-                        houseCenter + new Vector3(1.5f, 0.1f, -1.0f)
+                        houseCenter + new Vector3(-3.2f, 0.1f, -2.2f),
+                        houseCenter + new Vector3(3.2f, 0.1f, -2.2f),
+                        houseCenter + new Vector3(-3.2f, 0.1f, 1.8f),
+                        houseCenter + new Vector3(3.2f, 0.1f, 1.8f)
                     };
 
                     for (int i = 0; i < 4; i++)
@@ -1414,8 +2093,8 @@ namespace SownInStone
                             // Target text
                             GUIStyle nameShadow = new GUIStyle(nameStyle);
                             nameShadow.normal.textColor = new Color(0f, 0f, 0f, 0.8f);
-                            GUI.Label(new Rect(screenPos.x - 100 + 1, guiY + 1, 200, 20), "Chặn cát tại đây", nameShadow);
-                            GUI.Label(new Rect(screenPos.x - 100, guiY, 200, 20), "Chặn cát tại đây", nameStyle);
+                            GUI.Label(new Rect(screenPos.x - 100 + 1, guiY + 1, 200, 20), "Gia cố góc nhà", nameShadow);
+                            GUI.Label(new Rect(screenPos.x - 100, guiY, 200, 20), "Gia cố góc nhà", nameStyle);
                         }
                     }
                 }
@@ -1458,121 +2137,142 @@ namespace SownInStone
 
         private void InitializeGhostTargets()
         {
-            var allObjs = GameObject.FindObjectsByType<GameObject>(FindObjectsInactive.Include);
             ghostFloodboards.Clear();
             ghostSandbags.Clear();
             originalGhostMaterials.Clear();
 
-            Material ghostMat = CreateGhostMaterial(new Color(0f, 0.6f, 1f, 0.35f));
-
-            foreach (var obj in allObjs)
+            GameObject bacNamHouse = GameObject.Find("BacNam_House");
+            if (bacNamHouse != null)
             {
-                if (obj == null) continue;
-                string lowerName = obj.name.ToLower();
-                
-                // Match preplaced floodboards
-                if (lowerName.Contains("floodboard") && !lowerName.Contains("deployed") && !obj.name.Contains("Clone") && obj.transform.root.name != "Resources")
+                // 1. Tạo 4 bao cát chỉ dẫn trên mái nhà Bác Năm (Đúng thiết kế ban đầu)
+                Vector3 roofCenter = bacNamHouse.transform.position + Vector3.up * 3.8f;
+                Vector3[] roofOffsets = new Vector3[]
                 {
-                    // Filter out child sub-meshes
-                    bool isChildOfAnotherMatched = false;
-                    Transform parent = obj.transform.parent;
-                    while (parent != null)
-                    {
-                        if (parent.name.ToLower().Contains("floodboard"))
-                        {
-                            isChildOfAnotherMatched = true;
-                            break;
-                        }
-                        parent = parent.parent;
-                    }
-                    if (isChildOfAnotherMatched) continue;
+                    new Vector3(-1.2f, 0f, -0.8f),
+                    new Vector3(1.2f, 0.1f, -0.8f),
+                    new Vector3(-1.2f, 0.1f, 0.8f),
+                    new Vector3(1.2f, 0f, 0.8f)
+                };
 
-                    ghostFloodboards.Add(obj);
-                    
-                    // Save original materials & apply ghost material
-                    Renderer[] renderers = obj.GetComponentsInChildren<Renderer>(true);
-                    foreach (var r in renderers)
+                for (int i = 0; i < 4; i++)
+                {
+                    string prefabPath = "Prefabs/Sandbag";
+                    GameObject prefab = Resources.Load<GameObject>(prefabPath);
+                    if (prefab != null)
                     {
-                        if (r != null)
-                        {
-                            originalGhostMaterials[r] = r.sharedMaterials;
-                            
-                            Material[] newMats = new Material[r.sharedMaterials.Length];
-                            for (int m = 0; m < newMats.Length; m++)
-                            {
-                                newMats[m] = ghostMat;
-                            }
-                            r.materials = newMats;
-                        }
+                        GameObject newGhost = Instantiate(prefab);
+                        newGhost.name = $"Ghost_Sandbag_{i}";
+                        newGhost.transform.position = roofCenter + roofOffsets[i];
+                        newGhost.transform.rotation = bacNamHouse.transform.rotation;
+                        MakeGhostModel(newGhost);
+                        newGhost.SetActive(false);
+                        ghostSandbags.Add(newGhost);
                     }
-
-                    // Make triggers
-                    Collider[] colliders = obj.GetComponentsInChildren<Collider>(true);
-                    foreach (var col in colliders)
+                    else
                     {
-                        if (col != null) col.isTrigger = true;
+                        Debug.LogError("[GHOST SETUP] Không load được Prefab bao cát từ Resources!");
                     }
-
-                    obj.SetActive(false); 
                 }
 
-                // Match preplaced sandbags on the roof
-                if (lowerName.Contains("sandbag") && !lowerName.Contains("deployed") && !obj.name.Contains("Clone") && obj.transform.root.name != "Resources" && !lowerName.Contains("event"))
+                // 2. Tạo 2 tấm chắn chỉ dẫn trước cửa chính
+                Vector3 housePos = bacNamHouse.transform.position;
+                Vector3 forward = bacNamHouse.transform.forward;
+                Vector3 right = bacNamHouse.transform.right;
+                Vector3[] doorPositions = new Vector3[]
                 {
-                    // Filter out child sub-meshes
-                    bool isChildOfAnotherMatched = false;
-                    Transform parent = obj.transform.parent;
-                    while (parent != null)
+                    housePos + forward * 4.2f + right * -1.5f,
+                    housePos + forward * 4.2f + right * 1.5f
+                };
+
+                for (int i = 0; i < 2; i++)
+                {
+                    string prefabPath = "Prefabs/FloodBoard";
+                    GameObject prefab = Resources.Load<GameObject>(prefabPath);
+                    if (prefab != null)
                     {
-                        if (parent.name.ToLower().Contains("sandbag"))
-                        {
-                            isChildOfAnotherMatched = true;
-                            break;
-                        }
-                        parent = parent.parent;
+                        GameObject newGhost = Instantiate(prefab);
+                        newGhost.name = $"Ghost_FloodBoard_{i}";
+                        newGhost.transform.position = doorPositions[i];
+                        newGhost.transform.rotation = bacNamHouse.transform.rotation;
+                        MakeGhostModel(newGhost);
+                        newGhost.SetActive(false);
+                        ghostFloodboards.Add(newGhost);
                     }
-                    if (isChildOfAnotherMatched) continue;
-
-                    ghostSandbags.Add(obj);
-
-                    // Save original materials & apply ghost material
-                    Renderer[] renderers = obj.GetComponentsInChildren<Renderer>(true);
-                    foreach (var r in renderers)
+                    else
                     {
-                        if (r != null)
-                        {
-                            originalGhostMaterials[r] = r.sharedMaterials;
-                            
-                            Material[] newMats = new Material[r.sharedMaterials.Length];
-                            for (int m = 0; m < newMats.Length; m++)
-                            {
-                                newMats[m] = ghostMat;
-                            }
-                            r.materials = newMats;
-                        }
+                        Debug.LogError("[GHOST SETUP] Không load được Prefab tấm chắn từ Resources!");
                     }
-
-                    // Make triggers
-                    Collider[] colliders = obj.GetComponentsInChildren<Collider>(true);
-                    foreach (var col in colliders)
-                    {
-                        if (col != null) col.isTrigger = true;
-                    }
-
-                    obj.SetActive(false); 
                 }
             }
 
-            // Sort lists to maintain stable indices
-            ghostFloodboards.Sort((a, b) => a.name.CompareTo(b.name));
-            ghostSandbags.Sort((a, b) => a.name.CompareTo(b.name));
+            EnsureOThamChestExists();
+            Debug.Log($"[GHOST SETUP] Đã tạo thành công {ghostFloodboards.Count} tấm chắn và {ghostSandbags.Count} bao cát chỉ dẫn dạng Hologram.");
+        }
 
-            Debug.Log($"[GHOST SETUP] Found {ghostFloodboards.Count} ghost floodboards and {ghostSandbags.Count} ghost sandbags in scene.");
+        private void EnsureOThamChestExists()
+        {
+            var existingChest = GameObject.FindAnyObjectByType<Interactions.OThamChest>();
+            if (existingChest != null) return; // Already exists
+
+            // Find NPC O Thắm to position the chest in front of her shop
+            var npcs = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Include);
+            var oTham = System.Array.Find(npcs, n => n.characterType == SownInStone.Community.NPCCharacter.StoryCharacterType.OTham);
+            if (oTham != null)
+            {
+                // Create a cube representing the wooden chest
+                GameObject chestObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                chestObj.name = "OTham_Chest";
+                chestObj.transform.position = oTham.transform.position + oTham.transform.forward * 2.2f + oTham.transform.right * -1.8f;
+                chestObj.transform.localScale = new Vector3(0.9f, 0.6f, 0.6f);
+                chestObj.transform.rotation = oTham.transform.rotation;
+
+                // Add OThamChest component
+                chestObj.AddComponent<Interactions.OThamChest>();
+
+                // Set its color to a brown/wooden color
+                Renderer renderer = chestObj.GetComponent<Renderer>();
+                if (renderer != null)
+                {
+                    renderer.material.color = new Color(0.4f, 0.25f, 0.15f); // Brown/wooden color
+                }
+
+                // Add a simple solid collider
+                BoxCollider boxCol = chestObj.GetComponent<BoxCollider>();
+                if (boxCol != null)
+                {
+                    boxCol.isTrigger = false;
+                }
+
+                Debug.Log("[CHEST SETUP] Dynamically spawned O Thắm's chest in front of her tiệm.");
+            }
         }
 
         public void MakeGhostModel(GameObject obj)
         {
-            // Already handled by InitializeGhostTargets
+            if (obj == null) return;
+            Material ghostMat = CreateGhostMaterial(new Color(1f, 0.2f, 0.2f, 0.4f));
+
+            Renderer[] renderers = obj.GetComponentsInChildren<Renderer>(true);
+            foreach (var r in renderers)
+            {
+                if (r != null)
+                {
+                    originalGhostMaterials[r] = r.sharedMaterials;
+                    
+                    Material[] newMats = new Material[r.sharedMaterials.Length];
+                    for (int m = 0; m < newMats.Length; m++)
+                    {
+                        newMats[m] = ghostMat;
+                    }
+                    r.materials = newMats;
+                }
+            }
+
+            Collider[] colliders = obj.GetComponentsInChildren<Collider>(true);
+            foreach (var col in colliders)
+            {
+                if (col != null) col.isTrigger = true;
+            }
         }
 
         public void MakeSolidModel(GameObject obj)

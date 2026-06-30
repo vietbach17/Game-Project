@@ -924,7 +924,6 @@ namespace SownInStone
                     {
                         case SownInStone.Weather.WeatherType.OnDinh: weatherName = "Bình thường / Nắng dịu"; break;
                         case SownInStone.Weather.WeatherType.NangNong: weatherName = "Nắng nóng gay gắt"; break;
-                        case SownInStone.Weather.WeatherType.GioLao: weatherName = "Gió Lào bỏng rát"; break;
                         case SownInStone.Weather.WeatherType.MuaGiong: weatherName = "Mưa giông"; break;
                         case SownInStone.Weather.WeatherType.BaoLu: weatherName = "Mưa bão & Lũ ngập"; break;
                     }
@@ -949,8 +948,7 @@ namespace SownInStone
                     switch (SownInStone.Core.GameManager.Instance.CurrentPhase)
                     {
                         case SownInStone.Core.GamePhase.LapNghiep: phaseName = "Giai đoạn 1: Lập nghiệp / Cải tạo đất"; break;
-                        case SownInStone.Core.GamePhase.GioLao: phaseName = "Giai đoạn 2: Nắng hạn / Gió Lào"; break;
-                        case SownInStone.Core.GamePhase.ChuanBiBao: phaseName = "Chuẩn bị bão giông"; break;
+                        case SownInStone.Core.GamePhase.ChuanBiBao: phaseName = "Giai đoạn 2: Chuẩn bị bão giông"; break;
                         case SownInStone.Core.GamePhase.MuaBao: phaseName = "Giai đoạn 3: Mưa bão / Thiên tai lũ lụt"; break;
                         case SownInStone.Core.GamePhase.PhuSa: phaseName = "Giai đoạn 4: Đắp đập phù sa / Tái thiết"; break;
                     }
@@ -1164,7 +1162,6 @@ namespace SownInStone
                 switch (GameManager.Instance.CurrentPhase)
                 {
                     case GamePhase.LapNghiep: phaseName = "Lập Nghiệp"; break;
-                    case GamePhase.GioLao: phaseName = "Gió Lào"; break;
                     case GamePhase.ChuanBiBao: phaseName = "Chuẩn Bị Bão"; break;
                     case GamePhase.MuaBao: phaseName = "Mùa Bão Lũ"; break;
                     case GamePhase.PhuSa: phaseName = "Phù Sa Sau Lũ"; break;

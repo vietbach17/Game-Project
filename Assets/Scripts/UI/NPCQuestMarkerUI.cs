@@ -123,12 +123,8 @@ namespace SownInStone.UI
                 {
                     if (npc.characterType == NPCCharacter.StoryCharacterType.OTham)
                     {
-                        // O Thắm: Giai đoạn 2 (Gió Lào) hoặc Giai đoạn 4 (Phù Sa)
-                        if (currentPhase == GamePhase.GioLao && !CommunityManager.Instance.eventOThamFoodCompleted)
-                        {
-                            shouldShow = true;
-                        }
-                        else if (currentPhase == GamePhase.PhuSa && !CommunityManager.Instance.eventVillageRecoveryCompleted)
+                        // O Thắm: Giai đoạn Phù Sa
+                        if (currentPhase == GamePhase.PhuSa && !CommunityManager.Instance.eventVillageRecoveryCompleted)
                         {
                             shouldShow = true;
                         }

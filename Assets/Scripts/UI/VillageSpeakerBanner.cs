@@ -40,6 +40,11 @@ namespace SownInStone.UI
         /// </summary>
         public void ShowAnnouncement(string phaseTitle, string message, int day)
         {
+            gameObject.SetActive(true);
+            if (transform.parent != null)
+            {
+                transform.parent.gameObject.SetActive(true);
+            }
             if (phaseTitleText != null)
             {
                 phaseTitleText.text = phaseTitle;

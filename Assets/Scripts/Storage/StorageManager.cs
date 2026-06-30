@@ -84,6 +84,43 @@ namespace SownInStone.Storage
             }
         }
 
+        /// <summary>
+        /// Tìm ItemData tương ứng với ID chỉ định.
+        /// Quét trong kho đồ hiện tại hoặc tự động tìm kiếm dự phòng.
+        /// </summary>
+        public ItemData GetItemDataByID(string id)
+        {
+            if (string.IsNullOrEmpty(id)) return null;
+
+            // 1. Tìm trong kho đồ hiện tại
+            var slot = storageSlots.Find(s => s.item != null && s.item.ItemID.Equals(id, System.StringComparison.OrdinalIgnoreCase));
+            if (slot != null) return slot.item;
+
+            // 2. Tìm trong tài nguyên Resources nếu có
+            ItemData resourceItem = Resources.Load<ItemData>($"Items/{id}");
+            if (resourceItem != null) return resourceItem;
+
+#if UNITY_EDITOR
+            // 3. Fallback trong editor
+            string path = "";
+            if (id.Equals("item_flood_board", System.StringComparison.OrdinalIgnoreCase)) path = "Assets/Data/Item_flood_board.asset";
+            else if (id.Equals("item_sandbag", System.StringComparison.OrdinalIgnoreCase)) path = "Assets/Data/Item_sandbag.asset";
+            else if (id.Equals("item_seed_potato", System.StringComparison.OrdinalIgnoreCase) || id.Equals("item_seed", System.StringComparison.OrdinalIgnoreCase)) path = "Assets/Data/Item_seed_potato.asset";
+            else if (id.Equals("item_non_la", System.StringComparison.OrdinalIgnoreCase)) path = "Assets/Data/Item_non_la.asset";
+            else if (id.Equals("item_plastic_mulch", System.StringComparison.OrdinalIgnoreCase)) path = "Assets/Data/Item_plastic_mulch.asset";
+            else if (id.Equals("item_fresh_potato", System.StringComparison.OrdinalIgnoreCase) || id.Equals("item_fresh_crop", System.StringComparison.OrdinalIgnoreCase)) path = "Assets/Data/Item_fresh_potato.asset";
+            else if (id.Equals("item_khoai_gieo", System.StringComparison.OrdinalIgnoreCase)) path = "Assets/Data/Item_PreservedCrop.asset";
+            else if (id.Equals("item_mi_tom", System.StringComparison.OrdinalIgnoreCase)) path = "Assets/Data/Item_Noodles.asset";
+
+            if (!string.IsNullOrEmpty(path))
+            {
+                return UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>(path);
+            }
+#endif
+
+            return null;
+        }
+
         #region QUẢN LÝ THÊM/BỚT ĐỒ KHO
         
         public int GetMaxBackpackStack(ItemData item)

@@ -377,23 +377,48 @@ namespace SownInStone
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("Jump to Phase 1"))
             {
-                GameManager.Instance?.TransitionToPhase(GamePhase.LapNghiep);
-                ShowAlert("Bắt đầu lập nghiệp, khai phá bờ cõi dọn dẹp sỏi đá.");
+                if (GameManager.Instance != null) GameManager.Instance.TransitionToPhase(GamePhase.LapNghiep);
+                if (TutorialManager.Instance != null)
+                {
+                    TutorialManager.Instance.currentStage = TutorialManager.TutorialStage.IntroQuests;
+                    TutorialManager.Instance.UpdateHUDPanel();
+                }
+                ShowAlert("Nhảy đến Phase 1 (Lập Nghiệp) & Bắt đầu nhiệm vụ dạo chơi!");
             }
             if (GUILayout.Button("Jump to Phase 2"))
             {
-                GameManager.Instance?.TransitionToPhase(GamePhase.GioLao);
-                ShowAlert("Gió Lào tràn về bỏng rát nhiệt độ lên 42°C!");
+                if (GameManager.Instance != null) GameManager.Instance.TransitionToPhase(GamePhase.ChuanBiBao);
+                if (TutorialManager.Instance != null)
+                {
+                    TutorialManager.Instance.currentStage = TutorialManager.TutorialStage.PrepareForStorm;
+                    TutorialManager.Instance.StartBothStormJobs();
+                }
+                ShowAlert("Nhảy đến Phase 2 (Chuẩn Bị Bão) – Làm cả 2 nhiệm vụ: Gia cố nhà Bác Năm + Cất đồ nhà O Thắm!");
             }
             if (GUILayout.Button("Jump to Phase 3"))
             {
-                GameManager.Instance?.TransitionToPhase(GamePhase.MuaBao);
-                ShowAlert("Bão siêu cấp đổ bộ! Kêu gọi xóm giềng sang đổi công chống bão!");
+                if (TutorialManager.Instance != null)
+                {
+                    TutorialManager.Instance.StoreNPCHomePositions();
+                    TutorialManager.Instance.StartRescuingNPCsStage();
+                }
+                else if (GameManager.Instance != null)
+                {
+                    GameManager.Instance.TransitionToPhase(GamePhase.MuaBao);
+                }
+                ShowAlert("Nhảy đến Phase 3 (Mưa Bão) & Bắt đầu nhiệm vụ sơ tán cứu hộ!");
             }
             if (GUILayout.Button("Jump to Phase 4"))
             {
-                GameManager.Instance?.TransitionToPhase(GamePhase.PhuSa);
-                ShowAlert("Bão tan nước rút bồi đắp lớp đất phù sa vàng màu mỡ!");
+                if (TutorialManager.Instance != null)
+                {
+                    TutorialManager.Instance.StartPostStormCleanupStage();
+                }
+                else if (GameManager.Instance != null)
+                {
+                    GameManager.Instance.TransitionToPhase(GamePhase.PhuSa);
+                }
+                ShowAlert("Nhảy đến Phase 4 (Phù Sa) & Bắt đầu dọn dẹp tái thiết!");
             }
             GUILayout.EndHorizontal();
 
@@ -637,7 +662,7 @@ namespace SownInStone
             switch (phase)
             {
                 case GamePhase.LapNghiep: return "GĐ 1 - TIẾNG TRỐNG ĐÌNH LÀNG (Lập Nghiệp)";
-                case GamePhase.GioLao: return "GĐ 2 - NẮNG CHÁY GIÓ LÀO (Thử Thách)";
+                case GamePhase.ChuanBiBao: return "GĐ 2 - GIA CỐ TRƯỚC BÃO (Chuẩn Bị)";
                 case GamePhase.MuaBao: return "GĐ 3 - TÌNH NGƯỜI TRONG BÃO LŨ (Sinh Tử)";
                 case GamePhase.PhuSa: return "GĐ 4 - PHÙ SA SAU CƠN LŨ (Cái Kết Viên Mãn)";
                 default: return phase.ToString();
@@ -649,7 +674,7 @@ namespace SownInStone
             switch (phase)
             {
                 case GamePhase.LapNghiep: return Color.green;
-                case GamePhase.GioLao: return new Color(1f, 0.5f, 0f); // Cam cháy
+                case GamePhase.ChuanBiBao: return new Color(1f, 0.5f, 0f); // Cam cháy
                 case GamePhase.MuaBao: return Color.red;
                 case GamePhase.PhuSa: return Color.cyan;
                 default: return Color.white;
