@@ -235,6 +235,21 @@ namespace SownInStone.Storage
         public List<InventorySlot> GetStorageSlots() => storageSlots;
         public List<InventorySlot> GetReserveChestSlots() => reserveChestSlots;
 
+        public ItemData GetItemDataByID(string itemID)
+        {
+            if (string.IsNullOrEmpty(itemID)) return null;
+            
+            // Tìm trong balo
+            InventorySlot bSlot = storageSlots.Find(s => s.item != null && s.item.ItemID == itemID);
+            if (bSlot != null) return bSlot.item;
+            
+            // Tìm trong rương
+            InventorySlot rSlot = reserveChestSlots.Find(s => s.item != null && s.item.ItemID == itemID);
+            if (rSlot != null) return rSlot.item;
+
+            return null;
+        }
+
         #endregion
 
         /// <summary>

@@ -37,7 +37,7 @@ Tài liệu này phản ánh trạng thái source hiện tại sau merge/compile
 
 ### UI / Tools
 
-- `SurvivalUIManager` tự động mở/khóa con trỏ chuột khi vào Menu/Shop/Tutorial, tích hợp HUD Toast nhận cảnh báo hỏng nông sản từ `StorageManager`.
+- `SurvivalUIManager` tự động mở/khóa con trỏ chuột khi vào Menu/Shop/Tutorial, tích hợp HUD Toast nhận cảnh báo hỏng nông sản từ `StorageManager`. Đã khắc phục triệt để lỗi khóa cứng con trỏ chuột khi vào các bảng Hướng dẫn (kể cả trước khi bắt đầu) và các bảng tương tác.
 - `TutorialManager` mở rộng chuỗi hướng dẫn:
   1. **IntroQuests**: Nói chuyện với 4 dân làng.
   2. **TalkToOThamJob**: Nhận hạt giống, hướng dẫn trồng trọt.
