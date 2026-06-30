@@ -105,6 +105,9 @@ namespace SownInStone.Core
             if (FrameworkMainMenuUI.Instance != null && FrameworkMainMenuUI.Instance.IsMenuOpen)
                 return true;
 
+            if (SownInStone.UI.EndingManager.Instance != null && SownInStone.UI.EndingManager.Instance.IsEndingShown)
+                return true;
+
             if (SownInStone.UI.SurvivalUIManager.Instance != null)
             {
                 if (SownInStone.UI.SurvivalUIManager.Instance.IsShopOpen || 
@@ -116,13 +119,16 @@ namespace SownInStone.Core
                     return true;
             }
 
-            if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
+            if (TutorialManager.Instance != null)
             {
-                if (TutorialManager.Instance.currentStage == TutorialManager.TutorialStage.ShowingFarmingSlides || 
-                    TutorialManager.Instance.IsShowing || 
-                    TutorialManager.Instance.IsShowingFarmingSlides)
+                if (TutorialManager.Instance.IsShowing || 
+                    TutorialManager.Instance.IsShowingFarmingSlides ||
+                    TutorialManager.Instance.currentStage == TutorialManager.TutorialStage.ShowingFarmingSlides)
                     return true;
             }
+
+            if (FrameworkDebugUI.Instance != null && FrameworkDebugUI.Instance.isUIVisible)
+                return true;
 
             return false;
         }
@@ -367,6 +373,12 @@ namespace SownInStone.Core
                     }
                 }
                 wasUIOpen = isUIOpen;
+            }
+
+            // Đảm bảo chắc chắn trạng thái không bị lỗi bởi Editor/Focus
+            if (isUIOpen && Cursor.lockState != CursorLockMode.None)
+            {
+                ReleaseCursor();
             }
 
 

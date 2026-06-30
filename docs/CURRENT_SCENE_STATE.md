@@ -95,10 +95,6 @@ Cần xác minh:
 Các docs cũ từng ghi các mục này như đã có, nhưng source hiện tại chưa đủ để khẳng định:
 
 - `EvacuationTimerPanel` thật ở top-center.
-- Roof anchor nodes hoạt động với sandbag gameplay.
-- Wall repair nodes hoạt động với flood board gameplay.
-- Full image tutorial slideshow.
-- Full player farming interaction loop.
 - Nón lá giảm heat stress.
 - Save/load world state.
 - Rain particles / skybox / ambient weather transitions.
