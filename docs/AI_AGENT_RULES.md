@@ -5,7 +5,7 @@ Tài liệu này định hình các quy tắc lập trình cốt lõi và giới
 ---
 
 ## 1. Current Target (Mục tiêu hiện tại)
-Đưa dự án trở thành một bản **chơi thử (Demo) dài khoảng 10-15 phút được đánh bóng tỉ mỉ dành cho môn học PRU213**, xoay quanh câu chuyện giúp đỡ một ngôi làng nghèo ở miền Trung Việt Nam chống chọi và hồi sinh sau thiên tai (Gió Lào, hạn hán, giông bão, lũ lụt).
+Đưa dự án trở thành một bản **chơi thử (Demo) dài khoảng 10-15 phút được đánh bóng tỉ mỉ dành cho môn học PRU213**, xoay quanh câu chuyện giúp đỡ một ngôi làng nghèo ở miền Trung Việt Nam chống chọi và hồi sinh sau thiên tai bão lũ miền Trung.
 
 ---
 
@@ -26,3 +26,5 @@ Tài liệu này định hình các quy tắc lập trình cốt lõi và giới
     *   Bản sắc văn hóa Việt Nam (Cultural identity).
     *   Đánh bóng chất lượng Demo cho môn học PRU213.
 10. **Tránh Overengineering:** Sử dụng các biến trạng thái đơn giản, ScriptableObjects gọn nhẹ và hàm `Mathf.Lerp` thay vì cố gắng thiết kế các Framework lập trình đa tầng phức tạp hoặc Dialogue Graph cồng kềnh.
+
+> **Ghi chú scope sau merge remote:** Project hiện có script experimental `CockfightingZone` / `CockfightingMinigame`. Agent không được mở rộng mini-game này thành hệ thống phụ lớn, không biến nó thành combat/betting/economy, và không đưa vào demo chính nếu chưa có quyết định thiết kế rõ ràng. Nếu giữ, chỉ frame như hoạt động tinh thần/văn hóa rất nhỏ, thưởng Morale nhẹ, không ảnh hưởng core progression Nghĩa Tình.

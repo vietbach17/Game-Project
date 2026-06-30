@@ -14,43 +14,43 @@
 ---
 
 ## 2. Vision & Core Message (Tầm nhìn & Thông điệp cốt lõi)
-*   **Tầm nhìn:** Phản ánh chân thực tinh thần kiên cường vượt qua nghịch cảnh thiên tai khắc nghiệt (nắng hạn Gió Lào, mưa bão ngập lụt) của con người miền Trung Việt Nam.
+*   **Tầm nhìn:** Phản ánh chân thực tinh thần kiên cường vượt qua nghịch cảnh thiên tai khắc nghiệt (mưa bão ngập lụt miền Trung) của con người miền Trung Việt Nam.
 *   **Thông điệp cốt lõi:** **"Không làm nông để làm giàu, mà làm để sẻ chia và cùng nhau vượt qua giông bão."** Sự sinh tồn của cá nhân nhân vật chính luôn gắn liền chặt chẽ với sự sinh tồn của cả cộng đồng làng xã.
 
 ---
 
 ## 3. Core Gameplay Loop (Vòng lặp gameplay lõi)
 ```
-Dọn sỏi đá & Canh tác khoai lang (Sản xuất lương thực)
-   │
-   ▼
+Dọn sỏi đá & Canh tác khoai lang (Sản xuất lương thực trên lưới 4x3)
+    │
+    ▼
 Lao động tương trợ / Vần công giúp đỡ dân làng
-   │
-   ▼
+    │
+    ▼
 Tích lũy điểm Nghĩa Tình & Tích lũy công đổi công
-   │
-   ▼
-Ứng phó thiên tai (Chống hạn Gió Lào & chằng chống nhà cửa bằng công vần công)
-   │
-   ▼
-Tái thiết sau lũ (Trồng vụ mùa bội thu trên đất Phù Sa mới)
+    │
+    ▼
+Ứng phó thiên tai (Phase 1: Trước Bão - Gia cố nhà cửa bằng công vần công)
+    │
+    ▼
+Sinh tồn ngập lũ & Tái thiết sau lũ (Phase 2: Sau Bão - Trồng vụ mùa bội thu trên đất Phù Sa mới)
 ```
 
 ---
 
 ## 4. Main Progression & Victory Condition
 *   **Chỉ số thăng tiến chính:** **Nghĩa Tình score** (0 - 100). Đây là tài nguyên cốt lõi quyết định kết thúc của game.
-*   **Điều kiện chiến thắng:** Đạt điểm Nghĩa Tình cao nhất ở cuối Phase 4 (Phù Sa Sau Cơn Lũ) để kích hoạt **Best Ending: Đất Cày Nở Hoa** (Làng quê khôi phục trù phú, bà con đoàn kết vượt thiên tai).
+*   **Điều kiện chiến thắng:** Đạt điểm Nghĩa Tình cao nhất ở cuối Phase 2 (Sau Bão) để kích hoạt **Best Ending: Đất Cày Nở Hoa** (Làng quê khôi phục trù phú, bà con đoàn kết vượt thiên tai).
 
 ---
 
-## 5. Phase Progression (Chu kỳ 4 ngày thiên tai)
+## 5. Phase Progression (Chu kỳ thiên tai 2 giai đoạn)
 *Tỷ lệ thời gian: 1 ngày game = 5 phút thực tế.*
 
-1.  **Phase 1: Tiếng Trống Đình Làng (Ngày 1 - 2):** Khai hoang đất sỏi cát, gieo trồng vụ khoai đầu tiên.
-2.  **Phase 2: Nắng Cháy Gió Lào (Ngày 3 - 4):** Đối phó nắng hạn gay gắt, nước bốc hơi nhanh, thể lực suy giảm nhanh do Stress Nhiệt.
-3.  **Phase 3: Tình Người Trong Mưa Bão (Ngày 5 - 6):** Nước lũ dâng cao ngập ruộng vườn. Người chơi phải thu hoạch khoai chạy lũ từ trước, sấy khô khoai tránh mốc, và chằng chống nhà cửa bằng công Vần công tích lũy.
-4.  **Phase 4: Phù Sa Sau Cơn Lũ (Ngày 7 trở đi):** Nước rút. Tận dụng lớp phù sa giàu dưỡng chất bồi đắp bồi dưỡng ruộng vườn để tái canh tác năng suất gấp đôi.
+> **Quy ước hiện tại:** Ở tầng thiết kế và tài liệu gameplay, game chỉ có **2 phase chính**: `Before the Storm` và `After the Storm`. Ở tầng code, enum `GamePhase` vẫn chia nhỏ thành các mốc runtime `LapNghiep`, `GioLao`, `ChuanBiBao`, `MuaBao`, `PhuSa`; các mốc này chỉ là nhịp nội bộ để điều khiển thời tiết/sự kiện, không phải 5 phase thiết kế riêng biệt.
+
+1.  **Phase 1: Before the Storm (Trước Bão) [Ngày 1 - 4]:** Trải nghiệm ôn hòa của những ngày đầu lập nghiệp. Người chơi cuốc đất dọn đá trên lưới 4x3, gieo hạt, tưới nước bù ẩm, trò chuyện với cả 4 NPC (O Thắm, Bác Năm, Cụ Bảy, Bé Tí) để hoàn thành các mục tiêu hướng dẫn ban đầu, tích lũy công Vần công, gia cố nhà cửa và chuẩn bị lương thực dự trữ chống bão.
+2.  **Phase 2: After the Storm (Sau Bão) [Ngày 5+]:** Mưa bão cuồng phong và lũ lụt dâng cao ngập ruộng vườn. Người chơi phải leo lên nóc nhà để sinh tồn lánh nạn, ăn mì cứu trợ. Sau khi lũ rút, lớp đất Phù Sa màu mỡ tự động bồi đắp bồi dưỡng ruộng vườn (xóa đá, nâng cao dinh dưỡng) để người chơi cùng dân làng tái thiết và gieo trồng bội thu vụ mới (yield x2), đồng thời quyết định kết cục của câu chuyện.
 
 ---
 
@@ -58,7 +58,7 @@ Tái thiết sau lũ (Trồng vụ mùa bội thu trên đất Phù Sa mới)
 *   **Nghĩa Tình:** Lòng tin cộng đồng, tăng khi Thành quyên góp khoai cứu trợ hoặc giúp việc cho bà con.
 *   **Vần công:** Đổi công tương trợ lẫn nhau. Giúp đỡ dân làng lúc bình thường để nhận lại sự chung sức gia cố nhà cửa trước khi bão lũ ập tới.
 *   **Loa phát thanh xã:** Rè rè phát tin đầu ngày báo thời tiết và kêu gọi đoàn kết từ Trưởng thôn.
-*   **Tích cốc phòng cơ:** Chế biến khoai tươi thành khoai gieo phơi khô tại bếp lò để trữ lâu dài không lo thối úng.
+*   **Tích cốc phòng cơ:** Chế biến khoai tươi thành khoai gieo phơi khô tại bếp lò để trữ lâu dài không lo thối úng dưới độ ẩm cao của bão lũ.
 *   **Bàn thờ tổ tiên (Ancestral Altar):** Thắp nhang cầu nguyện để giải tỏa Stress, hồi phục Tinh thần (Morale).
 
 ---
@@ -66,13 +66,15 @@ Tái thiết sau lũ (Trồng vụ mùa bội thu trên đất Phù Sa mới)
 ## 7. Main NPCs
 *   **O Thắm:** Đầu mối tương trợ. Phân phối hạt giống/nhang ban đầu bằng Xu hỗ trợ. Sẵn sàng đổi công vần công.
 *   **Bác Năm:** Lão nông neo đơn cần Thành quyên góp lương thực giúp đỡ khi bão lũ cô lập ngôi làng.
+*   **Cụ Bảy:** Trưởng thôn giữ gìn tinh thần cộng đồng và trông coi Ancestral Altar.
+*   **Bé Tí:** Người truyền tin và thông báo sự thay đổi thời tiết khẩn cấp cho Thành.
 
 ---
 
 ## 8. Main Systems & Resources
 *   **Stamina:** Thể lực tiêu hao khi làm việc đồng áng hoặc giúp việc vần công. Hồi phục bằng cách ngủ hoặc ăn khoai.
 *   **Food:** Khoai lang tươi (ăn để hồi stamina, dễ thối do ẩm) và Khoai gieo khô (dùng cứu trợ lâu dài).
-*   **Farming:** Grid 4 ô đất. Cuốc dọn đá $\rightarrow$ Gieo hạt $\rightarrow$ Tưới ẩm $\rightarrow$ Thu hoạch.
+*   **Farming:** Lưới trồng trọt 4x3 (12 SoilCells). Cuốc dọn đá $\rightarrow$ Gieo hạt $\rightarrow$ Tưới ẩm $\rightarrow$ Thu hoạch.
 *   **Weather/Flood:** Lerp mượt mà ánh sáng mặt trời, cường độ sương mù, mưa rơi chéo và mực nước lũ nâng hạ thực tế.
 
 ---

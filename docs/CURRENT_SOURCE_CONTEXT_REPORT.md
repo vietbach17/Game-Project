@@ -1,183 +1,141 @@
 # Current Source Context Report — Đất Cày Lên Sỏi Đá
 
-Tài liệu này cung cấp báo cáo ngữ cảnh mã nguồn toàn diện của dự án Unity tại thời điểm hoàn thành việc định hướng lại lối chơi từ sinh tồn nông nghiệp thương mại sang **Nguyên mẫu sinh tồn cộng đồng (Community Survival Prototype)** và hoàn tất việc di trú, chuẩn hóa các tài nguyên hình ảnh từ `SampleScene` sang `Village_Demo`.
+Cập nhật: **2026-06-27**. Đây là snapshot đọc từ `Assets/Scripts` hiện tại, không phải lịch sử mong muốn trong các docs cũ.
 
 ---
 
 ## 1. Project Overview
 
-*   **Unity Editor Version**: `6000.4.3f1` (Unity 6)
-*   **Active Render Pipeline**: Universal Render Pipeline (URP)
-*   **Current Main Demo Scene**: [Village_Demo.unity](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scenes/Village_Demo.unity)
-*   **Current Gameplay Direction**: Canh tác nông sản làm nguồn lương thực cứu tế, giúp đỡ bà con chòm xóm (Vần công), và thắt chặt tình nghĩa làng xã (Nghĩa Tình score) để vượt qua các giai đoạn thiên tai khắc nghiệt miền Trung Việt Nam.
-*   **Current Target Demo Scope**: Vòng lặp chơi thử nghiệm 4 giai đoạn thời tiết (Gió Lào khô nóng, Mưa bão ngập lụt, Tái thiết sau lũ) được điều phối bởi hệ thống sự kiện cộng đồng, kết thúc bằng một màn hình tổng kết (Sad/Normal/Best Ending) dựa trên chỉ số Nghĩa Tình tích lũy.
+- **Unity Editor:** Unity 6 (`6000.4.3f1` theo project context).
+- **Primary namespaces:** `SownInStone.Core`, `SownInStone.Agriculture`, `SownInStone.Community`, `SownInStone.Storage`, `SownInStone.UI`, `SownInStone.Weather`, `SownInStone.Audio`, `SownInStone.Interactions`, `SownInStone.Interaction`.
+- **Main scene target:** `Assets/Scenes/Village_Demo.unity` nếu scene tồn tại và build settings đúng. Một số docs cũ vẫn nhắc `SampleScene`; cần kiểm tra Unity scene trực tiếp trước khi chỉnh scene.
+- **Compile status:** sau lần sửa gần nhất, `dotnet build Assembly-CSharp.csproj` không còn `error CS...` trong `Temp/compile-check.log`.
 
 ---
 
-## 2. Scene Overview
+## 2. Active Script Map
 
-### `Assets/Scenes/Village_Demo.unity`
-*   **Purpose**: Cảnh chơi chính thức của bản demo, chứa cấu trúc phân nhóm gọn gàng, tọa độ chuẩn hóa và tất cả các logic gameplay hoạt động thực tế.
-*   **Important Root Objects**:
-    *   `_Managers`: Chứa toàn bộ các Singletons quản lý logic game.
-    *   `_UI`: Hệ thống Canvas chính (`SurvivalCanvas`), EventSystem, và debug panel.
-    *   `Player`: Thực thể người chơi chính Thành.
-    *   `Main Camera`: Camera đi kèm script theo sát.
-    *   `Environment`: Chứa nhà cửa dân làng, giếng nước, hàng rào và mặt đất.
-    *   `FarmingArea`: Khung chứa 11 luống đất trồng trọt.
-    *   `NPCs`: Nhân vật Bác Năm và O Thắm.
-*   **Role**: **Playable Demo Scene** (Build Index 0).
-*   **Known Risks**: Cần kiểm soát chặt chẽ các rào cản va chạm xung quanh nhà cửa mới di trú để tránh kẹt người chơi.
+### Core
 
-### `Assets/Scenes/SampleScene.unity`
-*   **Purpose**: Cảnh thử nghiệm (sandbox) của đội ngũ phát triển, chứa các tài nguyên mới, mô hình gốc và các thiết lập nháp trước khi di chuyển sang demo chính.
-*   **Important Root Objects**: Chứa cấu trúc hỗn hợp không chuẩn hóa, các mô hình chưa căn chỉnh tỉ lệ và script thử nghiệm cũ.
-*   **Role**: **Developer Sandbox / Asset Source Only**. Không được dùng để chạy demo hoặc build sản phẩm.
-*   **Known Risks**: Chứa các prefab bị thiếu liên kết (Missing Prefab) và tọa độ chưa được tối ưu hóa.
+| Script | Current role | Notes |
+|---|---|---|
+| `Core/GameManager.cs` | Singleton ngày/giờ, runtime phases, events, storm trigger. | Tự chuyển ngày 3 từ `LapNghiep` sang `ChuanBiBao`; `GioLao` chưa có auto schedule. |
+| `Core/PlayerController.cs` | Sơ tán NPC, roof refuge transition, keybinding compatibility, wrappers. | Hiện **không còn movement/farming scan đầy đủ** trong file; cần khôi phục nếu gameplay movement mất trong Unity. |
+| `Core/PlayerStats.cs` | Health, stamina, morale, coins, heat/cold stress, item use. | Có rescue callback tối giản. |
+| `Core/CameraFollow3D.cs` | Camera follow/orbit. | Có nhiều camera-mode APIs được các script khác gọi. |
+| `Core/WanderingAnimal.cs` | Animal wandering behavior. | Phụ trợ scene. |
 
----
+### Agriculture
 
-## 3. Core Gameplay Systems
+| Script | Current role | Notes |
+|---|---|---|
+| `Agriculture/SoilCell.cs` | Soil quality/moisture/nutrients/rock density, parent-child field linking, clear/water/fertilize/plant, visuals/highlight. | Không tự tiêu hao stamina/item; caller phải xử lý nếu muốn gameplay hoàn chỉnh. |
+| `Agriculture/CropInstance.cs` | Crop growth by day, flood/heat damage, harvest yield, 2D/3D fallback visuals. | Flood protection tìm `FloodBarrier` theo radius. |
+| `Agriculture/CropData.cs` | Crop ScriptableObject config. | Dữ liệu phụ thuộc asset. |
 
-### Player Movement & Roblox-style Camera
-*   **Main Scripts**:
-    *   [PlayerController.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Core/PlayerController.cs)
-    *   [CameraFollow3D.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Core/CameraFollow3D.cs)
-*   **Responsibilities**: Điều khiển di chuyển của nhân vật Thành theo hướng tương quan của camera phẳng (XZ plane) và xoay hướng mượt mà. Camera hoạt động theo cơ chế orbit xoay quanh pivot chính xác của nhân vật, hỗ trợ xoay RMB, cuộn phóng thu mượt (Smooth Zoom) bằng `Vector3.SmoothDamp`, và quét va chạm tự động (SphereCast) bỏ qua nhân vật.
-*   **Important Behavior**: Camera được thiết lập theo sát pivotHeight = 1.35m với khoảng cách mặc định 4.5m (phạm vi zoom 1.3-8.0) và góc nghiêng mặc định 10 độ, đảm bảo người chơi luôn nằm ở chính giữa khung hình theo phương ngang và thấp hơn một chút theo phương dọc mà không bị trôi lệch khi xoay.
-*   **Known Dependencies**: New Input System, Rigidbody.
+### Weather
 
-### Farming Loop & SoilCell Target Highlight
-*   **Main Scripts**:
-    *   [SoilCell.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Agriculture/SoilCell.cs)
-    *   [CropData.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Agriculture/CropData.cs)
-*   **Responsibilities**: Quản lý vòng đời ô đất canh tác (Dọn đá $\rightarrow$ Cuốc đất $\rightarrow$ Gieo hạt $\rightarrow$ Tưới nước $\rightarrow$ Thu hoạch).
-*   **Important Behavior**: Tự động hiển thị một lớp đè màu vàng bán trong suốt (`VisualHighlight`) phản chiếu kết cấu đất tương ứng khi người chơi đứng trong phạm vi tương tác (1.7m) và nhìn về phía ô đất.
+| Script | Current role | Notes |
+|---|---|---|
+| `Weather/WeatherManager.cs` | Weather enum, live stats, phase target values, flood water plane lerp. | Bản hiện tại tối giản; `UpdateSoilEvaporationParameters()` rỗng; chưa có particles/ambient đầy đủ. |
 
-### Inventory / Storage
-*   **Main Scripts**:
-    *   [StorageManager.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Core/StorageManager.cs)
-*   **Responsibilities**: Quản lý hòm chứa hạt giống, nông sản tươi (dễ thối hỏng do ẩm ướt) và nông sản khô (Khoai gieo).
+### Storage
 
-### Weather / Phase System
-*   **Main Scripts**:
-    *   [WeatherManager.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Core/WeatherManager.cs)
-    *   [GameManager.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Core/GameManager.cs)
-*   **Responsibilities**: Điều khiển ánh sáng môi trường, chu kỳ ngày/đêm, mưa rơi chéo bám góc camera, và dâng lũ ngập thực tế ở Phase 3.
+| Script | Current role | Notes |
+|---|---|---|
+| `Storage/StorageManager.cs` | Runtime inventory, add/remove, item lookup, item quantity, humidity decay, preserved item crafting. | Chưa có save/load inventory. |
+| `Storage/ItemData.cs` | Item ScriptableObject. | `ItemID`, `ItemName`, type, icon, restore values, decay rate. |
 
-### Nghĩa Tình / CommunityManager
-*   **Main Scripts**:
-    *   [CommunityManager.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Community/CommunityManager.cs)
-*   **Responsibilities**: Theo dõi điểm Nghĩa Tình cộng đồng (`GlobalKarma`) và số lượng công Vần công tích lũy của Thành.
+### Community
 
-### NPC Interaction & Proximity Popup
-*   **Main Scripts**:
-    *   [NPCCharacter.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Community/NPCCharacter.cs)
-    *   [NPCProximityOptionsUI.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/UI/NPCProximityOptionsUI.cs)
-*   **Responsibilities**: Phát hiện người chơi tiếp cận trong bán kính 1.7m và mở bảng UI lựa chọn nổi trên đầu NPC. Hỗ trợ quay mặt đối diện mượt mà (`Slerp`) và xoay về hướng nghỉ (Default Idle Rotation) khi người chơi rời đi.
+| Script | Current role | Notes |
+|---|---|---|
+| `Community/CommunityManager.cs` | GlobalKarma, event flags, Vần công credits calculation, storm-help sequence. | `TriggerStormHelpSequence()` chưa thấy được gọi từ `GameManager`. |
+| `Community/NPCCharacter.cs` | NPC identity, fallback dialogues by phase, affection, Vần công credits, gifts, look-at. | Supports `BacNam`, `OTham`, `CuBay`, `BeTi`, `Custom`. |
+| `Community/NPCData.cs` | ScriptableObject dialogue data. | Optional path for authored NPC data. |
 
-### Phase-based Community Events
-*   **Main Scripts**:
-    *   [CommunityManager.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Community/CommunityManager.cs)
-*   **Responsibilities**: Cung cấp các hành động đặc biệt tùy theo Phase (Hỗ trợ O Thắm ở Phase 2, Chằng chống nhà Bác Năm ở Phase 3, Tái thiết ruộng ở Phase 4) nhằm tiêu hao tài nguyên cứu tế và thưởng lượng lớn Nghĩa Tình. Giới hạn chỉ hoàn thành một lần mỗi sự kiện.
+### UI
 
-### Village Speaker Banner
-*   **Main Scripts**:
-    *   [VillageSpeakerBanner.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/UI/VillageSpeakerBanner.cs)
-*   **Responsibilities**: Hiển thị thông tin khẩn cấp tiếng Việt bằng CanvasGroup mờ dần sau 5 giây mỗi khi đổi sang Phase thời tiết mới.
+| Script | Current role | Notes |
+|---|---|---|
+| `UI/SurvivalUIManager.cs` | Large central HUD/dialogue/inventory/shop/toast/weather/community/overlay manager. | Many UI elements are created procedurally at runtime. |
+| `UI/TutorialManager.cs` | Intro 4-NPC gate, farming checklist callbacks. | `ShowTutorial(Action)` currently refreshes HUD then immediately calls callback; slideshow is not a full image flow in current source. |
+| `UI/NPCProximityOptionsUI.cs` | Floating NPC options panel. | Handles talk/work/events/trade. |
+| `UI/NPCQuestMarkerUI.cs` | Floating quest marker. | Based on phase and community event flags. |
+| `UI/NghiaTinhUI.cs` | Karma slider display. | Needs inspector references. |
+| `UI/VillageSpeakerBanner.cs` | Phase announcement banner. | Optional serialized reference in `SurvivalUIManager`. |
+| `UI/EndingManager.cs` | Ending panel by karma thresholds. | Relies on scene UI references. |
+| `UI/Billboard.cs` | Face camera helper. | Simple utility. |
 
-### Ending / Game Over
-*   **Main Scripts**:
-    *   [EndingManager.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/UI/EndingManager.cs)
-*   **Responsibilities**: Kết thúc màn chơi và đưa ra 3 loại đánh giá kết cục dựa trên Nghĩa Tình cuối cùng:
-    *   `< 40`: Sad Ending (Bản làng hoang tàn, ly tán).
-    *   `>= 40`: Normal Ending (Bà con vượt lũ khó khăn).
-    *   `>= 80`: Best Ending (Bà con thắt chặt tình nghĩa vượt lũ thành công).
+### Interactions
 
-### F1 Demo / Debug Controls
-*   **Main Scripts**:
-    *   [FrameworkDebugUI.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/FrameworkDebugUI.cs)
-*   **Responsibilities**: Giao diện điều phối viên, cung cấp 10 nút bấm nhảy nhanh Phase (1-4), thiết lập nhanh tài nguyên (Hạt giống, Thực phẩm), thay đổi Nghĩa Tình (20/50/80), và kích hoạt kết cục ngay lập tức.
+| Script | Current role | Notes |
+|---|---|---|
+| `Interactions/AncestralAltar.cs` | Consumes incense, restores morale, triggers storm crisis. | Has `IsIncenseBurning` and `ActionBurnIncense()` compatibility API. |
+| `Interaction/KitchenHearth.cs` | `IInteractable`: dry crops/cook fresh crop via dialogue. | Folder is singular `Interaction`, while other interactables are plural `Interactions`. |
+| `Interactions/Coracle.cs` | Boat enter/exit/rowing and flood Y alignment. | Uses `PlayerController.keyInteract`. |
+| `Interactions/FloodBarrier.cs` | Flood protection radius marker. | Placement is driven elsewhere; object itself is simple. |
+| `Interactions/MudPuddle.cs` | Appears in `PhuSa`, consumes stamina, locks player, destroys itself. | Uses `PlayerController` wrappers. |
+| `Interactions/CockfightingZone.cs`, `CockfightingMinigame.cs` | Experimental OnGUI minigame. | Not core survival loop; decide keep/remove before demo. |
+
+### Framework / Tooling
+
+| Script | Current role | Notes |
+|---|---|---|
+| `FrameworkMainMenuUI.cs` | OnGUI main/pause/settings/save/load/debug-ish menu. | Save/load is partial. Uses legacy `KeyCode` display. |
+| `FrameworkDebugUI.cs` | F1/demo controls, resource injection, phase jumps, farming debug. | Editor/demo helper, not production UX. |
+| `FrameworkTester.cs` | Simple runtime validation/test harness. | Useful for smoke checks. |
+| `Editor/*.cs` | Scene/setup/import helper scripts. | Editor-only automation. |
 
 ---
 
-## 4. Input Mapping
+## 3. What Is Implemented vs Partial
 
-Dự án sử dụng **Unity New Input System**. Cấm sử dụng các phương thức legacy của `UnityEngine.Input` ngoại trừ hiển thị GUI nội bộ.
+### Implemented enough to build on
 
-*   **WASD / D-Pad**: Di chuyển nhân vật (Tương quan góc nhìn Camera).
-*   **Right Mouse Button (RMB) (Hold + Drag)**: Xoay hướng góc nhìn Camera.
-*   **Mouse Scroll Wheel**: Phóng to / Thu nhỏ khoảng cách Camera (Zoom mượt từ 3 đến 9 đơn vị).
-*   **Key [E]**: Tương tác canh tác với ô đất (`SoilCell`) hoặc cúng bái tại bàn thờ (`AncestralAltar`).
-*   **Keys [1] / [2] / [3]**: Phím tắt kích hoạt các lựa chọn tương ứng trên bảng hội thoại nổi NPC (Trò chuyện, Giúp việc, Chia sẻ thực phẩm, Sự kiện đặc biệt).
-*   **Key [H]**: Ẩn / Hiện bảng Hướng dẫn điều khiển (Controls Legend UI).
-*   **Key [F1]**: Mở giao diện Trình kiểm soát Demo (Debug Menu).
-*   **Keys [Esc] / [Enter]**: Điều khiển giao diện Menu chính.
+- Runtime phase events and weather stat propagation.
+- Storage add/remove/decay/crafting at runtime.
+- Soil/crop simulation APIs.
+- Dialogue/choice/toast/inventory/shop UI foundation.
+- NPC fallback dialogue and community karma primitives.
+- Altar storm trigger.
+- Basic flood transition values and water plane movement.
 
----
+### Partial / prototype / compatibility-only
 
-## 5. UI/HUD Systems
-
-*   **Time/Season HUD** (`dayText`, `phaseText`): Vị trí góc trên bên trái màn hình. Hiển thị ngày thực tế và giai đoạn thiên tai hiện tại.
-*   **Nghĩa Tình HUD** (`NghiaTinhPanel`): Anchored Top-Left dưới Time panel tại tọa độ `(20, -100)` được chuyển vào phân cấp `SurvivalUI` tại runtime để đồng bộ không gian tọa độ, kích thước `280x70`. Tự động đổi màu thanh trượt theo ngưỡng điểm Nghĩa Tình hiện tại (Đỏ $\rightarrow$ Vàng $\rightarrow$ Xanh).
-*   **Controls Legend UI** (`ControlsLegendPanel`): Anchored Top-Right tại tọa độ `(-20, -120)`, kích thước `220x220`, độ trong suốt tăng lên `0.8` và cỡ chữ giảm xuống `11f` để tránh che khuất tầm nhìn. Hiển thị phím tắt lối chơi cơ bản và có thể ẩn đi bằng phím `H`.
-*   **Toast Notifications**: Anchored Upper-Middle `(0.5, 0.85)` tại tọa độ `(0, 0)`. Tự động định dạng nổi bật từ ngữ bằng Regex (Màu vàng cho Nghĩa Tình, màu xanh cho Vần công, màu đỏ cho cảnh báo hết Thể lực/Tài nguyên).
-*   **NPC Proximity Options**: Khung hội thoại nổi Screenspace tự động bám trên đầu NPC, giới hạn chiều rộng 380px, căn chỉnh nút đồng nhất 360px và tự động ẩn khi đối thoại/cửa hàng mở rộng.
-*   **Main Menu UI**: Màn hình mở đầu thiết kế phong cách bảng gỗ mộc mạc, hiệu ứng rê chuột phóng to 1.08x và chuyển màu vàng ấm `#FAD959` mềm mại trong 0.15s.
-
----
-
-## 6. Important Assets & Visual Setup
-
-*   **Player Model**: Chuyển đổi thành công sang nhân vật Lão Nông Việt Nam (`indonesian_farmer_pak_tani.glb`) kèm bộ xương chuyển động.
-*   **NPC Models**: Sử dụng mô hình FBX thực tế `Bac_Nam.fbx` và `O_Tham.fbx` đi kèm vật liệu URP Simple Lit (`M_BacNam`, `M_OTham`), được chuẩn hóa tỉ lệ cao tương đương người chơi và chân đặt sát mặt đất.
-*   **OTham_Shop**: Gian hàng chợ lá mái tre đầm ấm được di trú từ `SampleScene` đặt tại tọa độ `(8.0, 0.0, 10.28)`.
-*   **BacNam_House**: Ngôi nhà mái ngói cũ kèm chõng tre di trú đặt tại tọa độ `(-12.0, 0.0, 8.5)`.
-*   **Thanh_House**: Nhà chính ngôi nhà cổ kiểu Hội An rêu phong đặt tại tọa độ `(0.0, 0.0, -15.5)` xoay 180 độ. Căn chỉnh khớp hoàn toàn BoxCollider cục bộ `(8.00, 5.57, 9.59)` để loại bỏ tường vô hình chặn spawn.
-*   **Village_Well**: Giếng nước đá cổ ở trung tâm làng tại tọa độ `(0.0, 0.63, 3.0)`. Đã thu nhỏ BoxCollider root từ kích thước thế giới khổng lồ `(2.5, 2.5, 2.5)` bị lệch tâm sang BoxCollider gọn gàng ôm sát thành giếng: local center `(0.000043, -0.001367, 0.00375)`, local size `(0.007, 0.007, 0.0075)` tương đương thế giới thực `1.4m x 1.5m x 1.4m` đặt tại world `(0.0085, 1.38, 3.2735)`.
-*   **Farming Visuals & Ground**: Ô đất trồng trọt dạng mặt phẳng nằm ngang trục XZ (Rotation X = 90). Nền đất cỏ chính sử dụng Plane 3D cùng vật liệu stylized màu xanh cỏ tự nhiên `#7CA66D` (`Ground_LowPoly.mat`).
+- `PlayerController` movement and farming interaction loop: docs old claim a full controller, but current file is reduced to evacuation + wrappers.
+- Tutorial slideshow: current implementation is a toast/callback fallback, not a multi-slide UI.
+- Evacuation UI: `StartEvacuationCountdown()` shows toast only; no persistent countdown panel in current source.
+- Roof refuge anchors and wall repair nodes: referenced by docs/design, not implemented as complete source systems.
+- Flood barriers: object exists and crop protection checks radius, but placement/persistence is minimal.
+- Nón Lá: equip flag and optional prefab instantiate exist, but heat-stress reduction is not wired in `PlayerStats`/weather logic.
+- Save/load: partial PlayerPrefs only; no world state.
+- Cockfighting: experimental, unrelated to core loop.
 
 ---
 
-## 7. Git / Merge Context
+## 4. Current Critical Gaps
 
-*   Dự án vừa hoàn tất giải quyết xung đột mã nguồn sau đợt merge nhánh phát triển chính.
-*   **Cảnh nguồn của dự án hiện tại là `Assets/Scenes/Village_Demo.unity`**. Mọi thay đổi về thế giới, nhà cửa, logic cảnh chơi phải được thực hiện trên cảnh này.
-*   Không được thay đổi các cơ chế kịch bản hoạt động lõi hoặc ghi đè lung tung cấu trúc của các Singletons trong `_Managers` để tránh mất liên kết Inspector.
-
----
-
-## 8. Known Issues / Watchlist
-
-*   **Visual Border Scale**: Các khối đá chặn biên giới (`BoundaryElement`) đang có tỉ lệ nhập khẩu quá nhỏ, hoạt động như các bức tường vô hình giữa khoảng không. Cần kiểm tra lại mesh gốc.
-*   **Camera Collision Obstacles**: Ở các vị trí góc hẹp sát mái nhà của Thành, camera có thể quét trúng collider nhà và thu ngắn khoảng cách đột ngột. Cần tối ưu góc đứng của người chơi.
-*   **Menu Settings Input Bindings**: Phần hiển thị gán phím (key bindings) trong menu cài đặt vẫn còn sử dụng nhãn KeyCode legacy. Cần tiếp tục cập nhật tương thích hoàn toàn với New Input System.
+1. **Restore/verify player movement and interaction loop** in `PlayerController` or another controller script.
+2. **Wire farming actions to inventory/stamina** if not already done elsewhere in scene.
+3. **Turn evacuation into a visible HUD** instead of a toast-only notification.
+4. **Persist or intentionally drop save/load scope**; current partial save can mislead players.
+5. **Decide cockfighting scope**: remove from demo checklist or reframe as non-core optional test.
+6. **Unify `Interaction` vs `Interactions` folder/namespace convention** to avoid future misplaced files.
+7. **Run actual Unity Play Mode smoke test** after opening scene, because compile success does not prove scene references are valid.
 
 ---
 
-## 9. Recommended Next Tasks
+## 5. Files Most Important to Inspect Before Changes
 
-1.  **P0: Build Test và Sửa lỗi biên dịch đóng gói**: Chạy thử nghiệm đóng gói dự án để đảm bảo các script Editor (nếu có) được phân tách đúng bằng chỉ thị tiền xử lý `#if UNITY_EDITOR`.
-2.  **P1: Chuẩn hóa Gán phím Menu chính**: Cập nhật FrameworkMainMenuUI để đọc trực tiếp các nút bấm từ cấu hình Input System thay vì KeyCode tĩnh.
-3.  **P1: Tối ưu hóa va chạm rào chắn bản đồ**: Khắc phục các BoundaryElement bằng cách gán BoxCollider đơn giản bao quanh rìa bản đồ thay vì dùng MeshCollider phức tạp của các tảng đá nhỏ.
-4.  **P2: Tăng cường hiệu ứng Flood Water**: Bổ sung bọt nước hoặc đổi màu bầu trời trầm hơn khi lũ bắt đầu dâng ở Phase 3 để tăng không khí kịch tính của game.
-
----
-
-## 10. Files Most Important to Protect
-
-Nghiêm cấm sửa đổi vô căn cứ hoặc thay thế nội dung các tệp sau để bảo toàn khung logic lõi:
-
-*   [PlayerController.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Core/PlayerController.cs)
-*   [SurvivalUIManager.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/UI/SurvivalUIManager.cs)
-*   [NPCProximityOptionsUI.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/UI/NPCProximityOptionsUI.cs)
-*   [NPCCharacter.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Community/NPCCharacter.cs)
-*   [CommunityManager.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Community/CommunityManager.cs)
-*   [SoilCell.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Agriculture/SoilCell.cs)
-*   [GameManager.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Core/GameManager.cs)
-*   [WeatherManager.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/Core/WeatherManager.cs)
-*   [FrameworkDebugUI.cs](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scripts/FrameworkDebugUI.cs)
-*   [Village_Demo.unity](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/Assets/Scenes/Village_Demo.unity)
-*   [docs/CURRENT_PROGRESS.md](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/docs/CURRENT_PROGRESS.md)
-*   [docs/CURRENT_SCENE_STATE.md](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/docs/CURRENT_SCENE_STATE.md)
-*   [docs/SCENE_STRUCTURE.md](file:///d:/Linh%20tinh/studying/Semester_7/PRU213/in_class/Project/src/clone/docs/SCENE_STRUCTURE.md)
+- `Assets/Scripts/Core/PlayerController.cs`
+- `Assets/Scripts/Core/GameManager.cs`
+- `Assets/Scripts/Weather/WeatherManager.cs`
+- `Assets/Scripts/UI/SurvivalUIManager.cs`
+- `Assets/Scripts/UI/TutorialManager.cs`
+- `Assets/Scripts/UI/NPCProximityOptionsUI.cs`
+- `Assets/Scripts/Agriculture/SoilCell.cs`
+- `Assets/Scripts/Agriculture/CropInstance.cs`
+- `Assets/Scripts/Storage/StorageManager.cs`
+- `Assets/Scripts/Community/NPCCharacter.cs`
+- `Assets/Scripts/Community/CommunityManager.cs`

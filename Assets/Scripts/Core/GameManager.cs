@@ -59,6 +59,7 @@ namespace SownInStone.Core
         public event Action<int> OnHourChanged; // Gửi giờ chẵn (int) phục vụ hiệu ứng ánh sáng / AI sinh hoạt
 
         private int lastTriggeredHour = -1;
+        private bool hasWarnedSleepTonight = false;
 
         private void Awake()
         {
@@ -89,6 +90,7 @@ namespace SownInStone.Core
             {
                 currentHour -= 24f;
                 currentDay++;
+                hasWarnedSleepTonight = false;
                 OnDayChanged?.Invoke(currentDay);
                 
                 // Kiểm tra điều kiện tự động chuyển Phase cốt truyện nếu đạt mốc ngày
@@ -101,6 +103,16 @@ namespace SownInStone.Core
             {
                 lastTriggeredHour = hourInt;
                 OnHourChanged?.Invoke(hourInt);
+            }
+
+            if (hourInt == 23 && !hasWarnedSleepTonight)
+            {
+                hasWarnedSleepTonight = true;
+                if (SownInStone.UI.SurvivalUIManager.Instance != null)
+                {
+                    SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast("😴 Trời đã khuya (23:00)! Nhân vật đang rất buồn ngủ, hãy mau về nhà đi ngủ!");
+                }
+                SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_warning");
             }
         }
 
@@ -212,6 +224,32 @@ namespace SownInStone.Core
             OnDayChanged?.Invoke(currentDay);
             OnPhaseChanged?.Invoke(currentPhase);
             Debug.Log($"[GAME MANAGER] Khôi phục tiến trình từ Save: Ngày {currentDay}, Giai đoạn {currentPhase}");
+        }
+
+        public void SetTime(float hour)
+        {
+            currentHour = Mathf.Clamp(hour, 0f, 23.99f);
+            int newHourInt = Mathf.FloorToInt(currentHour);
+            if (newHourInt != lastTriggeredHour)
+            {
+                lastTriggeredHour = newHourInt;
+                OnHourChanged?.Invoke(newHourInt);
+            }
+        }
+
+        public void SkipToMorningFiveAM()
+        {
+            if (currentHour >= 5f)
+            {
+                currentDay++;
+                OnDayChanged?.Invoke(currentDay);
+                CheckPhaseTransitionProgress();
+            }
+            currentHour = 5f;
+            hasWarnedSleepTonight = false;
+            int newHourInt = 5;
+            lastTriggeredHour = newHourInt;
+            OnHourChanged?.Invoke(newHourInt);
         }
 
         #region GETTERS VÀ SETTERS CƠ BẢN

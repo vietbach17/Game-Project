@@ -1,6 +1,7 @@
 using UnityEngine;
 using SownInStone.Core;
 using SownInStone.Weather;
+using SownInStone.Interactions;
 
 namespace SownInStone.Agriculture
 {
@@ -123,6 +124,79 @@ namespace SownInStone.Agriculture
             }
         }
 
+        [Header("--- MÀNG BỌC NILON CHỐNG BẢO ---")]
+        public bool isCoveredByMulch = false;
+        private GameObject spawnedMulchVisual;
+
+        /// <summary>
+        /// Kiểm tra xem ô đất này có nằm trong bán kính bảo vệ của bất kỳ FloodBarrier hoặc Màng nilon không.
+        /// </summary>
+        public bool IsProtectedByFloodBarrier()
+        {
+            if (isCoveredByMulch) return true;
+
+            var barriers = FloodBarrier.ActiveBarriers;
+            foreach (var barrier in barriers)
+            {
+                if (barrier == null) continue;
+                float distance = Vector3.Distance(transform.position, barrier.transform.position);
+                if (distance <= barrier.protectionRadius)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Phủ màng bọc Nilon bảo vệ ô ruộng đất trước bão lũ với các chỉ số thực tế nông nghiệp.
+        /// </summary>
+        public void ApplyPlasticMulch(GameObject mulchPrefab)
+        {
+            if (IsParentField) return; // Bỏ qua ô đất cha đại diện lưới để tránh bị dựng góc 90 độ
+
+            isCoveredByMulch = true;
+            Moisture = 75f; // Giữ độ ẩm lý tưởng 75%, ngăn bốc hơi nước và ngập lụt
+            Nutrients = Mathf.Clamp(Nutrients + 20f, 0f, 100f); // Tăng +20 Dinh dưỡng, chống rửa trôi phù sa
+            RockDensity = Mathf.Max(0f, RockDensity - 10f); // Đèn bẹp cỏ dại, cải tạo bề mặt ruộng mượt mà
+
+            if (spawnedMulchVisual == null && mulchPrefab != null)
+            {
+                spawnedMulchVisual = Instantiate(mulchPrefab, transform.position, transform.rotation, transform);
+                spawnedMulchVisual.transform.localPosition = Vector3.zero;
+                spawnedMulchVisual.transform.localRotation = Quaternion.identity;
+                spawnedMulchVisual.transform.localScale = Vector3.one;
+            }
+            else if (spawnedMulchVisual == null)
+            {
+                // Fallback nếu chưa có prefab: tạo tấm phủ visual mộc mạc
+                GameObject plane = GameObject.CreatePrimitive(PrimitiveType.Plane);
+                plane.name = "MulchVisual_Fallback";
+                plane.transform.SetParent(transform, false);
+                plane.transform.localPosition = new Vector3(0f, 0.02f, 0f);
+                plane.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
+                Destroy(plane.GetComponent<Collider>());
+                spawnedMulchVisual = plane;
+
+                // Chỉ sửa shader nếu là fallback plane
+                foreach (var rend in spawnedMulchVisual.GetComponentsInChildren<Renderer>())
+                {
+                    if (rend == null) continue;
+                    Material mat = rend.material;
+                    if (mat == null || mat.shader == null || mat.shader.name.Contains("Error") || mat.shader.name == "Hidden/InternalErrorShader")
+                    {
+                        Shader validShader = Shader.Find("Universal Render Pipeline/Lit");
+                        if (validShader == null) validShader = Shader.Find("Universal Render Pipeline/Simple Lit");
+                        if (validShader == null) validShader = Shader.Find("Standard");
+
+                        Material newMat = new Material(validShader);
+                        newMat.color = new Color(0.2f, 0.2f, 0.22f, 1f);
+                        rend.material = newMat;
+                    }
+                }
+            }
+        }
+
         /// <summary>
         /// Mô phỏng sự bay hơi nước của đất dựa vào nhiệt độ và độ ẩm không khí của WeatherManager.
         /// </summary>
@@ -130,10 +204,19 @@ namespace SownInStone.Agriculture
         {
             if (WeatherManager.Instance == null) return;
 
-            // Nếu ngập lũ thì độ ẩm luôn đạt tối đa 100%
+            // Khi có lũ lụt dâng cao
             if (WeatherManager.Instance.FloodLevel > 0.1f)
             {
-                Moisture = 100f;
+                if (IsProtectedByFloodBarrier())
+                {
+                    // Được vách chắn/bao cát bảo vệ: Giảm 80% ngập úng, giữ độ ẩm ở mức lý tưởng 75%
+                    Moisture = Mathf.Lerp(Moisture, 75f, Time.deltaTime * 0.5f);
+                }
+                else
+                {
+                    // Không được bảo vệ: Bị ngập nước 100%
+                    Moisture = 100f;
+                }
                 return;
             }
 
@@ -197,6 +280,10 @@ namespace SownInStone.Agriculture
                 RockDensity = 0f;
                 quality = SoilQuality.TrungBinh;
                 UpdateVisuals();
+                if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
+                {
+                    TutorialManager.Instance.OnRockCleared();
+                }
                 return;
             }
 
@@ -211,6 +298,10 @@ namespace SownInStone.Agriculture
                 Debug.Log("[SOIL] Đất đã tơi xốp hơn, nâng lên hạng Đất Trung Bình.");
             }
             UpdateVisuals();
+            if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
+            {
+                TutorialManager.Instance.OnRockCleared();
+            }
         }
 
         /// <summary>
@@ -226,11 +317,19 @@ namespace SownInStone.Agriculture
                 }
                 Moisture = amount;
                 UpdateVisuals();
+                if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
+                {
+                    TutorialManager.Instance.OnSoilWatered();
+                }
                 return;
             }
 
             Moisture = Mathf.Clamp(Moisture + amount, 0f, 100f);
             UpdateVisuals();
+            if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
+            {
+                TutorialManager.Instance.OnSoilWatered();
+            }
         }
 
         /// <summary>
@@ -275,6 +374,10 @@ namespace SownInStone.Agriculture
                         }
                     }
                 }
+                if (anyPlanted && TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
+                {
+                    TutorialManager.Instance.OnCropPlanted();
+                }
                 return anyPlanted;
             }
 
@@ -295,6 +398,11 @@ namespace SownInStone.Agriculture
 
             Debug.Log($"[SOIL] Gieo thành công hạt giống {seedData.CropName}!");
             UpdateVisuals(); // Update visual state when planted
+
+            if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
+            {
+                TutorialManager.Instance.OnCropPlanted();
+            }
             return true;
         }
 

@@ -1,102 +1,205 @@
 # Scene Structure: Đất Cày Lên Sỏi Đá
 
-Tài liệu này hướng dẫn cách tổ chức Hierarchy (Cấu trúc phân cấp đối tượng) trong Unity 6 cho bản chơi thử PRU213. Việc giữ cấu trúc sạch sẽ giúp việc quản lý va chạm, camera và các script quản lý hoạt động ổn định nhất.
+Cập nhật: **2026-06-27**. Tài liệu này mô tả cấu trúc scene **mong muốn/được docs cũ ghi nhận**, kèm ghi chú những điểm cần mở Unity để xác minh. Source C# compile sạch không đảm bảo scene references đã đúng.
 
 ---
 
-## 1. Hierarchy Root Layout (Thiết kế đối tượng gốc)
+## 1. Main Scene Target
 
-Bản đồ được thiết kế gói gọn trong một Scene chính duy nhất tên là `SampleScene.unity`. Hierarchy trong Unity Editor cần được phân nhóm khoa học theo các đối tượng gốc sau:
+- Scene demo mục tiêu: `Assets/Scenes/Village_Demo.unity`.
+- `SampleScene.unity` nếu còn tồn tại thì chỉ nên dùng làm sandbox.
+- Trước khi sửa scene, mở Unity và xác nhận Build Settings / active scene.
 
+---
+
+## 2. Expected Root Layout
+
+```text
+Village_Demo.unity
+├── _Managers
+├── _UI
+├── Player
+├── Main Camera
+├── Lighting
+├── Environment
+├── FarmingArea
+├── NPCs
+├── InteractionZones
+├── DisasterObjects
+└── Audio
 ```
-SampleScene
-├── _Managers (Chứa các script quản lý hệ thống, Singleton)
-├── _UI (Chứa Canvas HUD và các bảng giao diện UI)
-├── Player (Nhân vật chính Thành)
-├── Main Camera (Camera góc nhìn thứ ba)
-├── Environment (Địa hình và vật trang trí)
-├── FarmingArea (Khu vực canh tác ruộng khoai)
-├── NPCs (Nhân vật dân làng)
-├── InteractionZones (Các khu vực kích hoạt sự kiện)
-├── DisasterObjects (Các hệ thống hạt thời tiết và nước lũ)
-└── Audio (Nguồn âm thanh môi trường và loa phát thanh)
+
+Nếu hierarchy thực tế khác, ưu tiên scene trong Unity hơn tài liệu này.
+
+---
+
+## 3. `_Managers`
+
+Expected manager components:
+
+| Component | Script | Current source status |
+|---|---|---|
+| GameManager | `SownInStone.Core.GameManager` | Required. Day/time/phase events. |
+| PlayerStats | `SownInStone.Core.PlayerStats` | Required. Health/stamina/morale/coins. |
+| WeatherManager | `SownInStone.Weather.WeatherManager` | Required. Weather/flood stats. Needs `waterPlanePrefab`/`disasterContainer` if using water plane. |
+| StorageManager | `SownInStone.Storage.StorageManager` | Required. Runtime inventory. |
+| CommunityManager | `SownInStone.Community.CommunityManager` | Required for Nghĩa Tình/NPC events. |
+| AudioManager | `SownInStone.Audio.AudioManager` | Optional but many scripts call it with null-safe `?.`. |
+| TutorialManager | `SownInStone.UI.TutorialManager` | Required if tutorial gate is used. |
+| EndingManager | `SownInStone.UI.EndingManager` | Required if ending panel is used. |
+
+---
+
+## 4. `_UI` / Canvas
+
+Expected `SurvivalUIManager` references:
+
+- `mainUICanvasGroup`
+- survival sliders: health, stamina, morale
+- text fields: day/phase/weather/time as applicable
+- `dialoguePanel`, `speakerNameText`, `dialogueContentText`
+- `inventoryPanel`, `itemSlotContainer`, `itemSlotPrefab`
+- optional `villageSpeakerBanner`
+- item data fields for shop/crafting if not auto-loaded in Editor
+
+Runtime-generated/managed UI in source:
+
+- `ResourcePanel`
+- `TimeSeasonPanel`
+- `NghiaTinhPanel` positioning if `NghiaTinhUI` exists
+- `InteractionPrompt`
+- `HUDToastNotification`
+- `ControlsLegendHUD`
+- `Panel_Community`
+- `Panel_WeatherDetails`
+- `Panel_Shop`
+- `ChoiceContainer`
+- phase announcement panel
+
+Important partials:
+
+- `StartEvacuationCountdown()` is currently toast-only.
+- `ShowDrownGameOverPanel()` is currently toast-only.
+- Tutorial quest panel text is routed through `SetInteractionPrompt()` in current compatibility implementation.
+
+---
+
+## 5. Player
+
+Expected:
+
+```text
+Player
+└── visual/model child
 ```
 
----
+Components expected:
 
-## 2. Detailed Sub-Hierarchy & Prefab Naming (Chi tiết phân nhóm)
+- `Rigidbody`
+- collider
+- `PlayerController`
 
----
+Critical verification:
 
-### A. _Managers
-Nhóm này chứa GameObject rỗng `_Managers` chứa các component Logic chính:
-*   **`GameManager`**: Quản lý vòng lặp ngày/đêm và thời gian trôi.
-*   **`PhaseManager`**: Quản lý sự kiện cốt truyện tự động chuyển 4 Phase.
-*   **`WeatherManager`**: Điều khiển nắng hạn, mưa gió bão cát và nước lũ.
-*   **`CommunityManager`**: Lưu trữ điểm Nghĩa Tình và điểm đổi công Vần công.
-*   **`InventoryManager`**: Quản lý túi đồ hạt giống và nông sản khô/tươi.
-*   **`UIManager`**: Phân phối hiển thị bảng thông báo khẩn cấp và kết cục game.
-*   **`AudioManager`**: Quản lý hiệu ứng âm thanh và nhạc nền.
+- Current `PlayerController.cs` source does **not** contain a full movement loop, so Unity Play Mode must verify whether another component or an older serialized script handles movement. If not, player will not move until movement is restored.
 
 ---
 
-### B. Environment
-Chứa toàn bộ mô hình tĩnh (Static) làm cảnh quan nền:
-*   `Ground`: Plane mặt đất cát trắng miền Trung và đất cát sỏi đá pha cát.
-*   `VillagePath`: Đường mòn chạy xuyên làng kết nối các nhà dân.
-*   `House_Thanh`: Prefab `HoiAnHouse_M2` làm nhà chính của Thành.
-*   `House_OTham`: Nhà cấp bốn của O Thắm.
-*   `House_BacNam`: Nhà tranh vách đất của Bác Năm.
-*   `Village_Well`: Giếng đá cổ trung tâm làng.
-*   `Village_Speaker`: Cột loa phát thanh xã.
-*   `Ancestral_Altar`: Miếu thờ nhỏ đầu làng có cây cổ thụ phủ bóng.
-*   `Bamboo_Fences`: Chuỗi ghép rào tre bao quanh vườn nhà Thành.
-*   `Props`: Thùng gỗ, lu nước, thúng khoai trang trí.
+## 6. Environment / Farming
+
+Expected groups:
+
+```text
+Environment
+├── Ground_Main
+├── _Environment/Houses
+├── _Environment/NPCs or NPCs root
+├── Village_Well
+├── Village_Speaker
+└── props/fences/rocks/plants
+
+FarmingArea
+├── SoilCell parent/helper
+└── SoilCell_Grid1 ... SoilCell_Grid12
+```
+
+Source assumptions:
+
+- `SoilCell.Awake()` auto-links parent to grid children by names containing `Grid` and XZ distance `< 6.0f`.
+- Each gameplay soil cell should have `SoilCell` and collider trigger.
+- 3D visuals are optional references on `SoilCell`: rocky/clean/tilled/wet.
+
+Verify in Unity:
+
+- There are actually 12 active grid cells.
+- Colliders are triggers and reachable by player interaction.
+- `CropData` assets are assigned wherever planting is initiated.
 
 ---
 
-### C. FarmingArea
-Quản lý các ô đất nông nghiệp và cây trồng động:
-*   `SoilCells`: Chứa 4 ô đất `SoilCell_1` đến `SoilCell_4` xếp dạng lưới.
-*   `Rocks`: Các tảng đá cằn nằm đè lên SoilCell khi chưa được Thành dọn sạch.
-*   `Crops`: Container rỗng để GameManager instantiate prefab cây khoai lang động vào lúc runtime.
-*   `SiltSoilVisuals`: Các texture xám sẫm dùng để vẽ đè lên mặt đất khi lũ rút.
+## 7. NPCs
+
+Expected core NPCs:
+
+- `NPC_OTham`
+- `NPC_BacNam`
+- `NPC_CuBay`
+- `NPC_BeTi`
+
+Each should have:
+
+- `NPCCharacter`
+- collider trigger or collider detectable by proximity UI
+- correct `characterType`
+
+Source supports all four names in `NPCCharacter.StoryCharacterType`, but scene placement and collider references must be verified in Unity.
 
 ---
 
-### D. NPCs
-*   `NPC_OTham`: NPC O Thắm tương hỗ (kèm trigger BoxCollider tương tác đổi công/hạt).
-*   `NPC_BacNam`: NPC Bác Năm neo đơn (kèm trigger BoxCollider đóng góp khoai).
-*   `NPC_CuBay` (Optional): Trưởng thôn đi tuần tra đình làng.
-*   `NPC_BeTi` (Optional): Bé Tí chạy loanh quanh sân nhà.
+## 8. InteractionZones / Props
+
+Expected interactables:
+
+- `Shrine` / altar with `AncestralAltar`
+- `bep_gas` with `KitchenHearth`
+- `Coracle` with `Coracle`
+- `MudPuddle` prefabs/instances with `MudPuddle`
+- flood protection prefabs with `FloodBarrier`
+
+Current code notes:
+
+- `AncestralAltar` triggers storm if pre-storm and incense exists.
+- `KitchenHearth` implements singular namespace `SownInStone.Interaction.IInteractable`.
+- `FloodBarrier` is a radius marker; full node/placement systems are not complete beyond inventory prefab spawning.
 
 ---
 
-### E. DisasterObjects
-Các đối tượng tương tác thời tiết và thiên tai:
-*   `RainParticleSystem`: Hệ thống hạt mưa bão bám sát theo vị trí Camera.
-*   `FloodWaterPlane`: Tấm phẳng 3D phủ nước lũ ngập, nâng hạ trục Y động.
-*   `WindEffects`: Lực gió đẩy các hạt mưa chéo góc.
-*   `RepairTargets`: Các vị trí chằng sandbag quanh mái nhà được bật lên khi người chơi đổi công Vần công chống bão.
-*   `FoodDeliveryTargets`: Rương quyên góp cứu đói đặt ở đầu làng để nhận khoai.
+## 9. DisasterObjects
+
+Expected:
+
+- Empty parent transform for water plane.
+- `WeatherManager` can instantiate `waterPlanePrefab` at current `floodLevel` if references are set.
+
+Verify:
+
+- `waterPlanePrefab` is assigned.
+- water plane material/scale is correct.
+- no collider blocks player after spawn; source disables `MeshCollider` if present.
 
 ---
 
-### F. _UI
-Canvas chứa toàn bộ HUD và UI Popups:
-*   `HUD`: Hiển thị thanh máu, thể lực, thanh chỉ số Nghĩa Tình, số lượng Xu hỗ trợ và đồng hồ ngày.
-*   `InteractionPrompt`: Nhãn text nhắc lệnh nhỏ giữa màn hình (ví dụ: *"Nhấn E để thắp nhang"*).
-*   `InventoryPanel`: Bảng lưới túi đồ (`Tab`/`I` keys).
-*   `NghiaTinhPanel`: Giao diện chi tiết điểm Nghĩa Tình và số lượng công đổi công tích lũy.
-*   `PhaseBanner`: Hiển thị Banner điện ảnh lướt nhẹ khi đổi ngày mới và cảnh báo thời tiết Loa phát thanh.
-*   `EndingScreen`: Màn hình kết game xuất hiện ở cuối Phase 4.
-*   `DebugPanel`: Bảng test nhanh F1 dành cho nhà phát triển.
+## 10. Scene Validation Checklist
 
----
+After opening Unity:
 
-## 3. Naming Conventions (Quy chuẩn đặt tên trong Editor)
-*   **Root Objects:** Đặt tên dạng danh từ, viết hoa chữ cái đầu (ví dụ: `Player`, `Environment`).
-*   **Prefabs:** Đặt tên bắt đầu bằng danh mục viết thường (ví dụ: `item_seed_potato`, `crop_sweet_potato`, `building_hoian_house`).
-*   **Scripts:** Đặt tên theo PascalCase (ví dụ: `PlayerController.cs`, `WeatherManager.cs`).
-*   **Interactive Targets:** Thêm tiếp vị ngữ để dễ nhận biết (ví dụ: `NPC_OTham`, `Zone_AncestralAltar`).
-*   **Static Mesh Colliders:** Đối với nhà cửa và giếng đá tĩnh, đánh dấu **Static** ở Inspector để tối ưu hóa va chạm vật lý và baking ánh sáng.
+- [ ] Console has no compile errors.
+- [ ] Main scene opens without missing scripts.
+- [ ] `_Managers` has required singletons.
+- [ ] Player can move.
+- [ ] Camera follows player.
+- [ ] Inventory opens with `I/Tab`.
+- [ ] NPC proximity UI appears near NPC.
+- [ ] Altar can trigger `MuaBao`.
+- [ ] Weather/flood values update after phase transition.
+- [ ] Soil cells can be targeted and changed by gameplay.

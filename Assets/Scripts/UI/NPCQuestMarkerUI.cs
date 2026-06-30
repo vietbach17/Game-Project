@@ -36,12 +36,12 @@ namespace SownInStone.UI
                 markerObj.transform.SetParent(canvas.transform, false);
 
                 RectTransform rect = markerObj.AddComponent<RectTransform>();
-                rect.sizeDelta = new Vector2(40f, 40f);
+                rect.sizeDelta = new Vector2(80f, 80f);
                 rect.pivot = new Vector2(0.5f, 0.5f);
 
                 TextMeshProUGUI txt = markerObj.AddComponent<TextMeshProUGUI>();
                 txt.text = "!";
-                txt.fontSize = 28;
+                txt.fontSize = 46;
                 txt.fontStyle = FontStyles.Bold;
                 txt.alignment = TextAlignmentOptions.Center;
                 txt.color = new Color(1f, 0.85f, 0.1f, 1f); // Màu vàng gold/vàng chanh sáng
@@ -75,8 +75,51 @@ namespace SownInStone.UI
                 GameObject markerObj = npcMarkers[npc];
                 bool shouldShow = false;
 
-                // 1. Kiểm tra xem NPC hiện tại có Sự kiện Giai đoạn chưa hoàn thành hay không
-                if (CommunityManager.Instance != null)
+                // 1. Kiểm tra xem NPC hiện tại có Sự kiện Hướng dẫn hoặc Sự kiện Giai đoạn chưa hoàn thành hay không
+                if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
+                {
+                    var stage = TutorialManager.Instance.currentStage;
+                    if (stage == TutorialManager.TutorialStage.IntroQuests)
+                    {
+                        if (npc.characterType == NPCCharacter.StoryCharacterType.OTham && !TutorialManager.Instance.taskACompleted) shouldShow = true;
+                        else if (npc.characterType == NPCCharacter.StoryCharacterType.BacNam && !TutorialManager.Instance.taskBCompleted) shouldShow = true;
+                        else if (npc.NPCName.Contains("Cụ Bảy") && !TutorialManager.Instance.taskCCompleted) shouldShow = true;
+                        else if (npc.NPCName.Contains("Bé Tí") && !TutorialManager.Instance.taskDCompleted) shouldShow = true;
+                    }
+                    else if (stage == TutorialManager.TutorialStage.TalkToOThamJob)
+                    {
+                        if (npc.characterType == NPCCharacter.StoryCharacterType.OTham) shouldShow = true;
+                    }
+                    else if (stage == TutorialManager.TutorialStage.SellCrops)
+                    {
+                        if (npc.characterType == NPCCharacter.StoryCharacterType.OTham) shouldShow = true;
+                    }
+                    else if (stage == TutorialManager.TutorialStage.TalkToBacNamPreserve)
+                    {
+                        if (npc.characterType == NPCCharacter.StoryCharacterType.BacNam) shouldShow = true;
+                    }
+                    else if (stage == TutorialManager.TutorialStage.SharePreservedCrops)
+                    {
+                        if (npc.characterType == NPCCharacter.StoryCharacterType.OTham && !TutorialManager.Instance.sharedOTham) shouldShow = true;
+                        else if (npc.characterType == NPCCharacter.StoryCharacterType.BacNam && !TutorialManager.Instance.sharedBacNam) shouldShow = true;
+                        else if (npc.characterType == NPCCharacter.StoryCharacterType.CuBay && !TutorialManager.Instance.sharedCuBay) shouldShow = true;
+                        else if (npc.characterType == NPCCharacter.StoryCharacterType.BeTi && !TutorialManager.Instance.sharedBeTi) shouldShow = true;
+                    }
+                    else if (stage == TutorialManager.TutorialStage.PrepareForStorm)
+                    {
+                        var activeJob = TutorialManager.Instance.activeStormJob;
+                        if (activeJob == TutorialManager.ActiveStormJob.None)
+                        {
+                            if (npc.characterType == NPCCharacter.StoryCharacterType.OTham) shouldShow = true;
+                            else if (npc.characterType == NPCCharacter.StoryCharacterType.BacNam) shouldShow = true;
+                        }
+                    }
+                    else if (stage == TutorialManager.TutorialStage.TalkToCuBayWorship)
+                    {
+                        if (npc.characterType == NPCCharacter.StoryCharacterType.CuBay) shouldShow = true;
+                    }
+                }
+                else if (CommunityManager.Instance != null)
                 {
                     if (npc.characterType == NPCCharacter.StoryCharacterType.OTham)
                     {

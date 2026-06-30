@@ -1,130 +1,263 @@
 # Gameplay Systems Document: Đất Cày Lên Sỏi Đá
 
-Tài liệu này chi tiết hóa các hệ thống gameplay chính phục vụ cho việc lập trình trong Unity cho bản Demo PRU213. Các hệ thống được thiết kế tối giản, dễ cài đặt và tối ưu hóa cho dự án phát triển cá nhân trong 2 tuần.
+Cập nhật: **2026-06-27**. Tài liệu này mô tả các gameplay systems theo source hiện tại. Những phần cũ từng ghi “đã hoàn thiện” nhưng source chưa có đầy đủ nay được đánh dấu rõ là partial/missing.
 
 ---
 
-## 1. Player Movement System
-* **Mô tả:** Hệ thống điều khiển nhân vật chính Thành di chuyển trong không gian 3D.
-* **Cài đặt Unity:**
-  * Sử dụng `CharacterController` hoặc `Rigidbody` kết hợp với đầu vào phím `W, A, S, D` để di chuyển.
-  * Hỗ trợ phím `Left Shift` để chạy nhanh (tăng tốc độ di chuyển và tiêu hao thể lực theo thời gian).
-  * Góc nhìn thứ ba được bổ trợ bởi một camera di chuyển mượt mà bám theo người chơi thông qua script `CameraFollow3D`.
-  * Khóa di chuyển (action lock) tạm thời khi thực hiện các hành động nông nghiệp để đảm bảo tính thực tế của hoạt động thể chất.
+## 1. Phase & Time System
+
+**File:** `Assets/Scripts/Core/GameManager.cs`
+
+### Có hiện tại
+
+- Singleton `GameManager.Instance`.
+- `currentDay`, `timeOfDay`, `dayLengthInSeconds`.
+- Runtime enum `GamePhase`: `LapNghiep`, `GioLao`, `ChuanBiBao`, `MuaBao`, `PhuSa`, `EndGame`.
+- Static events:
+  - `OnDayChanged(int)`
+  - `OnPhaseChanged(GamePhase)`
+- Tự tăng giờ/ngày trong `Update()` nếu `isTimerRunning`.
+- Khi ngày 3 và đang `LapNghiep`, tự chuyển sang `ChuanBiBao`.
+- `TriggerStormCrisis()` chuyển sang `MuaBao` nếu đang trước bão.
+- `MuaBao` dừng timer và gọi `SurvivalUIManager.StartEvacuationCountdown(45f)`.
+- `PhuSa` khôi phục timer và `Time.timeScale`.
+
+### Thiếu / cần kiểm tra
+
+- `GioLao` tồn tại trong enum/weather/UI nhưng chưa được auto-schedule trong `GameManager.Update()`.
+- `EndGame` enum tồn tại nhưng chưa thấy được dùng trong `GameManager`.
+- Ending không được trigger trực tiếp từ timeline trong file hiện tại.
 
 ---
 
-## 2. Interaction System
-* **Mô tả:** Cơ chế tương tác với các vật thể trong môi trường bằng phím nóng `[E]`.
-* **Cài đặt Unity:**
-  * Sử dụng `BoxCollider` 3D (tích chọn `Is Trigger`) trên các đối tượng tương tác như ô đất (`SoilCell`), bàn thờ tổ tiên (`AncestralAltar`), hoặc các NPC (`NPCCharacter`).
-  * Khi người chơi bước vào vùng Trigger, hiển thị một nhãn nhắc lệnh (Interaction Prompt) nhỏ trên HUD (ví dụ: *"Nhấn E để Dọn đá"* hoặc *"Nhấn E để nói chuyện"*).
-  * Nhấn `[E]` thực thi phương thức hành động tương ứng thông qua Interface `IInteractable` hoặc qua kiểm tra tag đối tượng.
+## 2. Player Controller & Interaction
+
+**File:** `Assets/Scripts/Core/PlayerController.cs`
+
+### Có hiện tại
+
+- Singleton `PlayerController.Instance`.
+- Key binding fields cho menu compatibility: `keyMoveUp`, `keyMoveDown`, `keyMoveLeft`, `keyMoveRight`, `keyInteract`, `keyRun`.
+- Flood evacuation state: `isEvacuationActive`, `rescuedCount`, `evacuationTimer`, `evacuatedNPCs`.
+- Khi phase `MuaBao`, bật countdown 45 giây nội bộ.
+- `TryEvacuateNPC(NPCCharacter npc)`:
+  - Chặn NPC đã cứu.
+  - Cộng `+15` Nghĩa Tình.
+  - Tắt GameObject NPC.
+  - Dắt đủ 4 NPC thì chuyển `PhuSa`, teleport lên mái nhà, cấp mì tôm nếu tìm được item.
+- Failure hết giờ gọi `SurvivalUIManager.ShowDrownGameOverPanel()`.
+- Compatibility wrappers:
+  - `LoadKeyBindings()`
+  - `SetAnimTrigger()`
+  - `LockMovement()`
+  - `TriggerRescueSequence()`
+  - `EquipNonLa()`
+  - `OpenTradeMenu()`
+
+### Thiếu / rủi ro lớn
+
+- Source hiện tại **không có movement loop đầy đủ** trong `PlayerController.Update()` ngoài countdown.
+- Không thấy `TryPerformInteraction()`, physics scan farming, hoặc camera-relative movement trong file hiện tại.
+- `CurrentTargetSoilCell` property tồn tại nhưng không được cập nhật trong file này.
+- Nếu Unity scene không có controller khác bù lại, player có thể không di chuyển/tương tác farming được dù C# compile sạch.
 
 ---
 
-## 3. Farming System
-* **Mô tả:** Vòng lặp cải tạo ruộng đất cằn cát pha sỏi đá và canh tác giống cây trồng chính (Khoai Lang).
-* **Cài đặt Unity:**
-  * **Dig (Clear Rocks):** Ô đất (`SoilCell`) khởi đầu với mật độ đá cao (`rockDensity`). Nhấn `[E]` tiêu hao Thể lực để cuốc đất dọn đá dần dần (giảm giá trị `rockDensity` xuống 0).
-  * **Water:** Tưới nước tăng độ ẩm đất (`soilMoisture`). Gặp thời tiết nắng nóng Gió Lào, tốc độ bốc hơi ẩm tăng gấp đôi.
-  * **Plant:** Gieo hạt giống tiêu thụ hạt giống thực tế (`Item_Seed.asset`) từ hòm đồ.
-  * **Growth Stages:** Cây trồng (`CropInstance`) sinh trưởng qua 4 giai đoạn dựa trên thời gian thực tế: `Seedling` (Hạt mầm) -> `Growing` (Phát triển) -> `Ready` (Chín) -> `Withered` (Héo úa nếu thiếu ẩm hoặc ngập úng quá lâu).
-  * **Harvest:** Nhấn `[E]` trên cây đã chín để nhận khoai tươi (`Item_FreshCrop.asset`).
+## 3. Farming & Crop System
+
+**Files:**
+
+- `Assets/Scripts/Agriculture/SoilCell.cs`
+- `Assets/Scripts/Agriculture/CropInstance.cs`
+- `Assets/Scripts/Agriculture/CropData.cs`
+
+### Có hiện tại
+
+`SoilCell`:
+
+- Trạng thái đất: `BacMau`, `TrungBinh`, `PhuSa`.
+- Chỉ số: `Moisture`, `Nutrients`, `RockDensity`.
+- Parent-child linking tự động dựa trên tên `SoilCell`/`Grid` và khoảng cách XZ.
+- Bay hơi nước theo `WeatherManager`:
+  - Lũ > 0.1: đất ẩm 100%.
+  - Mưa > 0.1: tăng ẩm.
+  - Gió Lào tăng evaporation speed.
+- Phase `PhuSa`: set quality `PhuSa`, nutrients 100, rock 0.
+- Actions:
+  - `ActionClearRocks(float)`
+  - `ActionWaterSoil(float)`
+  - `ActionFertilize(float)`
+  - `ActionPlantCrop(CropData)`
+- Visual switching giữa rocky/clean/tilled/wet hoặc sprite.
+- Highlight target bằng sprite overlay hoặc khung cube vàng.
+- Debug helpers.
+
+`CropInstance`:
+
+- Tăng trưởng theo `OnDayChanged`.
+- Growth phụ thuộc moisture, nutrients, rock density.
+- Flood rot nếu `FloodLevel > 0.3f` và không có `FloodBarrier` trong radius.
+- Wither nếu nhiệt độ vượt tolerance và đất quá khô.
+- `IsReadyToHarvest()`, `ActionHarvest()`, `DebugMature()`, `DebugGrowOneStage()`.
+- Yield trên đất `PhuSa` là 5 thay vì base 2.
+
+### Thiếu / cần caller xử lý
+
+- `SoilCell` không tự trừ stamina hoặc item seed; caller phải làm.
+- `ActionPlantCrop()` nhận `CropData` trực tiếp, không tự kiểm tra kho hạt giống.
+- Vì `PlayerController` hiện thiếu interaction scan, cần kiểm tra scene/runtime có script khác gọi các action này không.
 
 ---
 
-## 4. Food Resource System
-* **Mô tả:** Quản lý kho chứa thực phẩm và cơ chế chế biến sinh tồn.
-* **Cài đặt Unity:**
-  * Nông sản thu hoạch được chuyển thành **Food** (Khoai tươi).
-  * Người chơi có thể đến bếp lò nhà mình để chế biến Khoai tươi thành **Khoai gieo khô** (không bị hỏng/mốc khi độ ẩm không khí tăng cao ở Phase 3).
-  * Thực phẩm có hai lựa chọn sử dụng:
-    1. *Ăn trực tiếp:* Hồi phục Thể lực cho Thành.
-    2. *Đóng góp / Quyên góp:* Gặp các NPC hoặc rương cứu trợ đầu làng để quyên góp khoai khô/tươi giúp bà con chống chịu bão lũ.
+## 4. Weather & Disaster System
+
+**File:** `Assets/Scripts/Weather/WeatherManager.cs`
+
+### Có hiện tại
+
+- `WeatherType`: `OnDinh`, `NangNong`, `GioLao`, `MuaGiong`, `BaoLu`.
+- Live stats: temperature, humidity, rainIntensity, floodLevel, windSpeed.
+- Phase target values:
+  - `LapNghiep`: ổn định.
+  - `GioLao`: 42°C, humidity thấp, wind cao.
+  - `ChuanBiBao`: mưa giông nhẹ.
+  - `MuaBao`: bão lũ, flood target 1.85.
+  - `PhuSa`: ổn định sau lũ, flood target -1.5.
+- Lerp stats mỗi frame.
+- Spawn `waterPlanePrefab` dưới `disasterContainer` nếu có.
+- Disable `MeshCollider` của water plane.
+- Public APIs cho UI/soil/crop: `Temperature`, `Humidity`, `RainIntensity`, `FloodLevel`, `WindSpeed`, `currentVisualWeather`.
+
+### Thiếu / partial
+
+- `UpdateSoilEvaporationParameters()` đang rỗng.
+- Không có rain particle/skybox/ambient wind trong source hiện tại.
+- Không có vùng lũ theo địa hình; flood là numeric stat + water plane Y.
 
 ---
 
-## 5. Nghĩa Tình System
-* **Mô tả:** Hệ thống tính điểm gắn kết cộng đồng và là chỉ số tiến trình chính để quyết định kết cục của trò chơi.
-* **Cài đặt Unity:**
-  * Điểm Nghĩa Tình (`nghiaTinh`) bắt đầu từ 20. Tăng lên khi người chơi hoàn thành đổi công vần công, thắp nhang đình làng, hoặc đóng góp lương thực cứu đói.
-  * Dưới đây là mã nguồn C# tham khảo để tính điểm và quyết định các kết cục (Endings):
+## 5. Storage, Items & Cooking
 
-```csharp
-using UnityEngine;
+**Files:**
 
-public class CommunityStats : MonoBehaviour
-{
-    public int nghiaTinh = 20; // Điểm xuất phát mặc định
+- `Assets/Scripts/Storage/StorageManager.cs`
+- `Assets/Scripts/Storage/ItemData.cs`
+- `Assets/Scripts/Interaction/KitchenHearth.cs`
 
-    // Thêm điểm Nghĩa Tình
-    public void AddNghiaTinh(int amount)
-    {
-        nghiaTinh = Mathf.Clamp(nghiaTinh + amount, 0, 100);
-        Debug.Log($"Nghĩa Tình hiện tại của làng: {nghiaTinh}/100");
-    }
+### Có hiện tại
 
-    // Đánh giá kết cục game ở cuối Phase 4 dựa trên ngưỡng Nghĩa Tình
-    public string EvaluateEnding()
-    {
-        if (nghiaTinh >= 80)
-        {
-            return "Best Ending: Đất Cày Nở Hoa (Ngôi làng hồi sinh trù phú, bà con gắn kết bền chặt)";
-        }
-        else if (nghiaTinh >= 40)
-        {
-            return "Normal Ending: Lá Lành Đùm Lá Rách (Ngôi làng vượt qua thiên tai nhưng cần thời gian khôi phục)";
-        }
-        else
-        {
-            return "Sad Ending: Đất Sỏi Đá Cằn (Mọi người ly hương, Thành cô độc trên ruộng sỏi cát)";
-        }
-    }
-}
-```
+- `StorageManager` quản lý list `InventorySlot` runtime.
+- `AddItem`, `RemoveItem`, `GetStorageSlots`, `GetItemDataByID`, `GetItemQuantity`.
+- Decay nông sản tươi mỗi ngày khi humidity cao.
+- `CraftPreservedItem()` đổi fresh -> preserved và trừ stamina.
+- `ItemData`: ID, tên, mô tả, type, icon, stamina/morale restore, decay rate.
+- `KitchenHearth` dùng `IInteractable`, có lựa chọn sấy khô hoặc nấu ăn.
+
+### Thiếu / partial
+
+- Inventory không được save/load.
+- `GetItemDataByID()` fallback `Resources.LoadAll<ItemData>(string.Empty)` phụ thuộc asset đặt trong Resources; nếu asset không nằm trong Resources thì chỉ tìm được item đã có sẵn trong kho.
 
 ---
 
-## 6. Community Event System
-* **Mô tả:** Trình quản lý sự kiện cốt truyện tối giản kích hoạt tự động theo Phase/Day mà không cần hệ thống Quest phức tạp.
-* **Cài đặt Unity:**
-  * Hệ thống kiểm tra điều kiện đơn giản (Condition Checks) trong hàm cập nhật ngày của `GameManager`:
-    * *Ví dụ:* `if (currentDay == 3 && currentPhase == Phase.Drought) { TriggerLoaPhatThanh("Hôm nay nắng hạn gay gắt, bà con hạn chế ra đồng buổi trưa và chung tay tiết kiệm nước!"); }`
-  * Hiển thị thông báo văn bản (Text Toast) trôi qua giữa màn hình và cập nhật nhật ký sự kiện trên HUD.
+## 6. NPC, Nghĩa Tình & Vần Công
+
+**Files:**
+
+- `Assets/Scripts/Community/CommunityManager.cs`
+- `Assets/Scripts/Community/NPCCharacter.cs`
+- `Assets/Scripts/UI/NPCProximityOptionsUI.cs`
+- `Assets/Scripts/UI/NPCQuestMarkerUI.cs`
+
+### Có hiện tại
+
+- `CommunityManager` có `GlobalKarma`, event flags, NPC list, `ModifyGlobalKarma()`, `AddKarma()`.
+- Vần công tính từ `NPCCharacter.VanCongCredits`.
+- `TriggerStormHelpSequence()` thưởng/phạt morale theo tổng credits và tiêu credit.
+- `NPCCharacter` hỗ trợ `BacNam`, `OTham`, `CuBay`, `BeTi`, `Custom`.
+- Fallback dialogues theo phase và affection.
+- Affection, Vần công credits, gift action, look-at-player, return rotation.
+- `NPCProximityOptionsUI` có các hành động talk/work/event/trade/share food.
+- `NPCQuestMarkerUI` hiển thị marker theo phase/event flags.
+
+### Thiếu / partial
+
+- `TriggerStormHelpSequence()` chưa được gọi trong `GameManager` hiện tại.
+- Không có quest data model tổng quát; event progression đang ad hoc qua bool flags.
+- NPC rescue flow trong `PlayerController` tắt NPC GameObject nhưng `ActivateNPCsOnRoof()` vẫn là placeholder.
 
 ---
 
-## 7. Weather and Disaster System
-* **Mô tả:** Chu kỳ thời tiết khắc nghiệt được nội suy mượt mà để tạo áp lực sinh tồn.
-* **Cài đặt Unity:**
-  * **Drought / Gió Lào (Phase 2):** Tăng nhiệt độ, tăng tốc độ bốc hơi nước trong đất, tăng nhanh Heat Stress của người chơi khi di chuyển ngoài trời.
-  * **Rain (Phase 3 đầu):** Làm ướt đất trồng tự động, tăng nhẹ độ ẩm không khí.
-  * **Storm / Flood (Phase 3 giữa):** Mưa lớn kết hợp hệ thống gió thổi chéo hạt mưa bám theo camera. Kích hoạt dâng cao mực nước lũ (`waterLevel`) trong scene. Đất trồng ngập sâu hơn 0.5m sẽ gây úng rễ làm cây trồng thối rữa sau 1 ngày.
+## 7. UI / HUD / Menu
+
+**Files:**
+
+- `Assets/Scripts/UI/SurvivalUIManager.cs`
+- `Assets/Scripts/UI/TutorialManager.cs`
+- `Assets/Scripts/FrameworkMainMenuUI.cs`
+- `Assets/Scripts/FrameworkDebugUI.cs`
+- `Assets/Scripts/UI/EndingManager.cs`
+
+### Có hiện tại
+
+`SurvivalUIManager`:
+
+- HUD bars health/stamina/morale.
+- Day/phase/weather/coins text.
+- Dialogue typewriter and 2/3 choice buttons.
+- Inventory grid, item click handling, item use, nón lá equip, sandbag/floodboard prefab placement if Resources prefab exists.
+- Shop UI for O Thắm items.
+- Community and weather details panels.
+- Heat/cold/water screen overlays.
+- Toast notifications with regex highlight.
+- Controls legend.
+- Phase announcement and optional `VillageSpeakerBanner`.
+
+`TutorialManager`:
+
+- Tracks 4 NPC talk completion.
+- Calls farming tutorial after all talks.
+- Updates checklist via `UpdateTutorialQuestPanelText()`.
+- Current `ShowTutorial(Action)` immediately invokes callback after refreshing HUD.
+
+`FrameworkMainMenuUI`:
+
+- Main/pause/settings UI, key binding display, save/load partial data.
+
+`FrameworkDebugUI`:
+
+- F1 debug / demo controls and default item seeding.
+
+### Thiếu / partial
+
+- `StartEvacuationCountdown()` is toast-only, not a real timer panel.
+- `ShowDrownGameOverPanel()` is toast-only.
+- `ShowFarmingTutorialSlideshow()` is toast/callback fallback, not full slideshow.
+- Procedural UI is large and brittle; inspector references still need Unity validation.
 
 ---
 
-## 8. NPC Help System
-* **Mô tả:** Hệ thống tương trợ hai chiều giữa người chơi và dân làng thông qua các menu thoại đơn giản dạng nút bấm UI.
-* **Cài đặt Unity:**
-  * Tiếp cận NPC (O Thắm, Bác Năm), nhấn `[E]` để mở bảng tương tác gọn nhẹ gồm 3 lựa chọn:
-    1. **Tặng lương thực (Give Food):** Chuyển giao khoai từ hòm đồ sang NPC. Tăng điểm Nghĩa Tình.
-    2. **Đổi công (Vần công):** Tiêu hao 20 Thể lực giúp đỡ NPC dọn vườn/làm việc nhà, nhận về 1 điểm vần công tích lũy.
-    3. **Nhận hỗ trợ (Share Seeds/Incense):** O Thắm hỗ trợ đổi hạt giống/nhang tổ tiên bằng Xu hỗ trợ. Bác Năm chia sẻ hạt giống khoai phòng thân nếu Thành cạn kiệt nguồn lực.
+## 8. Interactions & Props
+
+### Có hiện tại
+
+- `AncestralAltar`: checks tutorial, checks pre-storm, consumes incense, restores morale, triggers storm.
+- `Coracle`: float/row boat during flood, enter/exit prompt.
+- `MudPuddle`: visible in `PhuSa`, consumes stamina, triggers dig animation, locks movement, destroys itself.
+- `FloodBarrier`: protection radius marker for crop flood protection.
+- `CockfightingZone` / `CockfightingMinigame`: optional experimental OnGUI minigame, pauses time and grants morale on win.
+
+### Scope note
+
+Cockfighting is **experimental** and should not be described as part of the main PRU213 survival demo unless the team explicitly chooses to keep it.
 
 ---
 
-## 9. Phase System
-* **Mô tả:** Phân chia game thành 4 giai đoạn thiên tai nối tiếp nhau dựa trên số ngày trôi qua:
-* **Phase 1: Tiếng Trống Đình Làng (Ngày 1 - 2):** Thời tiết ôn hòa. Người chơi tập trung cuốc đất dọn đá cải tạo đất cát hoang hóa.
-  * **Phase 2: Nắng Cháy Gió Lào (Ngày 3 - 4):** Nắng nóng cực đoan. Người chơi phải căn chỉnh thời gian ra đồng và tưới nước liên tục chống hạn.
-  * **Phase 3: Tình Người Trong Mưa Bão (Ngày 5 - 6):** Lũ dâng ngập. Cần di chuyển lương thực lên cao, dùng công Vần công chằng chống nhà cửa tránh sập đổ.
-  * **Phase 4: Phù Sa Sau Cơn Lũ (Ngày 7 trở đi):** Nước rút, tận dụng lớp phù sa bồi bồi dưỡng ruộng đất tái thiết đời sống cùng bà con.
+## 9. Priority Fix List
 
----
-
-## 10. Ending System
-* **Mô tả:** Khi hết ngày thứ 7 (kết thúc Phase 4), game dừng lại và gọi hàm `EvaluateEnding()` của hệ thống Nghĩa Tình.
-* **Cài đặt Unity:**
-  * Tắt các hoạt động điều khiển nhân vật.
-  * Bật bảng hiển thị kết cục (Ending Canvas Panel) kèm hình ảnh hoặc đoạn mô tả cốt truyện tương ứng với điểm số Nghĩa Tình đạt được, cho phép người chơi quay lại Menu chính hoặc bắt đầu lại hành trình cứu làng.
+1. Restore/verify `PlayerController` movement and farming interactions in Play Mode.
+2. Replace toast-only evacuation/game-over/tutorial fallbacks with real UI panels only if needed for demo.
+3. Wire `CommunityManager.TriggerStormHelpSequence()` at the intended phase point.
+4. Implement or remove docs references to roof sandbag slots and wall repair nodes.
+5. Decide save/load scope; either mark partial clearly in UI or persist inventory/world state.
+6. Decide cockfighting scope before final demo.

@@ -22,7 +22,7 @@ Các asset trực tiếp vận hành vòng lặp canh tác sinh tồn và di chu
     *   *Độ ưu tiên:* Cao (Priority 0).
 *   **3. Flood Water Plane (Mặt nước lũ)**
     *   *Trạng thái hiện tại:* Đã có tệp `water_waves.png` làm texture phủ nước.
-    *   *Đề xuất sử dụng:* Tấm phẳng 3D nước lũ nâng hạ độ cao theo biến `waterLevel` ở Phase 3.
+    *   *Đề xuất sử dụng:* Tấm phẳng 3D nước lũ nâng hạ độ cao theo biến `waterLevel` trong **Phase 2: After the Storm** (runtime mốc `MuaBao`).
     *   *Độ ưu tiên:* Cao (Priority 0).
     *   *Lưu ý kỹ thuật:* Bỏ MeshCollider trên water plane để nhân vật lội nước bình thường mà không bị chặn, chỉ kích hoạt hiệu ứng sinh lý lạnh.
 *   **4. Potato Crop 3D Models (Model Khoai Lang)**
@@ -72,7 +72,7 @@ Tăng chiều sâu thẩm mỹ sương gió của ngôi làng ven biển:
     *   *Độ ưu tiên:* Trung bình (Priority 1).
 *   **3. Silt Soil Texture (Đất phù sa bồi đắp)**
     *   *Trạng thái hiện tại:* Có tệp `silt_soil.png`.
-    *   *Đề xuất sử dụng:* Tự động đổi vật liệu đất trồng sang màu phù sa xám ẩm khi chuyển sang Phase 4 sau khi rút lũ.
+    *   *Đề xuất sử dụng:* Tự động đổi vật liệu đất trồng sang màu phù sa xám ẩm trong phần tái thiết của **Phase 2: After the Storm** (runtime mốc `PhuSa`) sau khi rút lũ.
     *   *Độ ưu tiên:* Trung bình (Priority 1).
 *   **4. Wood Logs & Rocks (`WoodLog.fbx` / `Rock_1..7.fbx`)**
     *   *Trạng thái hiện tại:* Sẵn có trong Ultimate Nature Pack.

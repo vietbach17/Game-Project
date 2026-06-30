@@ -194,6 +194,10 @@ namespace SownInStone.Weather
                     currentVisualWeather = WeatherType.BaoLu;
                     targetRainIntensity = 0.9f;
                     if (!isMenuOpen) SownInStone.Audio.AudioManager.Instance?.PlayAmbient("ambient_storm", 0.9f);
+                    if (SownInStone.UI.SurvivalUIManager.Instance != null)
+                    {
+                        SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast("⚠️ CẢNH BÁO BẢO LŨ! Hãy bọc Màng Nilon phủ ruộng, xếp Bao Cát & Tấm Chắn đê cứu xóm làng!");
+                    }
                     break;
 
                 case GamePhase.PhuSa:
