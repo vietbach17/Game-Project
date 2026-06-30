@@ -36,12 +36,12 @@ namespace SownInStone.UI
                 markerObj.transform.SetParent(canvas.transform, false);
 
                 RectTransform rect = markerObj.AddComponent<RectTransform>();
-                rect.sizeDelta = new Vector2(40f, 40f);
+                rect.sizeDelta = new Vector2(80f, 80f);
                 rect.pivot = new Vector2(0.5f, 0.5f);
 
                 TextMeshProUGUI txt = markerObj.AddComponent<TextMeshProUGUI>();
                 txt.text = "!";
-                txt.fontSize = 28;
+                txt.fontSize = 46;
                 txt.fontStyle = FontStyles.Bold;
                 txt.alignment = TextAlignmentOptions.Center;
                 txt.color = new Color(1f, 0.85f, 0.1f, 1f); // Màu vàng gold/vàng chanh sáng
@@ -104,6 +104,15 @@ namespace SownInStone.UI
                         else if (npc.characterType == NPCCharacter.StoryCharacterType.BacNam && !TutorialManager.Instance.sharedBacNam) shouldShow = true;
                         else if (npc.characterType == NPCCharacter.StoryCharacterType.CuBay && !TutorialManager.Instance.sharedCuBay) shouldShow = true;
                         else if (npc.characterType == NPCCharacter.StoryCharacterType.BeTi && !TutorialManager.Instance.sharedBeTi) shouldShow = true;
+                    }
+                    else if (stage == TutorialManager.TutorialStage.PrepareForStorm)
+                    {
+                        var activeJob = TutorialManager.Instance.activeStormJob;
+                        if (activeJob == TutorialManager.ActiveStormJob.None)
+                        {
+                            if (npc.characterType == NPCCharacter.StoryCharacterType.OTham) shouldShow = true;
+                            else if (npc.characterType == NPCCharacter.StoryCharacterType.BacNam) shouldShow = true;
+                        }
                     }
                     else if (stage == TutorialManager.TutorialStage.TalkToCuBayWorship)
                     {

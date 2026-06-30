@@ -46,8 +46,8 @@ Tài liệu này phản ánh trạng thái source hiện tại sau merge/compile
   5. **TalkToBacNamPreserve**: Bác Năm dặn dò chuẩn bị bão và hướng dẫn sấy khoai gieo.
   6. **CraftPreservedCrops**: Chế biến 4 khoai gieo tại Bếp Gas (có dấu chấm than dẫn đường).
   7. **SharePreservedCrops**: Tặng khoai gieo cho 4 dân làng (O Thắm, Bác Năm, Cụ Bảy, Bé Tí). Củ cuối cùng kích hoạt phát loa phường khẩn cấp báo bão.
-  8. **PrepareForStorm**: Giúp O Thắm đắp bao cát chắn cửa & Bác Năm gia cố mái lá nhà.
-  9. **PrepareOwnHouse**: Đắp bao cát gia cố nhà mình (tương tác `Thanh_House` phím `E`).
+  8. **PrepareForStorm**: O Thắm tặng 4 tấm chắn lũ để dựng trước cửa đại lý chắn nước, Bác Năm tặng 4 bao cát để xếp chằng chống mái tranh của bác. Cả hai nhiệm vụ đều sử dụng mô hình bóng ma trong suốt màu xanh dương (alpha = 0.35) tự động quét trong Scene, bắt khớp 2D XZ mượt mà với dung sai 3.5m, và khôi phục vật liệu gốc nguyên bản khi đặt xong. Các option đối thoại của NPC bị khóa kèm nhãn "Bạn đang làm việc của ... nhờ" tương ứng.
+  9. **PrepareOwnHouse**: Nhận 4 bao cát từ đống cát và đặt gia cố gọn gàng trước cửa nhà mình.
   10. **TalkToCuBayWorship**: Cụ Bảy tặng 1 Nén Nhang (có Toast thông báo).
   11. **WorshipAltar**: Thắp nhang bàn thờ Gia Tiên kết thúc hướng dẫn, chuyển sang Phase 2 (`MuaBao`).
 

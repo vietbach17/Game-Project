@@ -331,9 +331,11 @@ namespace SownInStone.UI
                 }
                 else if (stage == TutorialManager.TutorialStage.PrepareForStorm)
                 {
+                    var activeJob = TutorialManager.Instance.activeStormJob;
+
                     if (npc.characterType == NPCCharacter.StoryCharacterType.OTham)
                     {
-                        if (!TutorialManager.Instance.oThamPrepped)
+                        if (activeJob == TutorialManager.ActiveStormJob.None)
                         {
                             currentOptions.Add(new ProximityOption 
                             { 
@@ -341,18 +343,26 @@ namespace SownInStone.UI
                                 action = () => TriggerOThamPrep(npc) 
                             });
                         }
+                        else if (activeJob == TutorialManager.ActiveStormJob.OThamFloodboards)
+                        {
+                            currentOptions.Add(new ProximityOption 
+                            { 
+                                label = "Bạn đang làm việc của O Thắm nhờ", 
+                                action = null 
+                            });
+                        }
                         else
                         {
                             currentOptions.Add(new ProximityOption 
                             { 
-                                label = "[1] Trò chuyện (+5 Nghĩa Tình)", 
-                                action = () => TriggerTalk(npc) 
+                                label = "Bạn đang làm việc của Bác Năm nhờ", 
+                                action = null 
                             });
                         }
                     }
                     else if (npc.characterType == NPCCharacter.StoryCharacterType.BacNam)
                     {
-                        if (!TutorialManager.Instance.bacNamPrepped)
+                        if (activeJob == TutorialManager.ActiveStormJob.None)
                         {
                             currentOptions.Add(new ProximityOption 
                             { 
@@ -360,12 +370,20 @@ namespace SownInStone.UI
                                 action = () => TriggerBacNamPrep(npc) 
                             });
                         }
+                        else if (activeJob == TutorialManager.ActiveStormJob.BacNamSandbags)
+                        {
+                            currentOptions.Add(new ProximityOption 
+                            { 
+                                label = "Bạn đang làm việc của Bác Năm nhờ", 
+                                action = null 
+                            });
+                        }
                         else
                         {
                             currentOptions.Add(new ProximityOption 
                             { 
-                                label = "[1] Trò chuyện (+5 Nghĩa Tình)", 
-                                action = () => TriggerTalk(npc) 
+                                label = "Bạn đang làm việc của O Thắm nhờ", 
+                                action = null 
                             });
                         }
                     }
@@ -593,12 +611,19 @@ namespace SownInStone.UI
                 btnImage.color = new Color(0.24f, 0.20f, 0.16f, 1f); // Nâu đất vừa
 
                 Button btn = btnObj.AddComponent<Button>();
+                if (currentOptions[index].action == null)
+                {
+                    btn.interactable = false;
+                }
                 btn.onClick.AddListener(() => {
                     if (PlayerController.Instance != null)
                     {
                         npc.LookAtPlayer(PlayerController.Instance.transform);
                     }
-                    currentOptions[index].action();
+                    if (currentOptions[index].action != null)
+                    {
+                        currentOptions[index].action();
+                    }
                 });
 
                 // Thêm hiệu ứng màu nút khi di chuột
@@ -849,6 +874,7 @@ namespace SownInStone.UI
 
                     if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
                     {
+                        TutorialManager.Instance.RegisterTalkStart(npc.NPCName);
                         TutorialManager.Instance.OnPreservedCropShared(npc.characterType);
                     }
                 }
@@ -865,11 +891,20 @@ namespace SownInStone.UI
             targetAlpha = 0f;
             SurvivalUIManager.Instance?.ShowDialogue(
                 npc.NPCName, 
-                "\"Cảm ơn Thành nhiều nha, phụ o đắp thêm mấy bao cát này chắn trước cửa đại lý để nước lụt không tràn vào kho gạo của o. Con ngoan quá!\""
+                "\"O có sẵn 4 tấm chắn lũ (Floodboard) đây, con lấy và dựng chúng trước cửa đại lý để cản nước ngập kho gạo giúp o nhé!\""
             );
-            if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
+            if (StorageManager.Instance != null && SurvivalUIManager.Instance != null)
             {
-                TutorialManager.Instance.OnOThamPrepped();
+                ItemData board = SurvivalUIManager.Instance.FloodBoardItem;
+                if (board != null)
+                {
+                    StorageManager.Instance.AddItem(board, 4);
+                    SurvivalUIManager.Instance.ShowHUDToast("Bạn nhận được 4 Tấm chắn lũ từ O Thắm");
+                }
+            }
+            if (TutorialManager.Instance != null)
+            {
+                TutorialManager.Instance.StartOThamJob();
             }
         }
 
@@ -878,12 +913,39 @@ namespace SownInStone.UI
             targetAlpha = 0f;
             SurvivalUIManager.Instance?.ShowDialogue(
                 npc.NPCName, 
-                "\"Tốt quá Thành ơi, phụ bác kéo mấy sợi thừng này chằng mái lá lại, không bão giật bay mất mái nhà bác. Bác cảm ơn con và bà con nghe!\""
+                "\"Bác có sẵn 4 bao cát đây, con giúp bác đặt 4 bao cát này lên nóc mái nhà tranh để đè chằng chống cho mái khỏi bay nhé!\""
             );
-            if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
+            if (StorageManager.Instance != null && SurvivalUIManager.Instance != null)
             {
-                TutorialManager.Instance.OnBacNamPrepped();
+                ItemData sandbag = SurvivalUIManager.Instance.SandbagItem;
+                if (sandbag != null)
+                {
+                    StorageManager.Instance.AddItem(sandbag, 4);
+                    SurvivalUIManager.Instance.ShowHUDToast("Bạn nhận được 4 Bao cát từ Bác Năm");
+                }
             }
+            if (TutorialManager.Instance != null)
+            {
+                TutorialManager.Instance.StartBacNamJob();
+            }
+        }
+
+        private void TriggerOThamReminder(NPCCharacter npc)
+        {
+            targetAlpha = 0f;
+            SurvivalUIManager.Instance?.ShowDialogue(
+                npc.NPCName, 
+                "\"Con đang làm việc o nhờ mà, cố lên nhé! Hãy đặt 4 tấm chắn lũ trước cửa tiệm giúp o.\""
+            );
+        }
+
+        private void TriggerBacNamReminder(NPCCharacter npc)
+        {
+            targetAlpha = 0f;
+            SurvivalUIManager.Instance?.ShowDialogue(
+                npc.NPCName, 
+                "\"Con đang làm việc bác nhờ mà, cố lên nhé! Hãy đem 4 bao cát xếp lên mái nhà bác.\""
+            );
         }
 
         private void TriggerCuBayWorshipTalk(NPCCharacter npc)

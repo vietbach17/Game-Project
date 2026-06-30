@@ -55,6 +55,21 @@ namespace SownInStone
 
         public bool oThamPrepped = false;
         public bool bacNamPrepped = false;
+        public bool shouldTriggerLoudspeakerOnDialogueClose = false;
+        
+        public enum ActiveStormJob
+        {
+            None,
+            OThamFloodboards,
+            BacNamSandbags
+        }
+        public ActiveStormJob activeStormJob = ActiveStormJob.None;
+        public bool[] oThamTargetsPlaced = new bool[4];
+        public bool[] bacNamTargetsPlaced = new bool[4];
+
+        public int oThamBoardsPlaced = 0;
+        public int bacNamSandbagsPlaced = 0;
+        public int ownHouseSandbagsPlaced = 0;
 
         private bool talkDialogueActive = false;
         private string currentTalkSpeaker = "";
@@ -113,9 +128,14 @@ namespace SownInStone
             }
         }
 
+        public System.Collections.Generic.List<GameObject> ghostFloodboards = new System.Collections.Generic.List<GameObject>();
+        public System.Collections.Generic.List<GameObject> ghostSandbags = new System.Collections.Generic.List<GameObject>();
+        public System.Collections.Generic.Dictionary<Renderer, Material[]> originalGhostMaterials = new System.Collections.Generic.Dictionary<Renderer, Material[]>();
+
         private void Start()
         {
             npcsInScene = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Exclude);
+            InitializeGhostTargets();
         }
 
         private void LoadImages()
@@ -219,6 +239,14 @@ namespace SownInStone
                     }
                     UpdateHUDPanel();
                     CheckIntroQuestsProgress();
+                }
+                else if (shouldTriggerLoudspeakerOnDialogueClose)
+                {
+                    shouldTriggerLoudspeakerOnDialogueClose = false;
+                    currentStage = TutorialStage.PrepareForStorm;
+                    TriggerLoudspeakerAnnouncement();
+                    UpdateHUDPanel();
+                    npcsInScene = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Exclude);
                 }
             }
         }
@@ -344,8 +372,7 @@ namespace SownInStone
 
             if (sharedCount >= 4)
             {
-                currentStage = TutorialStage.PrepareForStorm;
-                TriggerLoudspeakerAnnouncement();
+                shouldTriggerLoudspeakerOnDialogueClose = true;
             }
             UpdateHUDPanel();
             npcsInScene = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Exclude);
@@ -363,45 +390,140 @@ namespace SownInStone
             }
         }
 
-        public void OnOThamPrepped()
+        public void StartOThamJob()
+        {
+            activeStormJob = ActiveStormJob.OThamFloodboards;
+            oThamBoardsPlaced = 0;
+            System.Array.Clear(oThamTargetsPlaced, 0, oThamTargetsPlaced.Length);
+            
+            foreach (var board in ghostFloodboards)
+            {
+                if (board != null) board.SetActive(true);
+            }
+
+            UpdateHUDPanel();
+            npcsInScene = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Exclude);
+        }
+
+        public void StartBacNamJob()
+        {
+            activeStormJob = ActiveStormJob.BacNamSandbags;
+            bacNamSandbagsPlaced = 0;
+            System.Array.Clear(bacNamTargetsPlaced, 0, bacNamTargetsPlaced.Length);
+
+            foreach (var bag in ghostSandbags)
+            {
+                if (bag != null) bag.SetActive(true);
+            }
+
+            // Dịch chuyển người chơi lên mái nhà Bác Năm
+            GameObject bacNamHouse = GameObject.Find("BacNam_House");
+            if (bacNamHouse != null)
+            {
+                Vector3 roofCenter = bacNamHouse.transform.position + Vector3.up * 4.3f;
+                if (PlayerController.Instance != null)
+                {
+                    PlayerController.Instance.transform.position = roofCenter;
+                    SurvivalUIManager.Instance?.ShowHUDToast("Đã lên mái nhà chằng chống");
+                }
+            }
+
+            UpdateHUDPanel();
+            npcsInScene = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Exclude);
+        }
+
+        public void OnOThamFloodBoardPlaced()
         {
             if (!isTutorialActive || currentStage != TutorialStage.PrepareForStorm) return;
-            oThamPrepped = true;
+            oThamBoardsPlaced++;
+            if (oThamBoardsPlaced >= 4)
+            {
+                oThamPrepped = true;
+                if (SurvivalUIManager.Instance != null)
+                {
+                    SurvivalUIManager.Instance.ShowDialogue("O Thắm", "\"O cảm ơn con nhiều nha! 4 tấm chắn lũ đã được dựng vững vàng trước cửa tiệm rồi!\"");
+                }
+            }
             CheckPrepStormComplete();
         }
 
-        public void OnBacNamPrepped()
+        public void OnBacNamSandbagPlaced()
         {
             if (!isTutorialActive || currentStage != TutorialStage.PrepareForStorm) return;
-            bacNamPrepped = true;
+            bacNamSandbagsPlaced++;
+            if (bacNamSandbagsPlaced >= 4)
+            {
+                bacNamPrepped = true;
+                if (SurvivalUIManager.Instance != null)
+                {
+                    SurvivalUIManager.Instance.ShowDialogue("Bác Năm", "\"Tốt lắm Thành ơi! 4 bao cát đã chằng chắc chắn trên nóc mái tranh của bác rồi, không sợ lốc thổi bay nữa!\"");
+                }
+
+                // Dịch chuyển xuống đất cạnh Bác Năm
+                var npcs = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Exclude);
+                var bacNamNPC = System.Array.Find(npcs, n => n.characterType == SownInStone.Community.NPCCharacter.StoryCharacterType.BacNam);
+                if (bacNamNPC != null && PlayerController.Instance != null)
+                {
+                    PlayerController.Instance.transform.position = bacNamNPC.transform.position + bacNamNPC.transform.forward * 1.5f;
+                }
+            }
             CheckPrepStormComplete();
         }
 
         private void CheckPrepStormComplete()
         {
-            if (oThamPrepped && bacNamPrepped)
+            if (activeStormJob == ActiveStormJob.OThamFloodboards && oThamPrepped)
             {
-                currentStage = TutorialStage.PrepareOwnHouse;
+                StartPrepareOwnHouseStage();
+            }
+            else if (activeStormJob == ActiveStormJob.BacNamSandbags && bacNamPrepped)
+            {
+                StartPrepareOwnHouseStage();
+            }
+            else
+            {
+                UpdateHUDPanel();
+            }
+            npcsInScene = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Exclude);
+        }
+
+        public void StartPrepareOwnHouseStage()
+        {
+            currentStage = TutorialStage.PrepareOwnHouse;
+            if (StorageManager.Instance != null && SurvivalUIManager.Instance != null)
+            {
+                ItemData sandbag = SurvivalUIManager.Instance.SandbagItem;
+                if (sandbag != null)
+                {
+                    StorageManager.Instance.AddItem(sandbag, 4);
+                    SurvivalUIManager.Instance.ShowHUDToast("Bạn nhận được 4 Bao cát để gia cố nhà mình");
+                }
             }
             UpdateHUDPanel();
             npcsInScene = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Exclude);
         }
 
-        public void OnOwnHousePrepared()
+        public void OnOwnHouseSandbagPlaced()
         {
             if (!isTutorialActive || currentStage != TutorialStage.PrepareOwnHouse) return;
-            
-            if (SurvivalUIManager.Instance != null)
+            ownHouseSandbagsPlaced++;
+            if (ownHouseSandbagsPlaced >= 4)
             {
-                SurvivalUIManager.Instance.ShowDialogue(
-                    "Nhà của bạn", 
-                    "\"Bạn đã chất bao cát chắn các khe cửa và buộc dây chằng cố định lại mái tranh của nhà mình. Nhà cửa đã tạm thời an toàn trước giông bão.\""
-                );
+                if (SurvivalUIManager.Instance != null)
+                {
+                    SurvivalUIManager.Instance.ShowDialogue(
+                        "Nhà của bạn", 
+                        "\"Bạn đã chất đủ 4 bao cát gia cố xung quanh cửa và mái nhà. Ngôi nhà của bạn hiện đã sẵn sàng ứng phó với cơn bão sắp tới!\""
+                    );
+                }
+                currentStage = TutorialStage.TalkToCuBayWorship;
+                UpdateHUDPanel();
+                npcsInScene = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Exclude);
             }
-            
-            currentStage = TutorialStage.TalkToCuBayWorship;
-            UpdateHUDPanel();
-            npcsInScene = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Exclude);
+            else
+            {
+                UpdateHUDPanel();
+            }
         }
 
         public void OnCuBayWorshipTalked()
@@ -643,12 +765,24 @@ namespace SownInStone
                 hudPanel.SetActive(true);
                 hudTitleText.text = "GIA CỐ TRƯỚC BÃO";
 
-                hudTaskAText.text = (oThamPrepped ? " <color=#2ECC71>✓</color> " : " <color=#E74C3C>☐</color> ") + "Hỗ trợ O Thắm chắn lũ";
-                hudTaskAText.color = oThamPrepped ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
-
-                hudTaskBText.text = (bacNamPrepped ? " <color=#2ECC71>✓</color> " : " <color=#E74C3C>☐</color> ") + "Hỗ trợ Bác Năm gia cố nhà";
-                hudTaskBText.color = bacNamPrepped ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
-                hudTaskBText.gameObject.SetActive(true);
+                if (activeStormJob == ActiveStormJob.None)
+                {
+                    hudTaskAText.text = " <color=#E74C3C>☐</color> Chọn 1 việc trong làng để hỗ trợ";
+                    hudTaskAText.color = Color.white;
+                    if (hudTaskBText != null) hudTaskBText.gameObject.SetActive(false);
+                }
+                else if (activeStormJob == ActiveStormJob.OThamFloodboards)
+                {
+                    hudTaskAText.text = (oThamPrepped ? " <color=#2ECC71>✓</color> " : " <color=#E74C3C>☐</color> ") + $"Hỗ trợ O Thắm chắn lũ ({oThamBoardsPlaced}/4)";
+                    hudTaskAText.color = oThamPrepped ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
+                    if (hudTaskBText != null) hudTaskBText.gameObject.SetActive(false);
+                }
+                else if (activeStormJob == ActiveStormJob.BacNamSandbags)
+                {
+                    hudTaskAText.text = (bacNamPrepped ? " <color=#2ECC71>✓</color> " : " <color=#E74C3C>☐</color> ") + $"Hỗ trợ Bác Năm chằng chống mái ({bacNamSandbagsPlaced}/4)";
+                    hudTaskAText.color = bacNamPrepped ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
+                    if (hudTaskBText != null) hudTaskBText.gameObject.SetActive(false);
+                }
 
                 if (hudTaskCText != null) hudTaskCText.gameObject.SetActive(false);
                 if (hudTaskDText != null) hudTaskDText.gameObject.SetActive(false);
@@ -658,8 +792,8 @@ namespace SownInStone
                 hudPanel.SetActive(true);
                 hudTitleText.text = "GIA CỐ NHÀ MÌNH";
 
-                hudTaskAText.text = " <color=#E74C3C>☐</color> Chuẩn bị bao cát bảo vệ nhà mình";
-                hudTaskAText.color = Color.white;
+                hudTaskAText.text = (ownHouseSandbagsPlaced >= 4 ? " <color=#2ECC71>✓</color> " : " <color=#E74C3C>☐</color> ") + $"Chuẩn bị bao cát bảo vệ nhà mình ({ownHouseSandbagsPlaced}/4)";
+                hudTaskAText.color = ownHouseSandbagsPlaced >= 4 ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
 
                 if (hudTaskBText != null) hudTaskBText.gameObject.SetActive(false);
                 if (hudTaskCText != null) hudTaskCText.gameObject.SetActive(false);
@@ -770,6 +904,9 @@ namespace SownInStone
             // Vẽ chỉ thị dẫn đến Nhà của bạn
             DrawHouseIndicator();
 
+            // Vẽ các chỉ thị đặt bao cát / ván chắn chống bão
+            DrawStormPrepIndicators();
+
             if (isShowing)
             {
                 int tempSlide = currentSlide;
@@ -792,136 +929,8 @@ namespace SownInStone
 
         private void DrawNPCIndicators()
         {
-            if (!isTutorialActive) return;
-            if (currentStage != TutorialStage.IntroQuests && 
-                currentStage != TutorialStage.TalkToOThamJob && 
-                currentStage != TutorialStage.SellCrops &&
-                currentStage != TutorialStage.TalkToBacNamPreserve &&
-                currentStage != TutorialStage.SharePreservedCrops &&
-                currentStage != TutorialStage.TalkToCuBayWorship) return;
-            if (Camera.main == null) return;
-
-            bool needsRefresh = (npcsInScene == null || npcsInScene.Length == 0);
-            if (!needsRefresh)
-            {
-                foreach (var npc in npcsInScene)
-                {
-                    if (npc == null)
-                    {
-                        needsRefresh = true;
-                        break;
-                    }
-                }
-            }
-
-            if (needsRefresh)
-            {
-                npcsInScene = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Exclude);
-            }
-
-            GUIStyle nameStyle = new GUIStyle();
-            nameStyle.alignment = TextAnchor.MiddleCenter;
-            nameStyle.normal.textColor = Color.white;
-            nameStyle.fontStyle = FontStyle.Bold;
-            nameStyle.fontSize = 11;
-
-            GUIStyle exclamationStyle = new GUIStyle();
-            exclamationStyle.alignment = TextAnchor.MiddleCenter;
-            exclamationStyle.normal.textColor = new Color(1f, 0.8f, 0f, 1f); // Vàng
-            exclamationStyle.fontStyle = FontStyle.Bold;
-            exclamationStyle.fontSize = 28;
-
-            foreach (var npc in npcsInScene)
-            {
-                if (npc == null) continue;
-
-                // Xác định xem NPC này đã hoàn thành trò chuyện chưa
-                bool isCompleted = false;
-                if (currentStage == TutorialStage.IntroQuests)
-                {
-                    if (npc.characterType == SownInStone.Community.NPCCharacter.StoryCharacterType.OTham) isCompleted = taskACompleted;
-                    else if (npc.characterType == SownInStone.Community.NPCCharacter.StoryCharacterType.BacNam) isCompleted = taskBCompleted;
-                    else if (npc.NPCName.Contains("Cụ Bảy")) isCompleted = taskCCompleted;
-                    else if (npc.NPCName.Contains("Bé Tí")) isCompleted = taskDCompleted;
-                    else continue;
-                }
-                else if (currentStage == TutorialStage.TalkToOThamJob || currentStage == TutorialStage.SellCrops)
-                {
-                    if (npc.characterType == SownInStone.Community.NPCCharacter.StoryCharacterType.OTham)
-                    {
-                        isCompleted = false; // Luôn hiện chỉ thị trên đầu O Thắm để giao việc / mua bán
-                    }
-                    else
-                    {
-                        continue;
-                    }
-                }
-                else if (currentStage == TutorialStage.TalkToBacNamPreserve)
-                {
-                    if (npc.characterType == SownInStone.Community.NPCCharacter.StoryCharacterType.BacNam)
-                    {
-                        isCompleted = false;
-                    }
-                    else
-                    {
-                        continue;
-                    }
-                }
-                else if (currentStage == TutorialStage.SharePreservedCrops)
-                {
-                    if (npc.characterType == SownInStone.Community.NPCCharacter.StoryCharacterType.OTham) isCompleted = sharedOTham;
-                    else if (npc.characterType == SownInStone.Community.NPCCharacter.StoryCharacterType.BacNam) isCompleted = sharedBacNam;
-                    else if (npc.characterType == SownInStone.Community.NPCCharacter.StoryCharacterType.CuBay) isCompleted = sharedCuBay;
-                    else if (npc.characterType == SownInStone.Community.NPCCharacter.StoryCharacterType.BeTi) isCompleted = sharedBeTi;
-                    else continue;
-                }
-                else if (currentStage == TutorialStage.TalkToCuBayWorship)
-                {
-                    if (npc.characterType == SownInStone.Community.NPCCharacter.StoryCharacterType.CuBay)
-                    {
-                        isCompleted = false;
-                    }
-                    else
-                    {
-                        continue;
-                    }
-                }
-                else
-                {
-                    continue;
-                }
-
-                if (isCompleted) continue;
-
-                // Chiều cao lơ lửng trên đầu NPC (khoảng 1.8m từ Visual)
-                Transform visualTrans = npc.transform.Find("Visual");
-                Vector3 basePos = visualTrans != null ? visualTrans.position : npc.transform.position;
-                Vector3 worldPos = basePos + Vector3.up * 1.8f;
-                Vector3 screenPos = Camera.main.WorldToScreenPoint(worldPos);
-
-                if (screenPos.z > 0)
-                {
-                    float guiY = Screen.height - screenPos.y;
-
-                    // Hiệu ứng nháy nhấp nháy cho dấu chấm than thêm phần sinh động
-                    float pulse = Mathf.PingPong(Time.time * 2f, 0.3f);
-                    exclamationStyle.normal.textColor = new Color(1f, 0.8f + pulse * 0.5f, 0f, 0.8f + pulse);
-
-                    // Vẽ bóng đổ chữ màu đen trước
-                    GUIStyle exShadow = new GUIStyle(exclamationStyle);
-                    exShadow.normal.textColor = new Color(0f, 0f, 0f, 0.8f);
-                    GUI.Label(new Rect(screenPos.x - 20 + 1, guiY - 25 + 1, 40, 25), "!", exShadow);
-                    // Vẽ dấu chấm than màu vàng
-                    GUI.Label(new Rect(screenPos.x - 20, guiY - 25, 40, 25), "!", exclamationStyle);
-
-                    // Vẽ bóng đổ cho tên NPC
-                    GUIStyle nameShadow = new GUIStyle(nameStyle);
-                    nameShadow.normal.textColor = new Color(0f, 0f, 0f, 0.8f);
-                    GUI.Label(new Rect(screenPos.x - 100 + 1, guiY + 1, 200, 20), npc.NPCName, nameShadow);
-                    // Vẽ tên NPC
-                    GUI.Label(new Rect(screenPos.x - 100, guiY, 200, 20), npc.NPCName, nameStyle);
-                }
-            }
+            // Vô hiệu hóa để sử dụng duy nhất hệ thống dấu chấm hỏi/chấm than nảy của NPCQuestMarkerUI
+            return;
         }
 
         private void DrawSoilIndicators()
@@ -1153,6 +1162,384 @@ namespace SownInStone
                 nameShadow.normal.textColor = new Color(0f, 0f, 0f, 0.8f);
                 GUI.Label(new Rect(screenPos.x - 100 + 1, guiY + 1, 200, 20), "Nhà Của Bạn", nameShadow);
                 GUI.Label(new Rect(screenPos.x - 100, guiY, 200, 20), "Nhà Của Bạn", nameStyle);
+            }
+        }
+
+        private void DrawStormPrepIndicators()
+        {
+            if (!isTutorialActive) return;
+            if (Camera.main == null) return;
+
+            GUIStyle nameStyle = new GUIStyle();
+            nameStyle.alignment = TextAnchor.MiddleCenter;
+            nameStyle.normal.textColor = new Color(1f, 0.6f, 0f, 1f); // Màu cam vàng
+            nameStyle.fontStyle = FontStyle.Bold;
+            nameStyle.fontSize = 11;
+
+            GUIStyle exclamationStyle = new GUIStyle();
+            exclamationStyle.alignment = TextAnchor.MiddleCenter;
+            exclamationStyle.normal.textColor = new Color(1f, 0.6f, 0f, 1f);
+            exclamationStyle.fontStyle = FontStyle.Bold;
+            exclamationStyle.fontSize = 32;
+
+            if (currentStage == TutorialStage.PrepareForStorm)
+            {
+                if (activeStormJob == ActiveStormJob.OThamFloodboards)
+                {
+                    if (ghostFloodboards.Count > 0)
+                    {
+                        for (int i = 0; i < ghostFloodboards.Count; i++)
+                        {
+                            if (ghostFloodboards[i] == null || oThamTargetsPlaced[i]) continue;
+
+                            Vector3 worldPos = ghostFloodboards[i].transform.position + Vector3.up * (1.2f + Mathf.Sin(Time.time * 6f) * 0.15f);
+                            Vector3 screenPos = Camera.main.WorldToScreenPoint(worldPos);
+
+                            if (screenPos.z > 0)
+                            {
+                                float guiY = Screen.height - screenPos.y;
+                                GUIStyle exShadow = new GUIStyle(exclamationStyle);
+                                exShadow.normal.textColor = new Color(0f, 0f, 0f, 0.8f);
+                                GUI.Label(new Rect(screenPos.x - 20 + 1, guiY - 25 + 1, 40, 25), "!", exShadow);
+                                GUI.Label(new Rect(screenPos.x - 20, guiY - 25, 40, 25), "!", exclamationStyle);
+
+                                GUIStyle nameShadow = new GUIStyle(nameStyle);
+                                nameShadow.normal.textColor = new Color(0f, 0f, 0f, 0.8f);
+                                GUI.Label(new Rect(screenPos.x - 100 + 1, guiY + 1, 200, 20), "Đặt ván chắn lũ", nameShadow);
+                                GUI.Label(new Rect(screenPos.x - 100, guiY, 200, 20), "Đặt ván chắn lũ", nameStyle);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // Lấy vị trí NPC O Thắm để tính toán dự phòng
+                        var npcs = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Exclude);
+                        var oTham = System.Array.Find(npcs, n => n.characterType == SownInStone.Community.NPCCharacter.StoryCharacterType.OTham);
+                        if (oTham != null)
+                        {
+                            Vector3 oThamPos = oTham.transform.position;
+                            Vector3 forward = oTham.transform.forward;
+                            Vector3 right = oTham.transform.right;
+
+                            Vector3[] targets = new Vector3[]
+                            {
+                                oThamPos + forward * 2.5f + right * -1.8f,
+                                oThamPos + forward * 2.5f + right * -0.6f,
+                                oThamPos + forward * 2.5f + right * 0.6f,
+                                oThamPos + forward * 2.5f + right * 1.8f
+                            };
+
+                            for (int i = 0; i < 4; i++)
+                            {
+                                if (oThamTargetsPlaced[i]) continue;
+
+                                Vector3 worldPos = targets[i] + Vector3.up * (1.2f + Mathf.Sin(Time.time * 6f) * 0.15f);
+                                Vector3 screenPos = Camera.main.WorldToScreenPoint(worldPos);
+
+                                if (screenPos.z > 0)
+                                {
+                                    float guiY = Screen.height - screenPos.y;
+                                    GUIStyle exShadow = new GUIStyle(exclamationStyle);
+                                    exShadow.normal.textColor = new Color(0f, 0f, 0f, 0.8f);
+                                    GUI.Label(new Rect(screenPos.x - 20 + 1, guiY - 25 + 1, 40, 25), "!", exShadow);
+                                    GUI.Label(new Rect(screenPos.x - 20, guiY - 25, 40, 25), "!", exclamationStyle);
+
+                                    GUIStyle nameShadow = new GUIStyle(nameStyle);
+                                    nameShadow.normal.textColor = new Color(0f, 0f, 0f, 0.8f);
+                                    GUI.Label(new Rect(screenPos.x - 100 + 1, guiY + 1, 200, 20), "Đặt ván chắn lũ", nameShadow);
+                                    GUI.Label(new Rect(screenPos.x - 100, guiY, 200, 20), "Đặt ván chắn lũ", nameStyle);
+                                }
+                            }
+                        }
+                    }
+                }
+                else if (activeStormJob == ActiveStormJob.BacNamSandbags)
+                {
+                    if (ghostSandbags.Count > 0)
+                    {
+                        for (int i = 0; i < ghostSandbags.Count; i++)
+                        {
+                            if (ghostSandbags[i] == null || bacNamTargetsPlaced[i]) continue;
+
+                            Vector3 worldPos = ghostSandbags[i].transform.position + Vector3.up * (1.2f + Mathf.Sin(Time.time * 6f) * 0.15f);
+                            Vector3 screenPos = Camera.main.WorldToScreenPoint(worldPos);
+
+                            if (screenPos.z > 0)
+                            {
+                                float guiY = Screen.height - screenPos.y;
+                                GUIStyle exShadow = new GUIStyle(exclamationStyle);
+                                exShadow.normal.textColor = new Color(0f, 0f, 0f, 0.8f);
+                                GUI.Label(new Rect(screenPos.x - 20 + 1, guiY - 25 + 1, 40, 25), "!", exShadow);
+                                GUI.Label(new Rect(screenPos.x - 20, guiY - 25, 40, 25), "!", exclamationStyle);
+
+                                GUIStyle nameShadow = new GUIStyle(nameStyle);
+                                nameShadow.normal.textColor = new Color(0f, 0f, 0f, 0.8f);
+                                GUI.Label(new Rect(screenPos.x - 100 + 1, guiY + 1, 200, 20), "Đặt bao cát mái", nameShadow);
+                                GUI.Label(new Rect(screenPos.x - 100, guiY, 200, 20), "Đặt bao cát mái", nameStyle);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        GameObject bacNamHouse = GameObject.Find("BacNam_House");
+                        if (bacNamHouse != null)
+                        {
+                            Vector3 roofCenter = bacNamHouse.transform.position + Vector3.up * 3.8f;
+                            Vector3[] targets = new Vector3[]
+                            {
+                                roofCenter + new Vector3(-1.2f, 0f, -0.8f),
+                                roofCenter + new Vector3(1.2f, 0.1f, -0.8f),
+                                roofCenter + new Vector3(-1.2f, 0.1f, 0.8f),
+                                roofCenter + new Vector3(1.2f, 0f, 0.8f)
+                            };
+
+                            for (int i = 0; i < 4; i++)
+                            {
+                                if (bacNamTargetsPlaced[i]) continue;
+
+                            Vector3 worldPos = targets[i] + Vector3.up * (1.2f + Mathf.Sin(Time.time * 6f) * 0.15f);
+                            Vector3 screenPos = Camera.main.WorldToScreenPoint(worldPos);
+
+                            if (screenPos.z > 0)
+                            {
+                                float guiY = Screen.height - screenPos.y;
+                                
+                                // Shadow
+                                GUIStyle exShadow = new GUIStyle(exclamationStyle);
+                                exShadow.normal.textColor = new Color(0f, 0f, 0f, 0.8f);
+                                GUI.Label(new Rect(screenPos.x - 20 + 1, guiY - 25 + 1, 40, 25), "!", exShadow);
+                                
+                                // Exclamation mark
+                                GUI.Label(new Rect(screenPos.x - 20, guiY - 25, 40, 25), "!", exclamationStyle);
+
+                                // Target text
+                                GUIStyle nameShadow = new GUIStyle(nameStyle);
+                                nameShadow.normal.textColor = new Color(0f, 0f, 0f, 0.8f);
+                                GUI.Label(new Rect(screenPos.x - 100 + 1, guiY + 1, 200, 20), "Đặt bao cát mái", nameShadow);
+                                GUI.Label(new Rect(screenPos.x - 100, guiY, 200, 20), "Đặt bao cát mái", nameStyle);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+            else if (currentStage == TutorialStage.PrepareOwnHouse)
+            {
+                // Hướng dẫn đặt bao cát cho chính nhà mình
+                GameObject ownHouse = GameObject.Find("Thanh_House");
+                if (ownHouse != null)
+                {
+                    Vector3 houseCenter = ownHouse.transform.position;
+                    Vector3[] targets = new Vector3[]
+                    {
+                        houseCenter + new Vector3(-1.5f, 0.1f, -1.0f),
+                        houseCenter + new Vector3(-0.5f, 0.1f, -1.0f),
+                        houseCenter + new Vector3(0.5f, 0.1f, -1.0f),
+                        houseCenter + new Vector3(1.5f, 0.1f, -1.0f)
+                    };
+
+                    for (int i = 0; i < 4; i++)
+                    {
+                        if (ownHouseSandbagsPlaced > i) continue;
+
+                        Vector3 worldPos = targets[i] + Vector3.up * (1.2f + Mathf.Sin(Time.time * 6f) * 0.15f);
+                        Vector3 screenPos = Camera.main.WorldToScreenPoint(worldPos);
+
+                        if (screenPos.z > 0)
+                        {
+                            float guiY = Screen.height - screenPos.y;
+                            
+                            // Shadow
+                            GUIStyle exShadow = new GUIStyle(exclamationStyle);
+                            exShadow.normal.textColor = new Color(0f, 0f, 0f, 0.8f);
+                            GUI.Label(new Rect(screenPos.x - 20 + 1, guiY - 25 + 1, 40, 25), "!", exShadow);
+                            
+                            // Exclamation mark
+                            GUI.Label(new Rect(screenPos.x - 20, guiY - 25, 40, 25), "!", exclamationStyle);
+
+                            // Target text
+                            GUIStyle nameShadow = new GUIStyle(nameStyle);
+                            nameShadow.normal.textColor = new Color(0f, 0f, 0f, 0.8f);
+                            GUI.Label(new Rect(screenPos.x - 100 + 1, guiY + 1, 200, 20), "Chặn cát tại đây", nameShadow);
+                            GUI.Label(new Rect(screenPos.x - 100, guiY, 200, 20), "Chặn cát tại đây", nameStyle);
+                        }
+                    }
+                }
+            }
+        }
+
+        private Material CreateGhostMaterial(Color color)
+        {
+            Shader shader = Shader.Find("Universal Render Pipeline/Lit");
+            if (shader == null) shader = Shader.Find("Standard");
+            if (shader == null) shader = Shader.Find("Legacy Shaders/Transparent/Diffuse");
+            if (shader == null) shader = Shader.Find("Sprites/Default");
+
+            Material mat = new Material(shader);
+            mat.color = color;
+
+            if (shader.name.Contains("Universal Render Pipeline"))
+            {
+                mat.SetFloat("_Surface", 1f); 
+                mat.SetFloat("_Blend", 0f); 
+                mat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                mat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                mat.SetInt("_ZWrite", 0);
+                mat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+                mat.renderQueue = 3000;
+                mat.SetColor("_BaseColor", color);
+            }
+            else
+            {
+                mat.SetFloat("_Mode", 2); 
+                mat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                mat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                mat.SetInt("_ZWrite", 0);
+                mat.DisableKeyword("_ALPHATEST_ON");
+                mat.EnableKeyword("_ALPHABLEND_ON");
+                mat.renderQueue = 3000;
+            }
+            return mat;
+        }
+
+        private void InitializeGhostTargets()
+        {
+            var allObjs = GameObject.FindObjectsByType<GameObject>(FindObjectsInactive.Include);
+            ghostFloodboards.Clear();
+            ghostSandbags.Clear();
+            originalGhostMaterials.Clear();
+
+            Material ghostMat = CreateGhostMaterial(new Color(0f, 0.6f, 1f, 0.35f));
+
+            foreach (var obj in allObjs)
+            {
+                if (obj == null) continue;
+                string lowerName = obj.name.ToLower();
+                
+                // Match preplaced floodboards
+                if (lowerName.Contains("floodboard") && !lowerName.Contains("deployed") && !obj.name.Contains("Clone") && obj.transform.root.name != "Resources")
+                {
+                    // Filter out child sub-meshes
+                    bool isChildOfAnotherMatched = false;
+                    Transform parent = obj.transform.parent;
+                    while (parent != null)
+                    {
+                        if (parent.name.ToLower().Contains("floodboard"))
+                        {
+                            isChildOfAnotherMatched = true;
+                            break;
+                        }
+                        parent = parent.parent;
+                    }
+                    if (isChildOfAnotherMatched) continue;
+
+                    ghostFloodboards.Add(obj);
+                    
+                    // Save original materials & apply ghost material
+                    Renderer[] renderers = obj.GetComponentsInChildren<Renderer>(true);
+                    foreach (var r in renderers)
+                    {
+                        if (r != null)
+                        {
+                            originalGhostMaterials[r] = r.sharedMaterials;
+                            
+                            Material[] newMats = new Material[r.sharedMaterials.Length];
+                            for (int m = 0; m < newMats.Length; m++)
+                            {
+                                newMats[m] = ghostMat;
+                            }
+                            r.materials = newMats;
+                        }
+                    }
+
+                    // Make triggers
+                    Collider[] colliders = obj.GetComponentsInChildren<Collider>(true);
+                    foreach (var col in colliders)
+                    {
+                        if (col != null) col.isTrigger = true;
+                    }
+
+                    obj.SetActive(false); 
+                }
+
+                // Match preplaced sandbags on the roof
+                if (lowerName.Contains("sandbag") && !lowerName.Contains("deployed") && !obj.name.Contains("Clone") && obj.transform.root.name != "Resources" && !lowerName.Contains("event"))
+                {
+                    // Filter out child sub-meshes
+                    bool isChildOfAnotherMatched = false;
+                    Transform parent = obj.transform.parent;
+                    while (parent != null)
+                    {
+                        if (parent.name.ToLower().Contains("sandbag"))
+                        {
+                            isChildOfAnotherMatched = true;
+                            break;
+                        }
+                        parent = parent.parent;
+                    }
+                    if (isChildOfAnotherMatched) continue;
+
+                    ghostSandbags.Add(obj);
+
+                    // Save original materials & apply ghost material
+                    Renderer[] renderers = obj.GetComponentsInChildren<Renderer>(true);
+                    foreach (var r in renderers)
+                    {
+                        if (r != null)
+                        {
+                            originalGhostMaterials[r] = r.sharedMaterials;
+                            
+                            Material[] newMats = new Material[r.sharedMaterials.Length];
+                            for (int m = 0; m < newMats.Length; m++)
+                            {
+                                newMats[m] = ghostMat;
+                            }
+                            r.materials = newMats;
+                        }
+                    }
+
+                    // Make triggers
+                    Collider[] colliders = obj.GetComponentsInChildren<Collider>(true);
+                    foreach (var col in colliders)
+                    {
+                        if (col != null) col.isTrigger = true;
+                    }
+
+                    obj.SetActive(false); 
+                }
+            }
+
+            // Sort lists to maintain stable indices
+            ghostFloodboards.Sort((a, b) => a.name.CompareTo(b.name));
+            ghostSandbags.Sort((a, b) => a.name.CompareTo(b.name));
+
+            Debug.Log($"[GHOST SETUP] Found {ghostFloodboards.Count} ghost floodboards and {ghostSandbags.Count} ghost sandbags in scene.");
+        }
+
+        public void MakeGhostModel(GameObject obj)
+        {
+            // Already handled by InitializeGhostTargets
+        }
+
+        public void MakeSolidModel(GameObject obj)
+        {
+            if (obj == null) return;
+            
+            // Enable solid collisions
+            Collider[] colliders = obj.GetComponentsInChildren<Collider>(true);
+            foreach (var col in colliders)
+            {
+                if (col != null) col.isTrigger = false;
+            }
+
+            // Restore original materials
+            Renderer[] renderers = obj.GetComponentsInChildren<Renderer>(true);
+            foreach (var r in renderers)
+            {
+                if (r != null && originalGhostMaterials.ContainsKey(r))
+                {
+                    r.materials = originalGhostMaterials[r];
+                }
             }
         }
     }

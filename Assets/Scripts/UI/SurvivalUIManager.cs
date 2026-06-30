@@ -139,6 +139,8 @@ namespace SownInStone.UI
         public bool IsWeatherDetailsOpen => isWeatherDetailsOpen;
         public TextMeshProUGUI SpeakerNameText => speakerNameText;
         public ItemData IncenseItem => incenseItem;
+        public ItemData SandbagItem => sandbagItem;
+        public ItemData FloodBoardItem => floodBoardItem;
 
         private void Awake()
         {
@@ -1532,10 +1534,243 @@ namespace SownInStone.UI
                                         Vector3 forwardOffset = PlayerController.Instance.transform.forward * 1.0f;
                                         forwardOffset.y = 0f;
                                         Vector3 finalPos = spawnPos + forwardOffset;
-                                        
-                                        GameObject deployed = Instantiate(prefab, finalPos, Quaternion.identity);
-                                        deployed.name = isSandbag ? "Deployed_Sandbag" : "Deployed_FloodBoard";
-                                        
+                                        bool didMakePrePlacedSolid = false;
+
+                                        if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
+                                        {
+                                            var stage = TutorialManager.Instance.currentStage;
+                                            if (stage == TutorialManager.TutorialStage.PrepareForStorm)
+                                            {
+                                                if (isSandbag)
+                                                {
+                                                    if (TutorialManager.Instance.ghostSandbags.Count > 0)
+                                                    {
+                                                        int bestIndex = -1;
+                                                        float minDistance = float.MaxValue;
+                                                        for (int i = 0; i < TutorialManager.Instance.ghostSandbags.Count; i++)
+                                                        {
+                                                            if (i >= 4) break;
+                                                            if (TutorialManager.Instance.bacNamTargetsPlaced[i]) continue;
+                                                            Vector3 spawnPos2D = spawnPos;
+                                                            Vector3 targetPos2D = TutorialManager.Instance.ghostSandbags[i].transform.position;
+                                                            spawnPos2D.y = 0f;
+                                                            targetPos2D.y = 0f;
+                                                            float dist = Vector3.Distance(spawnPos2D, targetPos2D);
+                                                            if (dist < minDistance)
+                                                            {
+                                                                minDistance = dist;
+                                                                bestIndex = i;
+                                                            }
+                                                        }
+                                                        
+                                                        if (bestIndex != -1 && minDistance < 3.5f)
+                                                        {
+                                                            TutorialManager.Instance.MakeSolidModel(TutorialManager.Instance.ghostSandbags[bestIndex]);
+                                                            TutorialManager.Instance.bacNamTargetsPlaced[bestIndex] = true;
+                                                            TutorialManager.Instance.OnBacNamSandbagPlaced();
+                                                            didMakePrePlacedSolid = true;
+                                                        }
+                                                        else
+                                                        {
+                                                            PlayerStats.Instance?.TriggerAlert("Hãy đến gần chấm chỉ dẫn trên mái để đặt!");
+                                                            StorageManager.Instance?.AddItem(item, 1);
+                                                            RefreshInventoryUI();
+                                                            CloseDialogue();
+                                                            return;
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        GameObject bacNamHouse = GameObject.Find("BacNam_House");
+                                                        if (bacNamHouse != null && Vector3.Distance(spawnPos, bacNamHouse.transform.position) < 15f)
+                                                        {
+                                                            Vector3 roofCenter = bacNamHouse.transform.position + Vector3.up * 3.8f;
+                                                            Vector3[] roofOffsets = new Vector3[]
+                                                            {
+                                                                new Vector3(-1.2f, 0f, -0.8f),
+                                                                new Vector3(1.2f, 0.1f, -0.8f),
+                                                                new Vector3(-1.2f, 0.1f, 0.8f),
+                                                                new Vector3(1.2f, 0f, 0.8f)
+                                                            };
+                                                            
+                                                            int bestIndex = -1;
+                                                            float minDistance = float.MaxValue;
+                                                            for (int i = 0; i < 4; i++)
+                                                            {
+                                                                if (TutorialManager.Instance.bacNamTargetsPlaced[i]) continue;
+                                                                Vector3 spawnPos2D = spawnPos;
+                                                                Vector3 targetPos2D = roofCenter + roofOffsets[i];
+                                                                spawnPos2D.y = 0f;
+                                                                targetPos2D.y = 0f;
+                                                                float dist = Vector3.Distance(spawnPos2D, targetPos2D);
+                                                                if (dist < minDistance)
+                                                                {
+                                                                    minDistance = dist;
+                                                                    bestIndex = i;
+                                                                }
+                                                            }
+                                                            
+                                                            if (bestIndex != -1 && minDistance < 3.5f)
+                                                            {
+                                                                finalPos = roofCenter + roofOffsets[bestIndex];
+                                                                TutorialManager.Instance.bacNamTargetsPlaced[bestIndex] = true;
+                                                                TutorialManager.Instance.OnBacNamSandbagPlaced();
+                                                            }
+                                                            else
+                                                            {
+                                                                PlayerStats.Instance?.TriggerAlert("Hãy đến gần chấm chỉ dẫn trên mái để đặt!");
+                                                                StorageManager.Instance?.AddItem(item, 1);
+                                                                RefreshInventoryUI();
+                                                                CloseDialogue();
+                                                                return;
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    if (TutorialManager.Instance.ghostFloodboards.Count > 0)
+                                                    {
+                                                        int bestIndex = -1;
+                                                        float minDistance = float.MaxValue;
+                                                        for (int i = 0; i < TutorialManager.Instance.ghostFloodboards.Count; i++)
+                                                        {
+                                                            if (i >= 4) break;
+                                                            if (TutorialManager.Instance.oThamTargetsPlaced[i]) continue;
+                                                            Vector3 spawnPos2D = spawnPos;
+                                                            Vector3 targetPos2D = TutorialManager.Instance.ghostFloodboards[i].transform.position;
+                                                            spawnPos2D.y = 0f;
+                                                            targetPos2D.y = 0f;
+                                                            float dist = Vector3.Distance(spawnPos2D, targetPos2D);
+                                                            if (dist < minDistance)
+                                                            {
+                                                                minDistance = dist;
+                                                                bestIndex = i;
+                                                            }
+                                                        }
+                                                        
+                                                        if (bestIndex != -1 && minDistance < 3.5f)
+                                                        {
+                                                            TutorialManager.Instance.MakeSolidModel(TutorialManager.Instance.ghostFloodboards[bestIndex]);
+                                                            TutorialManager.Instance.oThamTargetsPlaced[bestIndex] = true;
+                                                            TutorialManager.Instance.OnOThamFloodBoardPlaced();
+                                                            didMakePrePlacedSolid = true;
+                                                        }
+                                                        else
+                                                        {
+                                                            PlayerStats.Instance?.TriggerAlert("Hãy đến gần chấm chỉ dẫn trước cửa tiệm để đặt!");
+                                                            StorageManager.Instance?.AddItem(item, 1);
+                                                            RefreshInventoryUI();
+                                                            CloseDialogue();
+                                                            return;
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        var npcs = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Exclude);
+                                                        var oTham = System.Array.Find(npcs, n => n.characterType == NPCCharacter.StoryCharacterType.OTham);
+                                                        if (oTham != null && Vector3.Distance(spawnPos, oTham.transform.position) < 15f)
+                                                        {
+                                                            Vector3 oThamPos = oTham.transform.position;
+                                                            Vector3 forward = oTham.transform.forward;
+                                                            Vector3 right = oTham.transform.right;
+
+                                                            Vector3[] targets = new Vector3[]
+                                                            {
+                                                                oThamPos + forward * 2.5f + right * -1.8f,
+                                                                oThamPos + forward * 2.5f + right * -0.6f,
+                                                                oThamPos + forward * 2.5f + right * 0.6f,
+                                                                oThamPos + forward * 2.5f + right * 1.8f
+                                                            };
+
+                                                            int bestIndex = -1;
+                                                            float minDistance = float.MaxValue;
+                                                            for (int i = 0; i < 4; i++)
+                                                            {
+                                                                if (TutorialManager.Instance.oThamTargetsPlaced[i]) continue;
+                                                                Vector3 spawnPos2D = spawnPos;
+                                                                Vector3 targetPos2D = targets[i];
+                                                                spawnPos2D.y = 0f;
+                                                                targetPos2D.y = 0f;
+                                                                float dist = Vector3.Distance(spawnPos2D, targetPos2D);
+                                                                if (dist < minDistance)
+                                                                {
+                                                                    minDistance = dist;
+                                                                    bestIndex = i;
+                                                                }
+                                                            }
+
+                                                            if (bestIndex != -1 && minDistance < 3.5f)
+                                                            {
+                                                                finalPos = targets[bestIndex];
+                                                                TutorialManager.Instance.oThamTargetsPlaced[bestIndex] = true;
+                                                                TutorialManager.Instance.OnOThamFloodBoardPlaced();
+                                                            }
+                                                            else
+                                                            {
+                                                                PlayerStats.Instance?.TriggerAlert("Hãy đến gần chấm chỉ dẫn trước cửa tiệm để đặt!");
+                                                                StorageManager.Instance?.AddItem(item, 1);
+                                                                RefreshInventoryUI();
+                                                                CloseDialogue();
+                                                                return;
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            else if (stage == TutorialManager.TutorialStage.PrepareOwnHouse)
+                                            {
+                                                if (isSandbag)
+                                                {
+                                                    GameObject ownHouse = GameObject.Find("Thanh_House");
+                                                    if (ownHouse != null && Vector3.Distance(spawnPos, ownHouse.transform.position) < 15f)
+                                                    {
+                                                        Vector3 houseCenter = ownHouse.transform.position;
+                                                        Vector3[] houseOffsets = new Vector3[]
+                                                        {
+                                                            houseCenter + new Vector3(-1.5f, 0.1f, -1.0f),
+                                                            houseCenter + new Vector3(-0.5f, 0.1f, -1.0f),
+                                                            houseCenter + new Vector3(0.5f, 0.1f, -1.0f),
+                                                            houseCenter + new Vector3(1.5f, 0.1f, -1.0f)
+                                                        };
+
+                                                        int bestIndex = -1;
+                                                        float minDistance = float.MaxValue;
+                                                        for (int i = 0; i < 4; i++)
+                                                        {
+                                                            if (TutorialManager.Instance.ownHouseSandbagsPlaced > i) continue;
+                                                            float dist = Vector3.Distance(spawnPos, houseOffsets[i]);
+                                                            if (dist < minDistance)
+                                                            {
+                                                                minDistance = dist;
+                                                                bestIndex = i;
+                                                            }
+                                                        }
+
+                                                        if (bestIndex != -1 && minDistance < 3f)
+                                                        {
+                                                            finalPos = houseOffsets[bestIndex];
+                                                            TutorialManager.Instance.OnOwnHouseSandbagPlaced();
+                                                        }
+                                                        else
+                                                        {
+                                                            PlayerStats.Instance?.TriggerAlert("Hãy đến gần chấm chỉ dẫn trước nhà để đặt!");
+                                                            StorageManager.Instance?.AddItem(item, 1);
+                                                            RefreshInventoryUI();
+                                                            CloseDialogue();
+                                                            return;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        if (!didMakePrePlacedSolid)
+                                        {
+                                            GameObject deployed = Instantiate(prefab, finalPos, Quaternion.identity);
+                                            deployed.name = isSandbag ? "Deployed_Sandbag" : "Deployed_FloodBoard";
+                                        }
+
                                         PlayerStats.Instance?.TriggerAlert($"Đã đặt {item.ItemName}!");
                                     }
                                     else
