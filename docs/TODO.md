@@ -30,6 +30,7 @@ Cập nhật: **2026-06-29**.
 - [x] Đếm ngược chạy lũ 45 giây và logic di chuyển lên nóc nhà khi hoàn thành cứu hộ.
 - [x] Khóa góc camera đứng yên khi mở Tab xem thông tin hành trang và mở lại khi đóng.
 - [x] Tự động hồi phục +5 thể lực mỗi giây khi người chơi đứng yên tại chỗ.
+- [x] Sửa lỗi khóa cứng con trỏ chuột khi hiển thị các bảng UI (hướng dẫn, túi đồ, cửa hàng, kết thúc game).
 
 ### NPC & Community
 - [x] Khắc phục triệt để lỗi NPC tự xoay khi đi ngang qua và xoay lệch tâm (mesh visual được CenterVisualModel chuẩn hóa tại Runtime, đóng băng Rigidbody).

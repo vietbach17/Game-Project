@@ -763,6 +763,18 @@ namespace SownInStone.UI
             if (dialoguePanel == null) return;
 
             dialoguePanel.SetActive(true);
+            
+            // Ép dialoguePanel luôn vẽ trên cùng mọi thứ (vượt qua cả Hotbar)
+            Canvas diagCanvas = dialoguePanel.GetComponent<Canvas>();
+            if (diagCanvas == null)
+            {
+                diagCanvas = dialoguePanel.AddComponent<Canvas>();
+                dialoguePanel.AddComponent<UnityEngine.UI.GraphicRaycaster>();
+            }
+            diagCanvas.overrideSorting = true;
+            diagCanvas.sortingOrder = 100;
+
+            dialoguePanel.transform.SetAsLastSibling();
             isDialogueActive = true;
             isChoiceActive = false;
 
@@ -797,6 +809,18 @@ namespace SownInStone.UI
             if (dialoguePanel == null) return;
 
             dialoguePanel.SetActive(true);
+            
+            // Ép dialoguePanel luôn vẽ trên cùng mọi thứ (vượt qua cả Hotbar)
+            Canvas diagCanvas = dialoguePanel.GetComponent<Canvas>();
+            if (diagCanvas == null)
+            {
+                diagCanvas = dialoguePanel.AddComponent<Canvas>();
+                dialoguePanel.AddComponent<UnityEngine.UI.GraphicRaycaster>();
+            }
+            diagCanvas.overrideSorting = true;
+            diagCanvas.sortingOrder = 100;
+
+            dialoguePanel.transform.SetAsLastSibling();
             isDialogueActive = true;
             isChoiceActive = true;
 
