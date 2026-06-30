@@ -14,25 +14,41 @@ namespace SownInStone.Interactions
         [SerializeField] private ItemData freshCropItem;
         [SerializeField] private ItemData preservedCropItem;
 
-#if UNITY_EDITOR
         private void Awake()
+        {
+            EnsureItemsLoaded();
+        }
+
+        private void EnsureItemsLoaded()
         {
             if (freshCropItem == null)
             {
+#if UNITY_EDITOR
                 freshCropItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_FreshCrop.asset");
+#endif
+                if (freshCropItem == null)
+                {
+                    freshCropItem = Resources.Load<ItemData>("Data/Item_FreshCrop");
+                }
             }
             if (preservedCropItem == null)
             {
+#if UNITY_EDITOR
                 preservedCropItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_PreservedCrop.asset");
+#endif
+                if (preservedCropItem == null)
+                {
+                    preservedCropItem = Resources.Load<ItemData>("Data/Item_PreservedCrop");
+                }
             }
         }
-#endif
 
         /// <summary>
         /// Kích hoạt tương tác bếp ga khi người chơi nhấn E.
         /// </summary>
         public void Interact()
         {
+            EnsureItemsLoaded();
             if (SurvivalUIManager.Instance == null) return;
 
             SurvivalUIManager.Instance.ShowDialogueWithChoices(
@@ -47,16 +63,19 @@ namespace SownInStone.Interactions
 
         private void ProcessDryCrops()
         {
+            EnsureItemsLoaded();
             if (StorageManager.Instance == null || freshCropItem == null || preservedCropItem == null)
             {
                 CloseAndShowToast("Có lỗi xảy ra: Không tìm thấy hệ thống vật phẩm!");
                 return;
             }
 
-            // Kiểm tra số lượng khoai lang tươi trong kho đồ
-            var slots = StorageManager.Instance.GetStorageSlots();
-            var slot = slots.Find(s => s.item != null && s.item.ItemID == freshCropItem.ItemID);
-            int currentQty = slot != null ? slot.quantity : 0;
+            // Kiểm tra số lượng khoai lang tươi trong cả Balo lẫn Rương dự trữ
+            int currentQty = 0;
+            var backpackSlot = StorageManager.Instance.GetStorageSlots().Find(s => s.item != null && s.item.ItemID == freshCropItem.ItemID);
+            var chestSlot = StorageManager.Instance.GetReserveChestSlots().Find(s => s.item != null && s.item.ItemID == freshCropItem.ItemID);
+            if (backpackSlot != null) currentQty += backpackSlot.quantity;
+            if (chestSlot != null) currentQty += chestSlot.quantity;
 
             if (currentQty >= 2)
             {
@@ -86,16 +105,19 @@ namespace SownInStone.Interactions
 
         private void CookFreshCrop()
         {
+            EnsureItemsLoaded();
             if (StorageManager.Instance == null || freshCropItem == null)
             {
                 CloseAndShowToast("Có lỗi xảy ra: Không tìm thấy hệ thống vật phẩm!");
                 return;
             }
 
-            // Kiểm tra số lượng khoai lang tươi trong kho đồ
-            var slots = StorageManager.Instance.GetStorageSlots();
-            var slot = slots.Find(s => s.item != null && s.item.ItemID == freshCropItem.ItemID);
-            int currentQty = slot != null ? slot.quantity : 0;
+            // Kiểm tra số lượng khoai lang tươi trong cả Balo lẫn Rương dự trữ
+            int currentQty = 0;
+            var backpackSlot = StorageManager.Instance.GetStorageSlots().Find(s => s.item != null && s.item.ItemID == freshCropItem.ItemID);
+            var chestSlot = StorageManager.Instance.GetReserveChestSlots().Find(s => s.item != null && s.item.ItemID == freshCropItem.ItemID);
+            if (backpackSlot != null) currentQty += backpackSlot.quantity;
+            if (chestSlot != null) currentQty += chestSlot.quantity;
 
             if (currentQty >= 1)
             {

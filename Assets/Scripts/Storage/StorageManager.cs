@@ -50,12 +50,11 @@ namespace SownInStone.Storage
         private void Start()
         {
             storageSlots.Clear(); // Khởi đầu trắng tay: xóa toàn bộ kho đồ khi bắt đầu game
+            reserveChestSlots.Clear(); // Xóa rương đồ dự trữ ban đầu để bắt đầu trống không
             if (GameManager.Instance != null)
             {
                 GameManager.Instance.OnDayChanged += OnNewDayDecayCheck;
             }
-
-            AutoLoadDefaultItems();
         }
 
         private void AutoLoadDefaultItems()
@@ -95,7 +94,7 @@ namespace SownInStone.Storage
 
             if (id.Contains("potato") || name.Contains("khoai"))
             {
-                return 15; // Khoai lang giới hạn 15 trong balo
+                return 30; // Khoai lang: cho phép stack tối đa 30 (đủ chứa 24 khoai thu hoạch 1 lần)
             }
             if (id.Contains("sandbag") || id.Contains("board") || id.Contains("mulch") || name.Contains("đá") || name.Contains("bùn") || name.Contains("gỗ"))
             {

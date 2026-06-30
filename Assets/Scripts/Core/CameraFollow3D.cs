@@ -180,8 +180,8 @@ namespace SownInStone.Core
         /// <summary>Áp dụng trạng thái cursor phù hợp với mode hiện tại.</summary>
         private void ApplyCursorState()
         {
-            bool shouldLock = (currentMode == CameraMode.ThirdPerson ||
-                               currentMode == CameraMode.FirstPerson);
+            // Chỉ tự động khóa trỏ chuột ở chế độ góc nhìn thứ nhất (FirstPerson)
+            bool shouldLock = (currentMode == CameraMode.FirstPerson);
             if (shouldLock)
             {
                 Cursor.lockState = CursorLockMode.Locked;
@@ -269,10 +269,10 @@ namespace SownInStone.Core
             currentPitch   = defaultPitch;
             targetDistance = distance;
 
-            // Ẩn con trỏ chuột, khóa vào giữa màn hình
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible   = false;
-            isCursorLocked   = true;
+            // Bắt đầu chế độ ThirdPerson với cursor tự do (giữ chuột phải mới xoay)
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible   = true;
+            isCursorLocked   = false;
 
             if (target != null)
             {
@@ -358,12 +358,18 @@ namespace SownInStone.Core
                 }
                 else
                 {
-                    bool shouldLock = (currentMode == CameraMode.ThirdPerson || currentMode == CameraMode.FirstPerson);
+                    bool shouldLock = (currentMode == CameraMode.FirstPerson);
                     if (shouldLock)
                     {
                         Cursor.lockState = CursorLockMode.Locked;
                         Cursor.visible = false;
                         isCursorLocked = true;
+                    }
+                    else
+                    {
+                        Cursor.lockState = CursorLockMode.None;
+                        Cursor.visible = true;
+                        isCursorLocked = false;
                     }
                 }
                 wasUIOpen = isUIOpen;
@@ -430,22 +436,38 @@ namespace SownInStone.Core
                 targetDistance = Mathf.Clamp(targetDistance - scroll * zoomSpeed, minDistance, maxDistance);
             distance = Mathf.Lerp(distance, targetDistance, Time.deltaTime * 10f);
 
-            // 2. Rotation — luôn xoay theo chuột (cursor đã bị lock, không cần giữ RMB)
+            // 2. Rotation — chỉ xoay khi giữ chuột phải (RMB)
             float mouseX = 0f, mouseY = 0f;
-            if (!ShouldReleaseCursor())
+            bool isRMBHeld = Input.GetMouseButton(1);
+            
+            if (!isUIOpen)
             {
-#if ENABLE_INPUT_SYSTEM
-                if (Mouse.current != null)
+                if (isRMBHeld)
                 {
-                    Vector2 delta = Mouse.current.delta.ReadValue();
-                    mouseX = delta.x * 0.1f;
-                    mouseY = delta.y * 0.1f;
-                }
+                    Cursor.lockState = CursorLockMode.Locked;
+                    Cursor.visible = false;
+                    isCursorLocked = true;
+
+#if ENABLE_INPUT_SYSTEM
+                    if (Mouse.current != null)
+                    {
+                        Vector2 delta = Mouse.current.delta.ReadValue();
+                        mouseX = delta.x * 0.1f;
+                        mouseY = delta.y * 0.1f;
+                    }
 #else
-                mouseX = Input.GetAxis("Mouse X");
-                mouseY = Input.GetAxis("Mouse Y");
+                    mouseX = Input.GetAxis("Mouse X");
+                    mouseY = Input.GetAxis("Mouse Y");
 #endif
+                }
+                else
+                {
+                    Cursor.lockState = CursorLockMode.None;
+                    Cursor.visible = true;
+                    isCursorLocked = false;
+                }
             }
+            
             currentYaw   += mouseX * yawSensitivity;
             currentPitch -= mouseY * pitchSensitivity;
             currentPitch  = Mathf.Clamp(currentPitch, minPitch, maxPitch);

@@ -244,6 +244,16 @@ namespace SownInStone.Community
                 return npcData.GetDialogue(currentPhase, Affection);
             }
 
+            // Ghi đè hội thoại theo yêu cầu của User
+            if (characterType == StoryCharacterType.OTham)
+            {
+                return "\"Thành đấy hả con, lâu quá rồi không gặp con nhỉ\"";
+            }
+            if (characterType == StoryCharacterType.BeTi)
+            {
+                return "\"aaa chú Thànhhhhhh\"";
+            }
+
             // Ngược lại, trả về lời thoại cốt truyện được viết tay cực hay cho Bác Năm và O Thắm
             return GetFallbackStoryDialogue(currentPhase);
         }

@@ -541,46 +541,54 @@ namespace SownInStone.Agriculture
             UpdateVisualSprite();
         }
 
+        // Cache GUIStyle de tranh tao moi moi frame gay tut FPS
+        private static GUIStyle cachedStyle = null;
+        private static GUIStyle cachedShadow = null;
+        private static bool cachedStylesInitialized = false;
+        private static Camera cachedMainCamera = null;
+
+        private static void InitCachedStyles()
+        {
+            if (cachedStylesInitialized) return;
+            cachedStyle = new GUIStyle();
+            cachedStyle.alignment = TextAnchor.MiddleCenter;
+            cachedStyle.fontStyle = FontStyle.Bold;
+            cachedStyle.fontSize = 11;
+            cachedShadow = new GUIStyle(cachedStyle);
+            cachedShadow.normal.textColor = Color.black;
+            cachedStylesInitialized = true;
+        }
+
         private void OnGUI()
         {
             if (isWithered || isRotted) return;
             if (cropData == null || currentGrowthDays >= cropData.DaysToMature) return;
-            if (Camera.main == null) return;
-
-            // Xác định tọa độ 3D phía trên cây trồng (offset Y là 0.8 mét)
+            if (cachedMainCamera == null && Camera.main != null)
+                cachedMainCamera = Camera.main;
+            if (cachedMainCamera == null) return;
+            InitCachedStyles();
             Vector3 worldPos = transform.position + Vector3.up * 0.8f;
-            Vector3 screenPos = Camera.main.WorldToScreenPoint(worldPos);
-
+            Vector3 screenPos = cachedMainCamera.WorldToScreenPoint(worldPos);
             if (screenPos.z > 0)
             {
                 float guiY = Screen.height - screenPos.y;
-                GUIStyle style = new GUIStyle();
-                style.alignment = TextAnchor.MiddleCenter;
-                style.fontStyle = FontStyle.Bold;
-                style.fontSize = 11;
-
-                // Vẽ bóng đổ chữ màu đen
-                GUIStyle shadow = new GUIStyle(style);
-                shadow.normal.textColor = Color.black;
-
                 if (parentSoil != null && parentSoil.Moisture < 35f)
                 {
-                    style.normal.textColor = new Color(0.9f, 0.3f, 0.3f, 1f); // Màu đỏ
-                    GUI.Label(new Rect(screenPos.x - 60 + 1, guiY - 15 + 1, 120, 30), "Cần tưới nước", shadow);
-                    GUI.Label(new Rect(screenPos.x - 60, guiY - 15, 120, 30), "Cần tưới nước", style);
+                    cachedStyle.normal.textColor = new Color(0.9f, 0.3f, 0.3f, 1f);
+                    GUI.Label(new Rect(screenPos.x - 60 + 1, guiY - 15 + 1, 120, 30), "Can tuoi nuoc", cachedShadow);
+                    GUI.Label(new Rect(screenPos.x - 60, guiY - 15, 120, 30), "Can tuoi nuoc", cachedStyle);
                 }
                 else
                 {
-                    // Tính số giây đếm ngược còn lại
                     float ratio = currentGrowthDays / cropData.DaysToMature;
                     float remainingSeconds = 15f * (1f - ratio);
                     if (remainingSeconds <= 0.1f) return;
-
-                    style.normal.textColor = new Color(0.9f, 0.9f, 0.9f, 1f);
-                    GUI.Label(new Rect(screenPos.x - 50 + 1, guiY - 15 + 1, 100, 30), $"{remainingSeconds:F0}s", shadow);
-                    GUI.Label(new Rect(screenPos.x - 50, guiY - 15, 100, 30), $"{remainingSeconds:F0}s", style);
+                    cachedStyle.normal.textColor = new Color(0.9f, 0.9f, 0.9f, 1f);
+                    GUI.Label(new Rect(screenPos.x - 50 + 1, guiY - 15 + 1, 100, 30), $"{remainingSeconds:F0}s", cachedShadow);
+                    GUI.Label(new Rect(screenPos.x - 50, guiY - 15, 100, 30), $"{remainingSeconds:F0}s", cachedStyle);
                 }
             }
         }
+
     }
 }
