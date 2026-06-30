@@ -7,7 +7,7 @@ namespace SownInStone.Weather
     {
         OnDinh,     // Thời tiết nắng mát lập nghiệp ban đầu
         NangNong,   // Nắng hè gay gắt
-        GioLao,     // Gió Lào khô bỏng rát (nhiệt cao, ẩm thấp)
+        GioLao,     // Gió Lào khô nóng
         MuaGiong,   // Mưa giông nhiệt đới ẩm ướt
         BaoLu       // Cuồng phong mưa bão, nước lũ dâng cao
     }
@@ -131,12 +131,6 @@ namespace SownInStone.Weather
                     baseWind = 10f;
                     break;
 
-                case WeatherType.GioLao:
-                    // Gió Lào kéo dài sang cả đêm, nhiệt độ ban ngày cực cao (40-42 độ C)
-                    baseTemp = 36f + Mathf.Sin((hour - 8f) * Mathf.PI / 12f) * 6f; // 30°C - 42°C
-                    baseHum = 25f - Mathf.Sin((hour - 8f) * Mathf.PI / 12f) * 10f; // Khô nóng cực hạn (xuống dưới 20% ẩm)
-                    baseWind = 30f + Mathf.PingPong(Time.time, 15f);
-                    break;
 
                 case WeatherType.MuaGiong:
                     // Mưa giông ẩm ướt nhiệt độ vừa phải, gió mát nhưng giật nhẹ chuẩn bị bão
@@ -176,12 +170,6 @@ namespace SownInStone.Weather
                     if (!isMenuOpen) SownInStone.Audio.AudioManager.Instance?.PlayAmbient("ambient_rural", 0.4f);
                     break;
 
-                case GamePhase.GioLao:
-                    currentVisualWeather = WeatherType.GioLao;
-                    targetRainIntensity = 0f;
-                    targetFloodLevel = 0f;
-                    if (!isMenuOpen) SownInStone.Audio.AudioManager.Instance?.PlayAmbient("ambient_wind_lao", 0.4f);
-                    break;
 
                 case GamePhase.ChuanBiBao:
                     currentVisualWeather = WeatherType.MuaGiong;
@@ -248,6 +236,14 @@ namespace SownInStone.Weather
             Debug.Log($"[WEATHER] Debug đặt mực nước lũ thành: {level} mét.");
         }
 
+        public void SetFloodLevelDirectly(float level)
+        {
+            targetFloodLevel = level;
+            FloodLevel = level;
+            Update3DWaterPlane();
+            Debug.Log($"[WEATHER] Đặt trực tiếp mực nước lũ thành: {level} mét.");
+        }
+
         private void Setup3DWaterPlane()
         {
             if (waterPlane3D != null) return;
@@ -296,18 +292,8 @@ namespace SownInStone.Weather
             if (PlayerStats.Instance == null) return;
 
             // Ảnh hưởng của Gió Lào nóng cháy
-            if (currentVisualWeather == WeatherType.GioLao)
-            {
-                if (Temperature > 38f)
-                {
-                    // Tăng stress nhiệt độ nếu đứng ngoài trời làm việc (giảm 50% nếu đội Nón Lá)
-                    float heatStressMultiplier = (PlayerController.Instance != null && PlayerController.Instance.isWearingNonLa) ? 0.5f : 1f;
-                    PlayerStats.Instance.ApplyHeatStress(0.8f * Time.deltaTime * heatStressMultiplier);
-                    PlayerStats.Instance.ApplyColdStress(-2f * Time.deltaTime); // Xóa stress lạnh
-                }
-            }
             // Ảnh hưởng của mưa lạnh bão bùng
-            else if (currentVisualWeather == WeatherType.BaoLu)
+            if (currentVisualWeather == WeatherType.BaoLu)
             {
                 PlayerStats.Instance.ApplyColdStress(0.6f * Time.deltaTime);
                 PlayerStats.Instance.ApplyHeatStress(-2f * Time.deltaTime); // Xóa stress nóng

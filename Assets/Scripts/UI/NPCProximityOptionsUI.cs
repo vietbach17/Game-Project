@@ -331,59 +331,69 @@ namespace SownInStone.UI
                 }
                 else if (stage == TutorialManager.TutorialStage.PrepareForStorm)
                 {
-                    var activeJob = TutorialManager.Instance.activeStormJob;
-
                     if (npc.characterType == NPCCharacter.StoryCharacterType.OTham)
                     {
-                        if (activeJob == TutorialManager.ActiveStormJob.None)
+                        if (!TutorialManager.Instance.oThamJobAccepted)
                         {
                             currentOptions.Add(new ProximityOption 
                             { 
-                                label = "[1] Hỗ trợ đắp bao cát chắn lũ", 
+                                label = "[1] Nhận việc: Giúp O Thắm cất dọn đồ đạc", 
                                 action = () => TriggerOThamPrep(npc) 
                             });
                         }
-                        else if (activeJob == TutorialManager.ActiveStormJob.OThamFloodboards)
+                        else if (!TutorialManager.Instance.oThamStoreDone)
                         {
-                            currentOptions.Add(new ProximityOption 
-                            { 
-                                label = "Bạn đang làm việc của O Thắm nhờ", 
-                                action = null 
-                            });
+                            if (TutorialManager.Instance.oThamCarryingCount > 0)
+                            {
+                                currentOptions.Add(new ProximityOption 
+                                { 
+                                    label = "[1] Hỏi chuyện O Thắm", 
+                                    action = () => TriggerOThamReminder(npc) 
+                                });
+                            }
+                            else
+                            {
+                                currentOptions.Add(new ProximityOption 
+                                { 
+                                    label = "[1] Lấy thêm đồ cần cất từ O Thắm", 
+                                    action = () => TriggerOThamPrep(npc) 
+                                });
+                            }
                         }
                         else
                         {
                             currentOptions.Add(new ProximityOption 
                             { 
-                                label = "Bạn đang làm việc của Bác Năm nhờ", 
-                                action = null 
+                                label = "[1] Trò chuyện (+5 Nghĩa Tình)", 
+                                action = () => TriggerTalk(npc) 
                             });
                         }
                     }
                     else if (npc.characterType == NPCCharacter.StoryCharacterType.BacNam)
                     {
-                        if (activeJob == TutorialManager.ActiveStormJob.None)
+                        bool bacNamAllDone = TutorialManager.Instance.bacNamSandbagsDone && TutorialManager.Instance.bacNamFloodBoardsDone;
+                        if (!TutorialManager.Instance.bacNamJobAccepted)
                         {
                             currentOptions.Add(new ProximityOption 
                             { 
-                                label = "[1] Hỗ trợ chằng chống mái nhà", 
+                                label = "[1] Nhận việc: Giúp Bác Năm gia cố nhà", 
                                 action = () => TriggerBacNamPrep(npc) 
                             });
                         }
-                        else if (activeJob == TutorialManager.ActiveStormJob.BacNamSandbags)
+                        else if (!bacNamAllDone)
                         {
                             currentOptions.Add(new ProximityOption 
                             { 
-                                label = "Bạn đang làm việc của Bác Năm nhờ", 
-                                action = null 
+                                label = "[1] Hỏi chuyện Bác Năm", 
+                                action = () => TriggerBacNamReminder(npc) 
                             });
                         }
                         else
                         {
                             currentOptions.Add(new ProximityOption 
                             { 
-                                label = "Bạn đang làm việc của O Thắm nhờ", 
-                                action = null 
+                                label = "[1] Trò chuyện (+5 Nghĩa Tình)", 
+                                action = () => TriggerTalk(npc) 
                             });
                         }
                     }
@@ -412,6 +422,91 @@ namespace SownInStone.UI
                         { 
                             label = "[1] Trò chuyện (+5 Nghĩa Tình)", 
                             action = () => TriggerTalk(npc) 
+                        });
+                    }
+                }
+                else if (stage == TutorialManager.TutorialStage.RescuingNPCs)
+                {
+                    bool isRescued = false;
+                    if (npc.characterType == NPCCharacter.StoryCharacterType.OTham) isRescued = TutorialManager.Instance.oThamRescued;
+                    else if (npc.characterType == NPCCharacter.StoryCharacterType.BacNam) isRescued = TutorialManager.Instance.bacNamRescued;
+                    else if (npc.characterType == NPCCharacter.StoryCharacterType.CuBay) isRescued = TutorialManager.Instance.cuBayRescued;
+                    else if (npc.characterType == NPCCharacter.StoryCharacterType.BeTi) isRescued = TutorialManager.Instance.beTiRescued;
+
+                    if (!isRescued)
+                    {
+                        if (PlayerController.Instance != null && PlayerController.Instance.CarriedNPC == null)
+                        {
+                            currentOptions.Add(new ProximityOption 
+                            { 
+                                label = "[E] Cõng cứu hộ (Sơ tán)", 
+                                action = () => TriggerNPCRescueCarry(npc) 
+                            });
+                        }
+                        else
+                        {
+                            currentOptions.Add(new ProximityOption 
+                            { 
+                                label = "Hãy đưa người đang cõng về nhà trước", 
+                                action = null 
+                            });
+                        }
+                    }
+                    else
+                    {
+                        currentOptions.Add(new ProximityOption 
+                        { 
+                            label = "Đã sơ tán lên nóc nhà an toàn", 
+                            action = null 
+                        });
+                    }
+                }
+                else if (stage == TutorialManager.TutorialStage.RoofSurvivalSharing)
+                {
+                    bool isFed = false;
+                    if (npc.characterType == NPCCharacter.StoryCharacterType.OTham) isFed = TutorialManager.Instance.oThamFed;
+                    else if (npc.characterType == NPCCharacter.StoryCharacterType.BacNam) isFed = TutorialManager.Instance.bacNamFed;
+                    else if (npc.characterType == NPCCharacter.StoryCharacterType.CuBay) isFed = TutorialManager.Instance.cuBayFed;
+                    else if (npc.characterType == NPCCharacter.StoryCharacterType.BeTi) isFed = TutorialManager.Instance.beTiFed;
+
+                    if (!isFed)
+                    {
+                        currentOptions.Add(new ProximityOption 
+                        { 
+                            label = "[E] Chia sẻ khoai gieo giống", 
+                            action = () => TriggerNPCRoofFoodShare(npc) 
+                        });
+                    }
+                    else
+                    {
+                        currentOptions.Add(new ProximityOption 
+                        { 
+                            label = "Đã ăn no ấm bụng", 
+                            action = null 
+                        });
+                    }
+                }
+                else if (stage == TutorialManager.TutorialStage.PostStormCleanup)
+                {
+                    bool isCleaned = false;
+                    if (npc.characterType == NPCCharacter.StoryCharacterType.OTham) isCleaned = TutorialManager.Instance.oThamHouseCleaned;
+                    else if (npc.characterType == NPCCharacter.StoryCharacterType.BacNam) isCleaned = TutorialManager.Instance.bacNamHouseCleaned;
+                    else if (npc.characterType == NPCCharacter.StoryCharacterType.CuBay || npc.characterType == NPCCharacter.StoryCharacterType.BeTi) isCleaned = TutorialManager.Instance.cuBayHouseCleaned;
+
+                    if (!isCleaned)
+                    {
+                        currentOptions.Add(new ProximityOption 
+                        { 
+                            label = "[E] Phụ dọn dẹp đống đổ nát (-15 Thể lực)", 
+                            action = () => TriggerNPCPostStormCleanup(npc) 
+                        });
+                    }
+                    else
+                    {
+                        currentOptions.Add(new ProximityOption 
+                        { 
+                            label = "Đã dọn dẹp xong nhà cửa", 
+                            action = null 
                         });
                     }
                 }
@@ -447,28 +542,12 @@ namespace SownInStone.UI
                             action = () => TriggerTalk(npc) 
                         });
 
-                        // Option 2: Giúp việc hoặc Sự kiện Gió Lào
-                        bool oThamEventActive = GameManager.Instance != null && 
-                                              currentPhase == GamePhase.GioLao &&
-                                              CommunityManager.Instance != null &&
-                                              !CommunityManager.Instance.eventOThamFoodCompleted;
-
-                        if (oThamEventActive)
-                        {
-                            currentOptions.Add(new ProximityOption 
-                            { 
-                                label = "[2] Hỗ trợ mùa Gió Lào (Sự kiện +10 NT)", 
-                                action = () => TriggerOThamEvent(npc) 
-                            });
-                        }
-                        else
-                        {
-                            currentOptions.Add(new ProximityOption 
-                            { 
-                                label = "[2] Giúp việc (+1 Vần công, +10 NT)", 
-                                action = () => TriggerWork(npc) 
-                            });
-                        }
+                        // Option 2: Giúp việc
+                        currentOptions.Add(new ProximityOption 
+                        { 
+                            label = "[2] Giúp việc (+1 Vần công, +10 NT)", 
+                            action = () => TriggerWork(npc) 
+                        });
 
                         // Option 3: Giao dịch hoặc Cửa hàng
                         bool recoveryEventActive = GameManager.Instance != null && 
@@ -889,19 +968,6 @@ namespace SownInStone.UI
         private void TriggerOThamPrep(NPCCharacter npc)
         {
             targetAlpha = 0f;
-            SurvivalUIManager.Instance?.ShowDialogue(
-                npc.NPCName, 
-                "\"O có sẵn 4 tấm chắn lũ (Floodboard) đây, con lấy và dựng chúng trước cửa đại lý để cản nước ngập kho gạo giúp o nhé!\""
-            );
-            if (StorageManager.Instance != null && SurvivalUIManager.Instance != null)
-            {
-                ItemData board = SurvivalUIManager.Instance.FloodBoardItem;
-                if (board != null)
-                {
-                    StorageManager.Instance.AddItem(board, 4);
-                    SurvivalUIManager.Instance.ShowHUDToast("Bạn nhận được 4 Tấm chắn lũ từ O Thắm");
-                }
-            }
             if (TutorialManager.Instance != null)
             {
                 TutorialManager.Instance.StartOThamJob();
@@ -913,7 +979,7 @@ namespace SownInStone.UI
             targetAlpha = 0f;
             SurvivalUIManager.Instance?.ShowDialogue(
                 npc.NPCName, 
-                "\"Bác có sẵn 4 bao cát đây, con giúp bác đặt 4 bao cát này lên nóc mái nhà tranh để đè chằng chống cho mái khỏi bay nhé!\""
+                "\"Thành ơi, bão sắp đổ bộ rồi! Bác cần con giúp 2 việc: Đặt 4 bao cát quanh nền nhà để chống lũ rồi dựng thêm 2 tấm chắn lũ ở cửa trước để nước khỏi tràn vào nhà!\""
             );
             if (StorageManager.Instance != null && SurvivalUIManager.Instance != null)
             {
@@ -921,21 +987,27 @@ namespace SownInStone.UI
                 if (sandbag != null)
                 {
                     StorageManager.Instance.AddItem(sandbag, 4);
-                    SurvivalUIManager.Instance.ShowHUDToast("Bạn nhận được 4 Bao cát từ Bác Năm");
                 }
+                ItemData floodBoard = SurvivalUIManager.Instance.FloodBoardItem;
+                if (floodBoard != null)
+                {
+                    StorageManager.Instance.AddItem(floodBoard, 2);
+                }
+                SurvivalUIManager.Instance.ShowHUDToast("Nhận 4 Bao cát + 2 Tấm chắn lũ. Bấm số [2]/[4] trên Hotbar, click chuột để đặt!");
             }
             if (TutorialManager.Instance != null)
             {
-                TutorialManager.Instance.StartBacNamJob();
+                TutorialManager.Instance.StartBacNamJob(); // calls StartBothStormJobs internally
             }
         }
 
         private void TriggerOThamReminder(NPCCharacter npc)
         {
             targetAlpha = 0f;
+            int count = TutorialManager.Instance != null ? TutorialManager.Instance.oThamCarryingCount : 0;
             SurvivalUIManager.Instance?.ShowDialogue(
                 npc.NPCName, 
-                "\"Con đang làm việc o nhờ mà, cố lên nhé! Hãy đặt 4 tấm chắn lũ trước cửa tiệm giúp o.\""
+                $"\"Con đang giúp o đó mà! Đem cất {count} gói Mì tôm o vừa đưa vào rương gỗ trước tiệm giúp o đi nhé!\""
             );
         }
 
@@ -944,7 +1016,7 @@ namespace SownInStone.UI
             targetAlpha = 0f;
             SurvivalUIManager.Instance?.ShowDialogue(
                 npc.NPCName, 
-                "\"Con đang làm việc bác nhờ mà, cố lên nhé! Hãy đem 4 bao cát xếp lên mái nhà bác.\""
+                "\"Cố lên Thành ơi! Đặt nốt 4 bao cát và 2 tấm chắn lũ rồi nhà bác an toàn trước bão!\""
             );
         }
 
@@ -1185,6 +1257,90 @@ namespace SownInStone.UI
                 SurvivalUIManager.Instance?.ShowDialogue(npc.NPCName, "\"Không sao đâu con, giữ ăn để sinh tồn qua mùa mưa bão con nhé!\"");
             }
             targetAlpha = 0f;
+        }
+
+        private void TriggerNPCRescueCarry(NPCCharacter npc)
+        {
+            if (PlayerController.Instance == null) return;
+            PlayerController.Instance.CarryNPCSurge(npc);
+            targetAlpha = 0f;
+            gameObject.SetActive(false);
+        }
+
+        private void TriggerNPCRoofFoodShare(NPCCharacter npc)
+        {
+            if (StorageManager.Instance == null || PlayerStats.Instance == null) return;
+
+            var slot = StorageManager.Instance.GetStorageSlots().Find(s => s.item != null && s.item.ItemID == "item_khoai_gieo");
+            int qty = slot != null ? slot.quantity : 0;
+
+            if (qty > 0)
+            {
+                ItemData itemToUse = slot.item;
+                if (StorageManager.Instance.RemoveItem(itemToUse, 1))
+                {
+                    CommunityManager.Instance?.ModifyGlobalKarma(15);
+                    npc.ModifyAffection(15);
+
+                    if (TutorialManager.Instance != null)
+                    {
+                        TutorialManager.Instance.FeedNPC(npc.characterType);
+                    }
+
+                    SurvivalUIManager.Instance?.ShowHUDToast($"🧡 Đã chia sẻ khoai gieo cho {npc.NPCName}! (+15 Nghĩa Tình)");
+                    
+                    string dialogue = "";
+                    if (npc.characterType == NPCCharacter.StoryCharacterType.OTham)
+                        dialogue = "\"Cảm ơn con nghe Thành! Ăn khoai gieo khô ngọt dẻo ấm lòng hẳn. O Thắm sẽ không quên ơn cứu mạng này!\"";
+                    else if (npc.characterType == NPCCharacter.StoryCharacterType.BacNam)
+                        dialogue = "\"Nghĩa tình xóm giềng hoạn nạn có nhau quý lắm con. Bác Năm cảm ơn con nhiều!\"";
+                    else if (npc.characterType == NPCCharacter.StoryCharacterType.CuBay)
+                        dialogue = "\"Tấm lòng của con bồi đắp nghĩa tình làng xóm. Cầu mong gia tiên phù hộ con tai qua nạn khỏi.\"";
+                    else if (npc.characterType == NPCCharacter.StoryCharacterType.BeTi)
+                        dialogue = "\"Ngon quá chú Thành ơi! Con hết đói bụng rồi. Con cảm ơn chú Thành nhiều chú nha!\"";
+
+                    SurvivalUIManager.Instance?.ShowDialogue(npc.NPCName, dialogue);
+                }
+            }
+            else
+            {
+                SurvivalUIManager.Instance?.ShowHUDToast("<color=#E74C3C>Bạn không còn củ Khoai Gieo nào trong balo để chia sẻ!</color>");
+            }
+            targetAlpha = 0f;
+            gameObject.SetActive(false);
+        }
+
+        private void TriggerNPCPostStormCleanup(NPCCharacter npc)
+        {
+            if (PlayerStats.Instance == null || TutorialManager.Instance == null) return;
+
+            if (PlayerStats.Instance.CurrentStamina >= 15f)
+            {
+                PlayerStats.Instance.ModifyStamina(-15f);
+                CommunityManager.Instance?.ModifyGlobalKarma(10);
+                npc.ModifyAffection(10);
+
+                SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_wood_hit");
+
+                TutorialManager.Instance.CleanHouse(npc.characterType);
+                SurvivalUIManager.Instance?.ShowHUDToast($"✓ Đã giúp nhà {npc.NPCName} dọn dẹp đống đổ nát! (-15 Thể lực, +10 Nghĩa Tình)");
+                
+                string dialogue = "";
+                if (npc.characterType == NPCCharacter.StoryCharacterType.OTham)
+                    dialogue = "\"Thành chu đáo quá, dọn hộ o đống gỗ sập này đỡ biết bao nhiêu mồ hôi công sức!\"";
+                else if (npc.characterType == NPCCharacter.StoryCharacterType.BacNam)
+                    dialogue = "\"Cảm ơn con nghe Thành! Lũ rút để lại bao nhiêu là bùn đất gạch ngói vỡ, có con dọn giùm bác già mừng lắm.\"";
+                else if (npc.characterType == NPCCharacter.StoryCharacterType.CuBay || npc.characterType == NPCCharacter.StoryCharacterType.BeTi)
+                    dialogue = "\"Tốt quá con ơi, đống bùn non trước ngõ trơn trượt được con dọn đi cụ với bé Tí đi lại an toàn rồi.\"";
+
+                SurvivalUIManager.Instance?.ShowDialogue(npc.NPCName, dialogue);
+            }
+            else
+            {
+                SurvivalUIManager.Instance?.ShowHUDToast("<color=#E74C3C>Bạn không đủ 15 Thể lực để giúp dọn dẹp nặng nhọc!</color>");
+            }
+            targetAlpha = 0f;
+            gameObject.SetActive(false);
         }
     }
 }

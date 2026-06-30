@@ -229,10 +229,7 @@ namespace SownInStone.Agriculture
 
             // Bay hơi nước tỷ lệ thuận với nhiệt độ không khí
             float evaporationSpeed = 0.5f; // Tốc độ bay hơi cơ bản
-            if (WeatherManager.Instance.currentVisualWeather == WeatherType.GioLao)
-            {
-                evaporationSpeed = 3.5f; // Gió Lào thổi bay hơi nước cực nhanh!
-            }
+
 
             float tempFactor = Mathf.Max(1f, WeatherManager.Instance.Temperature / 30f);
             Moisture = Mathf.Clamp(Moisture - evaporationSpeed * tempFactor * Time.deltaTime, 0f, 100f);
