@@ -347,10 +347,24 @@ namespace SownInStone
             currentStage = TutorialStage.FarmingTutorial;
             
             // Cấp 12 hạt giống khi bắt đầu trồng trọt
-            if (StorageManager.Instance != null && PlayerController.Instance != null && PlayerController.Instance.seedItem != null)
+            if (StorageManager.Instance != null && PlayerController.Instance != null)
             {
-                StorageManager.Instance.AddItem(PlayerController.Instance.seedItem, 12);
-                SurvivalUIManager.Instance?.ShowHUDToast("<color=#2ECC71>Bạn nhận được 12 hạt giống khoai lang từ O Thắm</color>");
+                ItemData seed = PlayerController.Instance.seedItem;
+#if UNITY_EDITOR
+                if (seed == null)
+                {
+                    seed = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Seed.asset");
+                }
+#endif
+                if (seed != null)
+                {
+                    StorageManager.Instance.AddItem(seed, 12);
+                    SurvivalUIManager.Instance?.ShowHUDToast("<color=#2ECC71>Bạn nhận được 12 hạt giống khoai lang từ O Thắm</color>");
+                }
+                else
+                {
+                    Debug.LogError("[TUTORIAL] Không tìm thấy Hạt giống (seedItem) để cấp cho người chơi!");
+                }
             }
             
             UpdateHUDPanel();
@@ -1352,10 +1366,31 @@ namespace SownInStone
                 hudPanel.SetActive(true);
                 hudTitleText.text = "CHẾ BIẾN KHOAI GIEO";
 
-                hudTaskAText.text = $" <color=#E74C3C>☐</color> Chế biến khoai gieo ({preservedCropsCrafted}/4)";
-                hudTaskAText.color = Color.white;
+                bool isInside = (PlayerController.Instance != null && PlayerController.Instance.IsInsideHouse);
 
-                if (hudTaskBText != null) hudTaskBText.gameObject.SetActive(false);
+                if (!isInside)
+                {
+                    hudTaskAText.text = " <color=#E74C3C>☐</color> Đi vào trong nhà của mình (đến gần cửa nhà, nhấn E)";
+                    hudTaskAText.color = Color.white;
+                    if (hudTaskBText != null)
+                    {
+                        hudTaskBText.gameObject.SetActive(true);
+                        hudTaskBText.text = " <color=#BDC3C7>☐</color> Tương tác với Bếp Gas để chế biến";
+                        hudTaskBText.color = Color.gray;
+                    }
+                }
+                else
+                {
+                    hudTaskAText.text = " <color=#2ECC71>☑</color> Đi vào trong nhà của mình";
+                    hudTaskAText.color = new Color(0.7f, 0.7f, 0.7f);
+                    if (hudTaskBText != null)
+                    {
+                        hudTaskBText.gameObject.SetActive(true);
+                        hudTaskBText.text = $" <color=#E74C3C>☐</color> Chế biến khoai gieo ({preservedCropsCrafted}/4) tại Bếp Gas";
+                        hudTaskBText.color = Color.white;
+                    }
+                }
+
                 if (hudTaskCText != null) hudTaskCText.gameObject.SetActive(false);
                 if (hudTaskDText != null) hudTaskDText.gameObject.SetActive(false);
             }
@@ -1817,8 +1852,28 @@ namespace SownInStone
             if (!isTutorialActive || currentStage != TutorialStage.CraftPreservedCrops) return;
             if (Camera.main == null) return;
 
-            SownInStone.Interactions.KitchenHearth hearth = FindAnyObjectByType<SownInStone.Interactions.KitchenHearth>();
-            if (hearth == null) return;
+            bool isInside = (PlayerController.Instance != null && PlayerController.Instance.IsInsideHouse);
+
+            Vector3 worldPos = Vector3.zero;
+            string targetName = "";
+
+            if (!isInside)
+            {
+                // Người chơi đang ở ngoài: chỉ hướng đi vào nhà của mình
+                GameObject house = GameObject.Find("Thanh_House");
+                if (house == null) return;
+                // Vị trí cửa nhà
+                worldPos = house.transform.position + new Vector3(0f, 2.5f, 2.0f);
+                targetName = "Vào Trong Nhà";
+            }
+            else
+            {
+                // Người chơi đang ở trong nhà: chỉ hướng Bếp Gas
+                SownInStone.Interactions.KitchenHearth hearth = FindAnyObjectByType<SownInStone.Interactions.KitchenHearth>();
+                if (hearth == null) return;
+                worldPos = hearth.transform.position + Vector3.up * 1.5f;
+                targetName = "Bếp Gas";
+            }
 
             GUIStyle nameStyle = new GUIStyle();
             nameStyle.alignment = TextAnchor.MiddleCenter;
@@ -1832,7 +1887,6 @@ namespace SownInStone
             exclamationStyle.fontStyle = FontStyle.Bold;
             exclamationStyle.fontSize = 28;
 
-            Vector3 worldPos = hearth.transform.position + Vector3.up * 1.5f;
             Vector3 screenPos = Camera.main.WorldToScreenPoint(worldPos);
 
             if (screenPos.z > 0)
@@ -1849,11 +1903,11 @@ namespace SownInStone
                 // Dấu !
                 GUI.Label(new Rect(screenPos.x - 20, guiY - 25, 40, 25), "!", exclamationStyle);
 
-                // Tên "Bếp Gas"
+                // Tên hiển thị
                 GUIStyle nameShadow = new GUIStyle(nameStyle);
                 nameShadow.normal.textColor = new Color(0f, 0f, 0f, 0.8f);
-                GUI.Label(new Rect(screenPos.x - 100 + 1, guiY + 1, 200, 20), "Bếp Gas", nameShadow);
-                GUI.Label(new Rect(screenPos.x - 100, guiY, 200, 20), "Bếp Gas", nameStyle);
+                GUI.Label(new Rect(screenPos.x - 100 + 1, guiY + 1, 200, 20), targetName, nameShadow);
+                GUI.Label(new Rect(screenPos.x - 100, guiY, 200, 20), targetName, nameStyle);
             }
         }
 

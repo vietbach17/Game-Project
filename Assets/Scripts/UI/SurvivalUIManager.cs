@@ -137,6 +137,7 @@ namespace SownInStone.UI
         public bool IsInventoryOpen => isInventoryOpen;
         public bool IsCommunityOpen => isCommunityOpen;
         public bool IsWeatherDetailsOpen => isWeatherDetailsOpen;
+        public bool IsQuantityPopupOpen => isQuantityPopupOpen;
         public TextMeshProUGUI SpeakerNameText => speakerNameText;
         public ItemData IncenseItem => incenseItem;
         public ItemData SandbagItem => sandbagItem;
@@ -185,39 +186,15 @@ namespace SownInStone.UI
             }
 
 #if UNITY_EDITOR
-            // Tự động tải tài nguyên nếu thiếu để Designer không phải kéo thả
-            if (seedItem == null)
-            {
-                seedItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Seed.asset");
-            }
-            if (incenseItem == null)
-            {
-                incenseItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Incense.asset");
-            }
-            if (noodlesItem == null)
-            {
-                noodlesItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Noodles.asset");
-            }
-            if (freshCropItem == null)
-            {
-                freshCropItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_FreshCrop.asset");
-            }
-            if (preservedCropItem == null)
-            {
-                preservedCropItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_PreservedCrop.asset");
-            }
-            if (nonLaItem == null)
-            {
-                nonLaItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_non_la.asset");
-            }
-            if (sandbagItem == null)
-            {
-                sandbagItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_sandbag.asset");
-            }
-            if (floodBoardItem == null)
-            {
-                floodBoardItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_flood_board.asset");
-            }
+            // Tự động tải tài nguyên để đảm bảo không bị mất reference trong Editor
+            seedItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Seed.asset");
+            incenseItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Incense.asset");
+            noodlesItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Noodles.asset");
+            freshCropItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_FreshCrop.asset");
+            preservedCropItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_PreservedCrop.asset");
+            nonLaItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_non_la.asset");
+            sandbagItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_sandbag.asset");
+            floodBoardItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_flood_board.asset");
 #endif
 
             // Tạo các panel bổ sung
@@ -786,8 +763,25 @@ namespace SownInStone.UI
             if (dialoguePanel == null) return;
 
             dialoguePanel.SetActive(true);
+            
+            // Ép dialoguePanel luôn vẽ trên cùng mọi thứ (vượt qua cả Hotbar)
+            Canvas diagCanvas = dialoguePanel.GetComponent<Canvas>();
+            if (diagCanvas == null)
+            {
+                diagCanvas = dialoguePanel.AddComponent<Canvas>();
+                dialoguePanel.AddComponent<UnityEngine.UI.GraphicRaycaster>();
+            }
+            diagCanvas.overrideSorting = true;
+            diagCanvas.sortingOrder = 100;
+
+            dialoguePanel.transform.SetAsLastSibling();
             isDialogueActive = true;
             isChoiceActive = false;
+
+            if (HotbarManager.Instance != null)
+            {
+                HotbarManager.Instance.ToggleHotbarVisible(false);
+            }
 
             if (choiceContainer != null)
             {
@@ -815,8 +809,25 @@ namespace SownInStone.UI
             if (dialoguePanel == null) return;
 
             dialoguePanel.SetActive(true);
+            
+            // Ép dialoguePanel luôn vẽ trên cùng mọi thứ (vượt qua cả Hotbar)
+            Canvas diagCanvas = dialoguePanel.GetComponent<Canvas>();
+            if (diagCanvas == null)
+            {
+                diagCanvas = dialoguePanel.AddComponent<Canvas>();
+                dialoguePanel.AddComponent<UnityEngine.UI.GraphicRaycaster>();
+            }
+            diagCanvas.overrideSorting = true;
+            diagCanvas.sortingOrder = 100;
+
+            dialoguePanel.transform.SetAsLastSibling();
             isDialogueActive = true;
             isChoiceActive = true;
+
+            if (HotbarManager.Instance != null)
+            {
+                HotbarManager.Instance.ToggleHotbarVisible(false);
+            }
 
             // Đăng ký callback
             onChoice1Selected = onChoice1;
@@ -889,6 +900,11 @@ namespace SownInStone.UI
             if (choiceContainer != null)
             {
                 choiceContainer.SetActive(false);
+            }
+
+            if (HotbarManager.Instance != null)
+            {
+                HotbarManager.Instance.ToggleHotbarVisible(true);
             }
 
             if (TutorialManager.Instance != null && speakerNameText != null)
@@ -2708,13 +2724,14 @@ namespace SownInStone.UI
 
                 if (row == null || param.item == null) continue;
 
-                // Lấy số lượng đang sở hữu trong Inventory
+                // Lấy số lượng đang sở hữu trong Inventory (bao gồm cả balo và rương)
                 int ownedCount = 0;
                 if (StorageManager.Instance != null)
                 {
-                    var slots = StorageManager.Instance.GetStorageSlots();
-                    var slot = slots.Find(s => s.item.ItemID == param.item.ItemID);
-                    ownedCount = slot != null ? slot.quantity : 0;
+                    var backpackSlot = StorageManager.Instance.GetStorageSlots().Find(s => s.item != null && s.item.ItemID == param.item.ItemID);
+                    var chestSlot = StorageManager.Instance.GetReserveChestSlots().Find(s => s.item != null && s.item.ItemID == param.item.ItemID);
+                    if (backpackSlot != null) ownedCount += backpackSlot.quantity;
+                    if (chestSlot != null) ownedCount += chestSlot.quantity;
                 }
 
                 // Cập nhật Info Text
@@ -2851,9 +2868,10 @@ namespace SownInStone.UI
             int owned = 0;
             if (StorageManager.Instance != null)
             {
-                var slots = StorageManager.Instance.GetStorageSlots();
-                var slot = slots.Find(s => s.item.ItemID == popupTargetItem.ItemID);
-                owned = slot != null ? slot.quantity : 0;
+                var backpackSlot = StorageManager.Instance.GetStorageSlots().Find(s => s.item != null && s.item.ItemID == popupTargetItem.ItemID);
+                var chestSlot = StorageManager.Instance.GetReserveChestSlots().Find(s => s.item != null && s.item.ItemID == popupTargetItem.ItemID);
+                if (backpackSlot != null) owned += backpackSlot.quantity;
+                if (chestSlot != null) owned += chestSlot.quantity;
             }
             GUILayout.Label($"Đơn giá: <color=#F4D03F>{popupUnitPrice} Xu</color>  |  Đang sở hữu: {owned}", labelStyle);
             GUILayout.Space(12);
@@ -2971,9 +2989,11 @@ namespace SownInStone.UI
             }
             else
             {
-                var slots = StorageManager.Instance.GetStorageSlots();
-                var slot = slots.Find(s => s.item.ItemID == popupTargetItem.ItemID);
-                int owned = slot != null ? slot.quantity : 0;
+                int owned = 0;
+                var backpackSlot = StorageManager.Instance.GetStorageSlots().Find(s => s.item != null && s.item.ItemID == popupTargetItem.ItemID);
+                var chestSlot = StorageManager.Instance.GetReserveChestSlots().Find(s => s.item != null && s.item.ItemID == popupTargetItem.ItemID);
+                if (backpackSlot != null) owned += backpackSlot.quantity;
+                if (chestSlot != null) owned += chestSlot.quantity;
 
                 if (owned >= quantity)
                 {

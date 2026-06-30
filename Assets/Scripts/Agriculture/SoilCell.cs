@@ -57,6 +57,7 @@ namespace SownInStone.Agriculture
         [SerializeField] public GameObject wetSoilVisual;
 
         private bool wasFloodedDuringStorm = false;
+        private GameObject lastActiveVisual = null;
 
         private void Awake()
         {
@@ -393,6 +394,9 @@ namespace SownInStone.Agriculture
             plantedCrop = cropObj.AddComponent<CropInstance>();
             plantedCrop.Initialize(seedData, this);
 
+            // Ép độ ẩm về khô (10%) để người chơi bắt buộc phải tưới nước trước thì cây mới lớn
+            Moisture = 10f;
+
             Debug.Log($"[SOIL] Gieo thành công hạt giống {seedData.CropName}!");
             UpdateVisuals(); // Update visual state when planted
 
@@ -433,12 +437,7 @@ namespace SownInStone.Agriculture
                 }
             }
 
-            // Cập nhật hiển thị 3D Visuals
-            if (rockySoilVisual != null) rockySoilVisual.SetActive(false);
-            if (cleanSoilVisual != null) cleanSoilVisual.SetActive(false);
-            if (tilledSoilVisual != null) tilledSoilVisual.SetActive(false);
-            if (wetSoilVisual != null) wetSoilVisual.SetActive(false);
-
+            // Cập nhật hiển thị 3D Visuals dùng Cache để tránh gọi SetActive mỗi frame gây tụt FPS
             GameObject activeVisual = null;
             if (RockDensity > 0f)
             {
@@ -457,9 +456,14 @@ namespace SownInStone.Agriculture
                 activeVisual = cleanSoilVisual;
             }
 
-            if (activeVisual != null)
+            if (activeVisual != lastActiveVisual)
             {
-                activeVisual.SetActive(true);
+                if (rockySoilVisual != null) rockySoilVisual.SetActive(rockySoilVisual == activeVisual);
+                if (cleanSoilVisual != null) cleanSoilVisual.SetActive(cleanSoilVisual == activeVisual);
+                if (tilledSoilVisual != null) tilledSoilVisual.SetActive(tilledSoilVisual == activeVisual);
+                if (wetSoilVisual != null) wetSoilVisual.SetActive(wetSoilVisual == activeVisual);
+
+                lastActiveVisual = activeVisual;
             }
         }
 

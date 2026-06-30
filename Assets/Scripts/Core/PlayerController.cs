@@ -217,18 +217,10 @@ namespace SownInStone.Core
             }
 
 #if UNITY_EDITOR
-            if (seedItem == null)
-            {
-                seedItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Seed.asset");
-            }
-            if (noodlesItem == null)
-            {
-                noodlesItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Noodles.asset");
-            }
-            if (testSeedData == null)
-            {
-                testSeedData = UnityEditor.AssetDatabase.LoadAssetAtPath<CropData>("Assets/Data/Crop_KhoaiLang.asset");
-            }
+            // Tự động tải tài nguyên để đảm bảo không bị mất reference trong Editor
+            seedItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Seed.asset");
+            noodlesItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Noodles.asset");
+            testSeedData = UnityEditor.AssetDatabase.LoadAssetAtPath<CropData>("Assets/Data/Crop_KhoaiLang.asset");
 #endif
         }
 
@@ -742,19 +734,33 @@ namespace SownInStone.Core
             }
 
             // 4. Lắng nghe phím [E] hoặc [Space] và phím nhanh [1..5]
+            bool isUIOpen = false;
+            if (SownInStone.UI.SurvivalUIManager.Instance != null)
+            {
+                isUIOpen = SownInStone.UI.SurvivalUIManager.Instance.IsDialogueActive ||
+                           SownInStone.UI.SurvivalUIManager.Instance.IsShopOpen ||
+                           SownInStone.UI.SurvivalUIManager.Instance.IsQuantityPopupOpen ||
+                           SownInStone.UI.SurvivalUIManager.Instance.IsInventoryOpen ||
+                           SownInStone.UI.SurvivalUIManager.Instance.IsCommunityOpen ||
+                           SownInStone.UI.SurvivalUIManager.Instance.IsWeatherDetailsOpen;
+            }
+
 #if ENABLE_INPUT_SYSTEM
             if (Keyboard.current != null)
             {
-                if (Keyboard.current.eKey.wasPressedThisFrame || Keyboard.current.spaceKey.wasPressedThisFrame)
+                if (!isUIOpen && (Keyboard.current.eKey.wasPressedThisFrame || Keyboard.current.spaceKey.wasPressedThisFrame))
                 {
                     TryPerformInteraction();
                 }
 
-                if (Keyboard.current.digit1Key.wasPressedThisFrame || Keyboard.current.numpad1Key.wasPressedThisFrame) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(0);
-                if (Keyboard.current.digit2Key.wasPressedThisFrame || Keyboard.current.numpad2Key.wasPressedThisFrame) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(1);
-                if (Keyboard.current.digit3Key.wasPressedThisFrame || Keyboard.current.numpad3Key.wasPressedThisFrame) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(2);
-                if (Keyboard.current.digit4Key.wasPressedThisFrame || Keyboard.current.numpad4Key.wasPressedThisFrame) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(3);
-                if (Keyboard.current.digit5Key.wasPressedThisFrame || Keyboard.current.numpad5Key.wasPressedThisFrame) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(4);
+                if (!isUIOpen)
+                {
+                    if (Keyboard.current.digit1Key.wasPressedThisFrame || Keyboard.current.numpad1Key.wasPressedThisFrame) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(0);
+                    if (Keyboard.current.digit2Key.wasPressedThisFrame || Keyboard.current.numpad2Key.wasPressedThisFrame) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(1);
+                    if (Keyboard.current.digit3Key.wasPressedThisFrame || Keyboard.current.numpad3Key.wasPressedThisFrame) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(2);
+                    if (Keyboard.current.digit4Key.wasPressedThisFrame || Keyboard.current.numpad4Key.wasPressedThisFrame) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(3);
+                    if (Keyboard.current.digit5Key.wasPressedThisFrame || Keyboard.current.numpad5Key.wasPressedThisFrame) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(4);
+                }
             }
 #else
             if (Input.GetKeyDown(KeyCode.F2))
@@ -763,19 +769,25 @@ namespace SownInStone.Core
                 SownInStone.UI.SurvivalUIManager.Instance?.ShowHUDToast("⚙️ [DEBUG] Đã tua thời gian sang ban đêm (22:57)! Chuẩn bị nhận cảnh báo 23:00!");
             }
 
-            if (Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.Space))
+            if (!isUIOpen && (Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.Space)))
             {
                 TryPerformInteraction();
             }
 
-            if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1)) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(0);
-            if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2)) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(1);
-            if (Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3)) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(2);
-            if (Input.GetKeyDown(KeyCode.Alpha4) || Input.GetKeyDown(KeyCode.Keypad4)) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(3);
-            if (Input.GetKeyDown(KeyCode.Alpha5) || Input.GetKeyDown(KeyCode.Keypad5)) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(4);
+            if (!isUIOpen)
+            {
+                if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1)) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(0);
+                if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2)) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(1);
+                if (Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3)) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(2);
+                if (Input.GetKeyDown(KeyCode.Alpha4) || Input.GetKeyDown(KeyCode.Keypad4)) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(3);
+                if (Input.GetKeyDown(KeyCode.Alpha5) || Input.GetKeyDown(KeyCode.Keypad5)) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(4);
+            }
 #endif
             // Cập nhật gợi ý tương tác lên UI
             UpdateInteractionPrompt();
+
+            // Xử lý tiêu hao/hồi phục thể lực
+            HandleStaminaDrainOnMove();
         }
 
         private void FixedUpdate()
@@ -910,8 +922,8 @@ namespace SownInStone.Core
             }
             else
             {
-                // Hồi phục thể lực khi đứng yên tại chỗ (+5 thể lực/giây)
-                PlayerStats.Instance.ModifyStamina(5f * Time.deltaTime);
+                // Hồi phục thể lực khi đứng yên tại chỗ (+3 thể lực/giây)
+                PlayerStats.Instance.ModifyStamina(3f * Time.deltaTime);
             }
         }
 
@@ -2606,6 +2618,9 @@ namespace SownInStone.Core
                     child.gameObject.SetActive(true);
                 }
 
+                // Giữ lại toàn bộ các Collider để cản di chuyển (không chạy xuyên tường, giường, bếp...)
+                // và đảm bảo các vùng tương tác (Trigger/Collider của KitchenHearth, Altar) không bị xoá mất.
+                /*
                 foreach (var col in houseInteriorInstance.GetComponentsInChildren<Collider>())
                 {
                     if (col.gameObject.transform.parent != null && col.gameObject.transform.parent.name == "PhysicalWalls")
@@ -2614,6 +2629,7 @@ namespace SownInStone.Core
                     }
                     Destroy(col);
                 }
+                */
 
                 foreach (var rend in houseInteriorInstance.GetComponentsInChildren<Renderer>())
                 {
@@ -2640,13 +2656,29 @@ namespace SownInStone.Core
             {
                 SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast("🏠 Bạn đã vào bên trong nhà an toàn tránh bão lũ!");
             }
+            if (TutorialManager.Instance != null)
+            {
+                TutorialManager.Instance.UpdateHUDPanel();
+            }
         }
 
         public void ExitHouse()
         {
             isInsideHouse = false;
             GameObject houseObj = GameObject.Find("Thanh_House");
-            Vector3 outdoorPos = houseObj != null ? houseObj.transform.TransformPoint(new Vector3(0f, 0.2f, 4.2f)) : new Vector3(10.66f, 0.2f, -5.8f);
+            Vector3 outdoorPos = houseObj != null ? houseObj.transform.TransformPoint(new Vector3(0f, 1.0f, 4.2f)) : new Vector3(10.66f, 1.0f, -5.8f);
+
+            // Bắn raycast xuống dưới để dò bề mặt Ground/Terrain thực tế, tránh nhân vật bị chôn chân dưới đất
+            RaycastHit hit;
+            if (Physics.Raycast(outdoorPos + Vector3.up * 5f, Vector3.down, out hit, 15f, LayerMask.GetMask("Ground", "Default", "Terrain")))
+            {
+                outdoorPos.y = hit.point.y + 0.1f;
+            }
+            else
+            {
+                outdoorPos.y = 0.2f;
+            }
+
             if (rb != null)
             {
                 rb.linearVelocity = Vector3.zero;
@@ -2660,6 +2692,10 @@ namespace SownInStone.Core
             if (SownInStone.UI.SurvivalUIManager.Instance != null)
             {
                 SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast("🚪 Bạn đã ra ngoài sân trước cửa nhà!");
+            }
+            if (TutorialManager.Instance != null)
+            {
+                TutorialManager.Instance.UpdateHUDPanel();
             }
         }
 

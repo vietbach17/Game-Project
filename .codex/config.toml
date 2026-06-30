@@ -1,5 +1,7 @@
 [mcp_servers.unityMCP]
-url = "http://127.0.0.1:8080/mcp"
+type = "stdio"
+command = "uvx"
+args = ["--from", "mcpforunityserver", "mcp-for-unity", "--transport", "stdio"]
 
 [mcp_servers.unityMCP.tools.manage_scene]
 approval_mode = "approve"
