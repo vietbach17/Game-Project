@@ -1172,13 +1172,17 @@ namespace SownInStone
                 Debug.Log("[TEMP COLLIDER] Destroyed temporary root roof collider");
             }
 
-            // Trở lại đất liền
+            // Trở lại đất liền và khôi phục trọng lực
             if (PlayerController.Instance != null)
             {
+                var rb = PlayerController.Instance.GetComponent<Rigidbody>();
+                if (rb != null)
+                {
+                    rb.useGravity = true;
+                }
                 GameObject houseObj = GameObject.Find("Thanh_House");
                 Vector3 groundPos = houseObj != null ? houseObj.transform.position + new Vector3(0f, 0.2f, -4.2f) : new Vector3(10.66f, 0.2f, -14.2f);
                 SafeTeleportPlayer(groundPos);
-                var rb = PlayerController.Instance.GetComponent<Rigidbody>();
                 if (rb != null)
                 {
                     rb.linearVelocity = Vector3.zero;
@@ -1749,6 +1753,36 @@ namespace SownInStone
         private void Update()
         {
             if (!isTutorialActive) return;
+
+            // Khóa cứng cao độ Y của nhân vật chính trên mái nhà Thành để tuyệt đối không bị lún hay kẹt vật lý
+            if (currentStage == TutorialStage.RoofSurvivalSharing)
+            {
+                if (PlayerController.Instance != null)
+                {
+                    var rb = PlayerController.Instance.GetComponent<Rigidbody>();
+                    if (rb != null)
+                    {
+                        rb.useGravity = false;
+                        rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+                    }
+
+                    GameObject houseObj = GameObject.Find("Thanh_House");
+                    float targetY = houseObj != null ? houseObj.transform.position.y + 5.85f : 6.05f;
+                    
+                    Vector3 pos = PlayerController.Instance.transform.position;
+                    if (Mathf.Abs(pos.y - targetY) > 0.01f)
+                    {
+                        pos.y = targetY;
+                        PlayerController.Instance.transform.position = pos;
+                        if (rb != null)
+                        {
+                            Vector3 rbPos = rb.position;
+                            rbPos.y = targetY;
+                            rb.position = rbPos;
+                        }
+                    }
+                }
+            }
 
             if (hudPanel == null && SurvivalUIManager.Instance != null)
             {
