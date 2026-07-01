@@ -757,19 +757,19 @@ namespace SownInStone.UI
             }
             else if (currentOptions.Count >= 1 && pressed1)
             {
-                currentOptions[0].action();
+                if (currentOptions[0].action != null) currentOptions[0].action();
             }
             else if (currentOptions.Count >= 2 && pressed2)
             {
-                currentOptions[1].action();
+                if (currentOptions[1].action != null) currentOptions[1].action();
             }
             else if (currentOptions.Count >= 3 && pressed3)
             {
-                currentOptions[2].action();
+                if (currentOptions[2].action != null) currentOptions[2].action();
             }
             else if (currentOptions.Count >= 4 && pressed4)
             {
-                currentOptions[3].action();
+                if (currentOptions[3].action != null) currentOptions[3].action();
             }
         }
 

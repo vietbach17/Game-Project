@@ -858,13 +858,8 @@ namespace SownInStone.Core
 
             if (isOnRoof)
             {
-                Vector3 constrainedPos = rb.position;
-                constrainedPos.x = Mathf.Clamp(constrainedPos.x, -2.2f, 2.2f);
-                constrainedPos.z = Mathf.Clamp(constrainedPos.z, -12.0f, -8.0f);
-                constrainedPos.y = 3.5f;
-
-                rb.position = constrainedPos;
-                transform.position = constrainedPos;
+                // Khi trên nóc nhà: chỉ giữ vận tốc Y = 0 để không rơi xuống.
+                // Việc khóa cứng tọa độ X/Z đã được xóa để người chơi đi chuyển tự do khắp nóc nhà.
                 rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
             }
         }
