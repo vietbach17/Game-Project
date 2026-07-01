@@ -835,7 +835,7 @@ namespace SownInStone
                     colGo.transform.rotation = houseObj.transform.rotation;
                     
                     var boxCol = colGo.AddComponent<BoxCollider>();
-                    boxCol.size = new Vector3(8f, 2.0f, 8f);
+                    boxCol.size = new Vector3(25f, 2.0f, 25f);
                     colGo.layer = houseObj.layer;
                     Physics.SyncTransforms();
                     Debug.Log("[TEMP COLLIDER] Early created temporary thick roof collider on Thanh_House at world center Y = " + colGo.transform.position.y);
@@ -1826,16 +1826,13 @@ namespace SownInStone
                     float targetY = houseObj != null ? houseObj.transform.position.y + 5.5f : 5.7f;
                     
                     Vector3 pos = PlayerController.Instance.transform.position;
-                    if (Mathf.Abs(pos.y - targetY) > 0.01f)
+                    pos.y = targetY;
+                    PlayerController.Instance.transform.position = pos;
+                    if (rb != null)
                     {
-                        pos.y = targetY;
-                        PlayerController.Instance.transform.position = pos;
-                        if (rb != null)
-                        {
-                            Vector3 rbPos = rb.position;
-                            rbPos.y = targetY;
-                            rb.position = rbPos;
-                        }
+                        Vector3 rbPos = rb.position;
+                        rbPos.y = targetY;
+                        rb.position = rbPos;
                     }
                 }
             }
