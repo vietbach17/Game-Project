@@ -888,6 +888,13 @@ namespace SownInStone
                     var visual = npc.transform.Find("Visual");
                     if (visual != null) visual.gameObject.SetActive(true);
 
+                    // Khôi phục va chạm vật lý thông thường cho NPC khi quay về nhà
+                    var colliders = npc.GetComponentsInChildren<Collider>();
+                    foreach (var col in colliders)
+                    {
+                        if (col != null) col.isTrigger = false;
+                    }
+
                     if (npcHomePositions.TryGetValue(npc.NPCName, out Vector3 homePos))
                     {
                         npc.transform.position = homePos;
@@ -1024,6 +1031,13 @@ namespace SownInStone
                     rbNPC.useGravity = false;
                     rbNPC.linearVelocity = Vector3.zero;
                     rbNPC.position = roofSpot;
+                }
+
+                // Chuyển toàn bộ collider của NPC thành trigger để tránh cản đường di chuyển của người chơi trên mái
+                var colliders = npc.GetComponentsInChildren<Collider>();
+                foreach (var col in colliders)
+                {
+                    if (col != null) col.isTrigger = true;
                 }
 
                 var visual = npc.transform.Find("Visual");
@@ -1767,7 +1781,7 @@ namespace SownInStone
                     }
 
                     GameObject houseObj = GameObject.Find("Thanh_House");
-                    float targetY = houseObj != null ? houseObj.transform.position.y + 5.85f : 6.05f;
+                    float targetY = houseObj != null ? houseObj.transform.position.y + 5.5f : 5.7f;
                     
                     Vector3 pos = PlayerController.Instance.transform.position;
                     if (Mathf.Abs(pos.y - targetY) > 0.01f)
