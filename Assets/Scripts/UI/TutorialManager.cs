@@ -1116,6 +1116,34 @@ namespace SownInStone
                 }
             }
 
+            // Vô hiệu hóa tất cả các Collider gốc của nhà Thành (tránh va chạm dốc mái/chi tiết 3D gây kẹt vật lý)
+            GameObject thanhHouseObj = GameObject.Find("Thanh_House");
+            if (thanhHouseObj != null)
+            {
+                var colliders = thanhHouseObj.GetComponentsInChildren<Collider>();
+                foreach (var col in colliders)
+                {
+                    if (col != null && col.gameObject.name != "TempRoofCollider")
+                    {
+                        col.enabled = false;
+                    }
+                }
+            }
+
+            // Đồng thời chuyển toàn bộ collider của NPC trên mái thành trigger
+            var allNPCs = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Include);
+            foreach (var npc in allNPCs)
+            {
+                if (npc != null)
+                {
+                    var cols = npc.GetComponentsInChildren<Collider>();
+                    foreach (var col in cols)
+                    {
+                        if (col != null) col.isTrigger = true;
+                    }
+                }
+            }
+
             // Phát mì tôm cứu trợ giống như thiết lập cũ
             if (StorageManager.Instance != null && PlayerController.Instance != null && PlayerController.Instance.seedItem != null)
             {
@@ -1184,6 +1212,20 @@ namespace SownInStone
             {
                 Destroy(colGo);
                 Debug.Log("[TEMP COLLIDER] Destroyed temporary root roof collider");
+            }
+
+            // Khôi phục lại toàn bộ Collider gốc của nhà Thành
+            GameObject thanhHouseObjRestore = GameObject.Find("Thanh_House");
+            if (thanhHouseObjRestore != null)
+            {
+                var colliders = thanhHouseObjRestore.GetComponentsInChildren<Collider>();
+                foreach (var col in colliders)
+                {
+                    if (col != null)
+                    {
+                        col.enabled = true;
+                    }
+                }
             }
 
             // Trở lại đất liền và khôi phục trọng lực
