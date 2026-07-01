@@ -946,12 +946,14 @@ namespace SownInStone
                         break;
                 }
 
-                Vector3 roofSpot = center + new Vector3(xOffset, 4.3f, zOffset);
+                Vector3 roofSpot = center + new Vector3(xOffset, 5.2f, zOffset);
                 npc.transform.position = roofSpot;
                 
                 var rbNPC = npc.GetComponent<Rigidbody>();
                 if (rbNPC != null)
                 {
+                    rbNPC.isKinematic = true;
+                    rbNPC.useGravity = false;
                     rbNPC.linearVelocity = Vector3.zero;
                     rbNPC.position = roofSpot;
                 }
@@ -1019,7 +1021,7 @@ namespace SownInStone
             if (PlayerController.Instance != null)
             {
                 GameObject houseObj = GameObject.Find("Thanh_House");
-                Vector3 roofPos = houseObj != null ? houseObj.transform.position + new Vector3(0f, 4.3f, 0f) : new Vector3(10.66f, 4.3f, -10.0f);
+                Vector3 roofPos = houseObj != null ? houseObj.transform.position + new Vector3(0f, 5.2f, 0f) : new Vector3(10.66f, 5.2f, -10.0f);
                 SafeTeleportPlayer(roofPos);
                 var rb = PlayerController.Instance.GetComponent<Rigidbody>();
                 if (rb != null)

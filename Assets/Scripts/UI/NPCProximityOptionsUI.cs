@@ -1233,7 +1233,11 @@ namespace SownInStone.UI
             TutorialManager.Instance.OnNPCRescued(npc.characterType);
             SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_place_object");
             targetAlpha = 0f;
-            gameObject.SetActive(false);
+            if (activeNPC != null)
+            {
+                activeNPC.ReturnToDefaultRotation();
+                activeNPC = null;
+            }
         }
 
         private void TriggerNPCRoofFoodShare(NPCCharacter npc)
@@ -1288,7 +1292,11 @@ namespace SownInStone.UI
                 SurvivalUIManager.Instance?.ShowHUDToast("<color=#E74C3C>Bạn không còn củ Khoai Gieo hay gói Mì Tôm nào trong balo để chia sẻ!</color>");
             }
             targetAlpha = 0f;
-            gameObject.SetActive(false);
+            if (activeNPC != null)
+            {
+                activeNPC.ReturnToDefaultRotation();
+                activeNPC = null;
+            }
         }
 
         private void TriggerNPCPostStormCleanup(NPCCharacter npc)
@@ -1321,7 +1329,11 @@ namespace SownInStone.UI
                 SurvivalUIManager.Instance?.ShowHUDToast("<color=#E74C3C>Bạn không đủ 15 Thể lực để giúp dọn dẹp nặng nhọc!</color>");
             }
             targetAlpha = 0f;
-            gameObject.SetActive(false);
+            if (activeNPC != null)
+            {
+                activeNPC.ReturnToDefaultRotation();
+                activeNPC = null;
+            }
         }
     }
 }
