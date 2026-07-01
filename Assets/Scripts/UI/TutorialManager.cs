@@ -1174,9 +1174,26 @@ namespace SownInStone
             // Đảm bảo collider tạm thời đã được khởi tạo
             CreateTempRoofCollider();
 
-            // Dịch chuyển người chơi lên nóc nhà Thành cùng mọi người (Teleport lên 6.2f để rơi xuống đúng trên bề mặt collider 5.9f)
+            // Dịch chuyển người chơi lên nóc nhà Thành cùng mọi người
             if (PlayerController.Instance != null)
             {
+                // [CRITICAL FIX] Vô hiệu hóa CharacterController để ngăn xung đột vật lý trên mái nhà.
+                // CharacterController tạo ra capsule collider ẩn gây kẹt nhân vật khi di chuyển ngang.
+                var cc = PlayerController.Instance.GetComponent<CharacterController>();
+                if (cc != null)
+                {
+                    cc.enabled = false;
+                    Debug.Log("[ROOF] Disabled CharacterController to allow free movement on roof.");
+                }
+
+                // Đảm bảo BoxCollider của Player cũng là trigger để tránh va chạm với sàn nhà phụ
+                var playerBoxCol = PlayerController.Instance.GetComponent<BoxCollider>();
+                if (playerBoxCol != null)
+                {
+                    playerBoxCol.isTrigger = true;
+                    Debug.Log("[ROOF] Set Player BoxCollider isTrigger=true on roof.");
+                }
+
                 GameObject houseObj = FindThanhHouse();
                 Vector3 roofPos = houseObj != null ? houseObj.transform.position + new Vector3(0f, 6.2f, 0f) : new Vector3(10.66f, 6.2f, -10.0f);
                 SafeTeleportPlayer(roofPos);
@@ -1306,6 +1323,21 @@ namespace SownInStone
             // Trở lại đất liền và khôi phục trọng lực
             if (PlayerController.Instance != null)
             {
+                // [CRITICAL FIX] Kích hoạt lại CharacterController và BoxCollider khi trở về đất liền
+                var cc = PlayerController.Instance.GetComponent<CharacterController>();
+                if (cc != null)
+                {
+                    cc.enabled = true;
+                    Debug.Log("[ROOF] Re-enabled CharacterController after leaving roof.");
+                }
+
+                var playerBoxCol = PlayerController.Instance.GetComponent<BoxCollider>();
+                if (playerBoxCol != null)
+                {
+                    playerBoxCol.isTrigger = false;
+                    Debug.Log("[ROOF] Restored Player BoxCollider isTrigger=false after roof.");
+                }
+
                 var rb = PlayerController.Instance.GetComponent<Rigidbody>();
                 if (rb != null)
                 {
