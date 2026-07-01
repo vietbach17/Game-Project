@@ -27,6 +27,7 @@ namespace SownInStone
             SharePreservedCrops,  // Stage 6: Share 4 preserved crops with 4 NPCs
             PrepareForStorm,      // Stage 7: Help O Thắm and Bác Năm prepare for storm
             PrepareOwnHouse,      // Stage 8: Prepare own house
+            ProtectFarmland,      // Stage 8.5: Protect farmland with plastic mulch
             TalkToCuBayWorship,   // Stage 9: Talk to Cụ Bảy about ancestral worship
             WorshipAltar,         // Stage 10: Burn incense at ancestral altar
             RescuingNPCs,         // Stage 11: Rescue 4 NPCs from flood
@@ -103,6 +104,7 @@ namespace SownInStone
         // Legacy compat shims
         public int oThamBoardsPlaced = 0;
         public int ownHouseSandbagsPlaced = 0; // mapped to ownHouseFloodboardsPlacedCount internally
+        public bool farmlandProtected = false;
         public enum ActiveStormJob { None, OThamFloodboards, BacNamSandbags }
         public ActiveStormJob activeStormJob = ActiveStormJob.None;
 
@@ -740,6 +742,15 @@ namespace SownInStone
                     StorageManager.Instance.AddItem(floodboard, 4);
                     SurvivalUIManager.Instance.ShowHUDToast("Bạn nhận được 4 Tấm chắn để gia cố nhà mình");
                 }
+
+                // Cấp màng bọc nilon bảo vệ ruộng đất
+                ItemData plasticMulch = StorageManager.Instance.GetItemDataByID("item_plastic_mulch");
+                if (plasticMulch == null) plasticMulch = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_plastic_mulch.asset");
+                if (plasticMulch != null)
+                {
+                    StorageManager.Instance.AddItem(plasticMulch, 1);
+                    SurvivalUIManager.Instance.ShowHUDToast("Bạn nhận được Màng bọc Nilon bảo vệ ruộng đất!");
+                }
             }
 
             ownHouseGhostFloodboards.Clear();
@@ -762,17 +773,30 @@ namespace SownInStone
                 {
                     SurvivalUIManager.Instance.ShowDialogue(
                         "Nhà của bạn", 
-                        "\"Bạn đã lắp đủ 4 tấm chắn gia cố trước cửa nhà. Ngôi nhà của bạn hiện đã sẵn sàng ứng phó với cơn bão sắp tới!\""
+                        "\"Bạn đã lắp đủ 4 tấm chắn gia cố trước cửa nhà. Giờ hãy phủ màng bọc nilon bảo vệ ruộng đất!\""
                     );
                 }
-                currentStage = TutorialStage.TalkToCuBayWorship;
-                UpdateHUDPanel();
-                npcsInScene = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Exclude);
+                StartProtectFarmlandStage();
             }
             else
             {
                 UpdateHUDPanel();
             }
+        }
+
+        public void StartProtectFarmlandStage()
+        {
+            currentStage = TutorialStage.ProtectFarmland;
+            farmlandProtected = false;
+            UpdateHUDPanel();
+            npcsInScene = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Exclude);
+        }
+
+        public void StartTalkToCuBayWorshipStage()
+        {
+            currentStage = TutorialStage.TalkToCuBayWorship;
+            UpdateHUDPanel();
+            npcsInScene = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Exclude);
         }
 
         public void OnCuBayWorshipTalked()
@@ -1017,10 +1041,27 @@ namespace SownInStone
                 WeatherManager.Instance.SetFloodLevelDirectly(2.0f);
             }
 
+            // Tạo collider tạm thời cho mái nhà Thành để người chơi không bị lún
+            GameObject houseObj = GameObject.Find("Thanh_House");
+            if (houseObj != null)
+            {
+                Transform tempCollider = houseObj.transform.Find("TempRoofCollider");
+                if (tempCollider == null)
+                {
+                    GameObject colGo = new GameObject("TempRoofCollider");
+                    colGo.transform.SetParent(houseObj.transform, false);
+                    colGo.transform.localPosition = new Vector3(0f, 5.0f, 0f);
+                    colGo.transform.localRotation = Quaternion.identity;
+                    
+                    var boxCol = colGo.AddComponent<BoxCollider>();
+                    boxCol.size = new Vector3(8f, 0.2f, 8f);
+                    Debug.Log("[TEMP COLLIDER] Created temporary roof collider on Thanh_House at local Y = 5.0f");
+                }
+            }
+
             // Dịch chuyển người chơi lên nóc nhà Thành cùng mọi người
             if (PlayerController.Instance != null)
             {
-                GameObject houseObj = GameObject.Find("Thanh_House");
                 Vector3 roofPos = houseObj != null ? houseObj.transform.position + new Vector3(0f, 5.2f, 0f) : new Vector3(10.66f, 5.2f, -10.0f);
                 SafeTeleportPlayer(roofPos);
                 var rb = PlayerController.Instance.GetComponent<Rigidbody>();
@@ -1093,10 +1134,21 @@ namespace SownInStone
                 GameManager.Instance.TransitionToPhase(GamePhase.PhuSa); // Chuyển sang Giai đoạn Phù Sa
             }
 
+            // Hủy collider tạm thời trên mái nhà Thành
+            GameObject houseObj = GameObject.Find("Thanh_House");
+            if (houseObj != null)
+            {
+                Transform tempCollider = houseObj.transform.Find("TempRoofCollider");
+                if (tempCollider != null)
+                {
+                    Destroy(tempCollider.gameObject);
+                    Debug.Log("[TEMP COLLIDER] Destroyed temporary roof collider on Thanh_House");
+                }
+            }
+
             // Trở lại đất liền
             if (PlayerController.Instance != null)
             {
-                GameObject houseObj = GameObject.Find("Thanh_House");
                 Vector3 groundPos = houseObj != null ? houseObj.transform.position + new Vector3(0f, 0.2f, -4.2f) : new Vector3(10.66f, 0.2f, -14.2f);
                 SafeTeleportPlayer(groundPos);
                 var rb = PlayerController.Instance.GetComponent<Rigidbody>();
@@ -1565,6 +1617,18 @@ namespace SownInStone
                 if (hudTaskCText != null) hudTaskCText.gameObject.SetActive(false);
                 if (hudTaskDText != null) hudTaskDText.gameObject.SetActive(false);
             }
+            else if (currentStage == TutorialStage.ProtectFarmland)
+            {
+                hudPanel.SetActive(true);
+                hudTitleText.text = "BẢO VỆ RUỘNG ĐẤT";
+
+                hudTaskAText.text = (farmlandProtected ? " <color=#2ECC71>✓</color> " : " <color=#E74C3C>☐</color> ") + "Phủ màng nilon bảo vệ ruộng khoai";
+                hudTaskAText.color = farmlandProtected ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
+
+                if (hudTaskBText != null) hudTaskBText.gameObject.SetActive(false);
+                if (hudTaskCText != null) hudTaskCText.gameObject.SetActive(false);
+                if (hudTaskDText != null) hudTaskDText.gameObject.SetActive(false);
+            }
             else if (currentStage == TutorialStage.TalkToCuBayWorship)
             {
                 hudPanel.SetActive(true);
@@ -1701,6 +1765,22 @@ namespace SownInStone
                         SafeTeleportPlayer(yardPos);
                         SurvivalUIManager.Instance?.ShowHUDToast("Đã tự động đưa bạn xuống đất để làm nhiệm vụ gia cố nhà mình!");
                     }
+                }
+            }
+
+            if (currentStage == TutorialStage.ProtectFarmland)
+            {
+                if (AreAllFieldsCoveredByMulch())
+                {
+                    farmlandProtected = true;
+                    if (SurvivalUIManager.Instance != null)
+                    {
+                        SurvivalUIManager.Instance.ShowDialogue(
+                            "Đất ruộng an toàn", 
+                            "\"Tốt lắm! Toàn bộ ruộng đất hoa màu đã được phủ màng nilon chống ngập úng. Hãy đi gặp Cụ Bảy để tiếp tục chuẩn bị!\""
+                        );
+                    }
+                    StartTalkToCuBayWorshipStage();
                 }
             }
 
@@ -2415,6 +2495,17 @@ namespace SownInStone
                     rb.useGravity = false;
                 }
             }
+        }
+
+        private bool AreAllFieldsCoveredByMulch()
+        {
+            var soilCells = FindObjectsByType<SoilCell>(FindObjectsInactive.Include);
+            if (soilCells.Length == 0) return false;
+            foreach (var cell in soilCells)
+            {
+                if (!cell.isCoveredByMulch) return false;
+            }
+            return true;
         }
     }
 }
