@@ -946,7 +946,7 @@ namespace SownInStone
                         break;
                 }
 
-                Vector3 roofSpot = center + new Vector3(xOffset, 3.4f, zOffset);
+                Vector3 roofSpot = center + new Vector3(xOffset, 4.3f, zOffset);
                 npc.transform.position = roofSpot;
                 
                 var rbNPC = npc.GetComponent<Rigidbody>();
@@ -1019,7 +1019,7 @@ namespace SownInStone
             if (PlayerController.Instance != null)
             {
                 GameObject houseObj = GameObject.Find("Thanh_House");
-                Vector3 roofPos = houseObj != null ? houseObj.transform.position + new Vector3(0f, 3.4f, 0f) : new Vector3(10.66f, 3.4f, -10.0f);
+                Vector3 roofPos = houseObj != null ? houseObj.transform.position + new Vector3(0f, 4.3f, 0f) : new Vector3(10.66f, 4.3f, -10.0f);
                 SafeTeleportPlayer(roofPos);
                 var rb = PlayerController.Instance.GetComponent<Rigidbody>();
                 if (rb != null)
@@ -1340,10 +1340,10 @@ namespace SownInStone
                 // 1. Kiểm tra 4 bao cát trên mái nhà
                 Vector3[] roofLocalOffsets = new Vector3[]
                 {
-                    new Vector3(-1.2f, 2.3f, -6.98f),
-                    new Vector3(1.2f, 2.3f, -6.98f),
-                    new Vector3(-1.2f, 2.3f, -5.38f),
-                    new Vector3(1.2f, 2.3f, -5.38f)
+                    new Vector3(-1.2f, 3.0f, -6.98f),
+                    new Vector3(1.2f, 3.0f, -6.98f),
+                    new Vector3(-1.2f, 3.0f, -5.38f),
+                    new Vector3(1.2f, 3.0f, -5.38f)
                 };
 
                 for (int i = 0; i < ghostSandbags.Count; i++)
@@ -2249,10 +2249,10 @@ namespace SownInStone
                 // 1. Tạo 4 bao cát chỉ dẫn trên mái nhà Bác Năm sử dụng local space để quay/dịch chuyển theo nhà
                 Vector3[] roofLocalOffsets = new Vector3[]
                 {
-                    new Vector3(-1.2f, 2.3f, -0.8f),
-                    new Vector3(1.2f, 2.3f, -0.8f),
-                    new Vector3(-1.2f, 2.3f, 0.8f),
-                    new Vector3(1.2f, 2.3f, 0.8f)
+                    new Vector3(-1.2f, 3.0f, -6.98f),
+                    new Vector3(1.2f, 3.0f, -6.98f),
+                    new Vector3(-1.2f, 3.0f, -5.38f),
+                    new Vector3(1.2f, 3.0f, -5.38f)
                 };
 
                 for (int i = 0; i < 4; i++)
@@ -2371,6 +2371,16 @@ namespace SownInStone
             {
                 if (col != null) col.isTrigger = true;
             }
+
+            Rigidbody[] rbs = obj.GetComponentsInChildren<Rigidbody>(true);
+            foreach (var rb in rbs)
+            {
+                if (rb != null)
+                {
+                    rb.isKinematic = true;
+                    rb.useGravity = false;
+                }
+            }
         }
 
         public void MakeSolidModel(GameObject obj)
@@ -2391,6 +2401,16 @@ namespace SownInStone
                 if (r != null && originalGhostMaterials.ContainsKey(r))
                 {
                     r.materials = originalGhostMaterials[r];
+                }
+            }
+
+            Rigidbody[] rbs = obj.GetComponentsInChildren<Rigidbody>(true);
+            foreach (var rb in rbs)
+            {
+                if (rb != null)
+                {
+                    rb.isKinematic = true;
+                    rb.useGravity = false;
                 }
             }
         }

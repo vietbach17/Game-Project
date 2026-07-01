@@ -2783,7 +2783,7 @@ namespace SownInStone.Core
             Vector3 center = houseObj != null ? houseObj.transform.position : transform.position;
             
             // Đặt NPC lên nóc nhà tại một góc ngẫu nhiên
-            Vector3 roofSpot = center + new Vector3(UnityEngine.Random.Range(-1.5f, 1.5f), 3.4f, UnityEngine.Random.Range(-1.5f, 1.5f));
+            Vector3 roofSpot = center + new Vector3(UnityEngine.Random.Range(-1.5f, 1.5f), 4.3f, UnityEngine.Random.Range(-1.5f, 1.5f));
             
             carriedNPC.transform.position = roofSpot;
             var rbNPC = carriedNPC.GetComponent<Rigidbody>();
