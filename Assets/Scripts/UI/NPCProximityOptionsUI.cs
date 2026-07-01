@@ -230,11 +230,13 @@ namespace SownInStone.UI
             currentOptions.Clear();
 
             GamePhase currentPhase = GameManager.Instance != null ? GameManager.Instance.CurrentPhase : GamePhase.LapNghiep;
+            var stage = (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive) 
+                ? TutorialManager.Instance.currentStage 
+                : TutorialManager.TutorialStage.NotStarted;
 
             // Khi hướng dẫn đang kích hoạt, thiết lập các lựa chọn tương tác chuyên biệt cho từng Stage
             if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
             {
-                var stage = TutorialManager.Instance.currentStage;
                 if (stage == TutorialManager.TutorialStage.IntroQuests ||
                     stage == TutorialManager.TutorialStage.FarmingTutorial ||
                     stage == TutorialManager.TutorialStage.CraftPreservedCrops ||
@@ -654,8 +656,10 @@ namespace SownInStone.UI
                 }
             }
 
-            // Nút Tặng Tấm Chắn Lũ gia cố nhà dân làng (Chỉ xuất hiện trong Phase 3 Mưa Bão)
-            if (currentPhase == GamePhase.MuaBao)
+            // Nút Tặng Tấm Chắn Lũ gia cố nhà dân làng (Chỉ xuất hiện trong Phase 3 Mưa Bão và trước/sau khi sơ tán)
+            if (currentPhase == GamePhase.MuaBao && 
+                stage != TutorialManager.TutorialStage.RescuingNPCs && 
+                stage != TutorialManager.TutorialStage.RoofSurvivalSharing)
             {
                 currentOptions.Add(new ProximityOption
                 {
@@ -748,11 +752,16 @@ namespace SownInStone.UI
                 }
             }
 
-            if (currentOptions.Count == 1 && pressedE)
+            if (pressedE)
             {
-                if (currentOptions[0].action != null)
+                int eOptionIndex = currentOptions.FindIndex(o => o.label.StartsWith("[E]", System.StringComparison.OrdinalIgnoreCase));
+                if (eOptionIndex != -1)
                 {
-                    currentOptions[0].action();
+                    if (currentOptions[eOptionIndex].action != null)
+                    {
+                        currentOptions[eOptionIndex].action();
+                        return;
+                    }
                 }
             }
             else if (currentOptions.Count >= 1 && pressed1)
