@@ -571,6 +571,8 @@ namespace SownInStone
                 }
 
                 PlayerController.Instance.transform.position = position;
+                
+                Physics.SyncTransforms();
 
                 if (cc != null) cc.enabled = true;
                 Debug.Log($"[SAFE TELEPORT] Player teleported to {position}");
@@ -734,6 +736,10 @@ namespace SownInStone
         public void StartPrepareOwnHouseStage()
         {
             currentStage = TutorialStage.PrepareOwnHouse;
+            
+            // Khởi tạo collider tạm thời trên mái sớm để PhysX đăng ký trước khi teleport
+            CreateTempRoofCollider();
+
             if (StorageManager.Instance != null && SurvivalUIManager.Instance != null)
             {
                 ItemData floodboard = SurvivalUIManager.Instance.FloodBoardItem;
@@ -814,6 +820,27 @@ namespace SownInStone
             currentStage = TutorialStage.TalkToCuBayWorship;
             UpdateHUDPanel();
             npcsInScene = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Exclude);
+        }
+
+        private void CreateTempRoofCollider()
+        {
+            GameObject houseObj = GameObject.Find("Thanh_House");
+            if (houseObj != null)
+            {
+                GameObject colGo = GameObject.Find("TempRoofCollider");
+                if (colGo == null)
+                {
+                    colGo = new GameObject("TempRoofCollider");
+                    colGo.transform.position = houseObj.transform.position + new Vector3(0f, 4.9f, 0f);
+                    colGo.transform.rotation = houseObj.transform.rotation;
+                    
+                    var boxCol = colGo.AddComponent<BoxCollider>();
+                    boxCol.size = new Vector3(8f, 2.0f, 8f);
+                    colGo.layer = houseObj.layer;
+                    Physics.SyncTransforms();
+                    Debug.Log("[TEMP COLLIDER] Early created temporary thick roof collider on Thanh_House at world center Y = " + colGo.transform.position.y);
+                }
+            }
         }
 
         public void OnCuBayWorshipTalked()
@@ -1058,27 +1085,13 @@ namespace SownInStone
                 WeatherManager.Instance.SetFloodLevelDirectly(2.0f);
             }
 
-            // Tạo collider tạm thời cho mái nhà Thành để người chơi không bị lún (Dùng root GameObject dày 2.0m để không bị lọt sàn)
-            GameObject houseObj = GameObject.Find("Thanh_House");
-            if (houseObj != null)
-            {
-                GameObject colGo = GameObject.Find("TempRoofCollider");
-                if (colGo == null)
-                {
-                    colGo = new GameObject("TempRoofCollider");
-                    colGo.transform.position = houseObj.transform.position + new Vector3(0f, 4.9f, 0f);
-                    colGo.transform.rotation = houseObj.transform.rotation;
-                    
-                    var boxCol = colGo.AddComponent<BoxCollider>();
-                    boxCol.size = new Vector3(8f, 2.0f, 8f);
-                    colGo.layer = houseObj.layer; // Đảm bảo cùng lớp va chạm với nhà
-                    Debug.Log("[TEMP COLLIDER] Created temporary thick root roof collider on Thanh_House at world center Y = " + colGo.transform.position.y);
-                }
-            }
+            // Đảm bảo collider tạm thời đã được khởi tạo
+            CreateTempRoofCollider();
 
             // Dịch chuyển người chơi lên nóc nhà Thành cùng mọi người (Teleport lên 6.2f để rơi xuống đúng trên bề mặt collider 5.9f)
             if (PlayerController.Instance != null)
             {
+                GameObject houseObj = GameObject.Find("Thanh_House");
                 Vector3 roofPos = houseObj != null ? houseObj.transform.position + new Vector3(0f, 6.2f, 0f) : new Vector3(10.66f, 6.2f, -10.0f);
                 SafeTeleportPlayer(roofPos);
                 var rb = PlayerController.Instance.GetComponent<Rigidbody>();
