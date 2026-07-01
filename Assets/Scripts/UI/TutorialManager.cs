@@ -824,7 +824,7 @@ namespace SownInStone
 
         private void CreateTempRoofCollider()
         {
-            GameObject houseObj = GameObject.Find("Thanh_House");
+            GameObject houseObj = FindThanhHouse();
             if (houseObj != null)
             {
                 GameObject colGo = GameObject.Find("TempRoofCollider");
@@ -841,6 +841,78 @@ namespace SownInStone
                     Debug.Log("[TEMP COLLIDER] Early created temporary thick roof collider on Thanh_House at world center Y = " + colGo.transform.position.y);
                 }
             }
+        }
+
+        private GameObject FindThanhHouse()
+        {
+            var allObjects = GameObject.FindObjectsByType<GameObject>(FindObjectsInactive.Include);
+            foreach (var go in allObjects)
+            {
+                if (go != null && (go.name.Contains("Thanh_House") || go.name.Contains("ThanhHouse")))
+                {
+                    return go;
+                }
+            }
+            return null;
+        }
+
+        private void LogCollidersNearPlayer()
+        {
+            try
+            {
+                var sb = new System.Text.StringBuilder();
+                sb.AppendLine("=== DIAGNOSTIC COLLIDER LOG ===");
+                sb.AppendLine($"Current Stage: {currentStage}");
+                
+                if (PlayerController.Instance != null)
+                {
+                    Vector3 pPos = PlayerController.Instance.transform.position;
+                    sb.AppendLine($"Player Position: {pPos}");
+                    
+                    var colliders = Physics.OverlapSphere(pPos, 15f);
+                    sb.AppendLine($"Found {colliders.Length} colliders within 15m radius of player:");
+                    foreach (var col in colliders)
+                    {
+                        if (col == null) continue;
+                        sb.AppendLine($"- Name: {col.gameObject.name}");
+                        sb.AppendLine($"  Path: {GetGameObjectPath(col.gameObject)}");
+                        sb.AppendLine($"  Position: {col.transform.position}");
+                        sb.AppendLine($"  Rotation: {col.transform.rotation.eulerAngles}");
+                        sb.AppendLine($"  Enabled: {col.enabled}");
+                        sb.AppendLine($"  IsTrigger: {col.isTrigger}");
+                        sb.AppendLine($"  Type: {col.GetType().Name}");
+                        sb.AppendLine($"  Layer: {col.gameObject.layer} ({LayerMask.LayerToName(col.gameObject.layer)})");
+                        
+                        var rb = col.GetComponentInParent<Rigidbody>();
+                        if (rb != null)
+                        {
+                            sb.AppendLine($"  Has Rigidbody: {rb.gameObject.name} (isKinematic={rb.isKinematic}, useGravity={rb.useGravity})");
+                        }
+                    }
+                }
+                else
+                {
+                    sb.AppendLine("PlayerController.Instance is null!");
+                }
+                
+                System.IO.File.WriteAllText("d:/Game Project/colliders_near_player.txt", sb.ToString());
+                Debug.Log("[DIAGNOSTIC] Wrote colliders_near_player.txt successfully!");
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError("[DIAGNOSTIC ERROR] " + ex.Message);
+            }
+        }
+
+        private string GetGameObjectPath(GameObject obj)
+        {
+            string path = "/" + obj.name;
+            while (obj.transform.parent != null)
+            {
+                obj = obj.transform.parent.gameObject;
+                path = "/" + obj.name + path;
+            }
+            return path;
         }
 
         public void OnCuBayWorshipTalked()
@@ -1105,7 +1177,7 @@ namespace SownInStone
             // Dịch chuyển người chơi lên nóc nhà Thành cùng mọi người (Teleport lên 6.2f để rơi xuống đúng trên bề mặt collider 5.9f)
             if (PlayerController.Instance != null)
             {
-                GameObject houseObj = GameObject.Find("Thanh_House");
+                GameObject houseObj = FindThanhHouse();
                 Vector3 roofPos = houseObj != null ? houseObj.transform.position + new Vector3(0f, 6.2f, 0f) : new Vector3(10.66f, 6.2f, -10.0f);
                 SafeTeleportPlayer(roofPos);
                 var rb = PlayerController.Instance.GetComponent<Rigidbody>();
@@ -1117,7 +1189,7 @@ namespace SownInStone
             }
 
             // Vô hiệu hóa tất cả các Collider gốc của nhà Thành (tránh va chạm dốc mái/chi tiết 3D gây kẹt vật lý)
-            GameObject thanhHouseObj = GameObject.Find("Thanh_House");
+            GameObject thanhHouseObj = FindThanhHouse();
             if (thanhHouseObj != null)
             {
                 var colliders = thanhHouseObj.GetComponentsInChildren<Collider>();
@@ -1166,6 +1238,9 @@ namespace SownInStone
             }
 
             UpdateHUDPanel();
+            
+            // Chạy ghi nhận va chạm chẩn đoán cận cảnh
+            LogCollidersNearPlayer();
         }
 
         public void FeedNPC(SownInStone.Community.NPCCharacter.StoryCharacterType charType)
@@ -1215,7 +1290,7 @@ namespace SownInStone
             }
 
             // Khôi phục lại toàn bộ Collider gốc của nhà Thành
-            GameObject thanhHouseObjRestore = GameObject.Find("Thanh_House");
+            GameObject thanhHouseObjRestore = FindThanhHouse();
             if (thanhHouseObjRestore != null)
             {
                 var colliders = thanhHouseObjRestore.GetComponentsInChildren<Collider>();
@@ -1236,7 +1311,7 @@ namespace SownInStone
                 {
                     rb.useGravity = true;
                 }
-                GameObject houseObj = GameObject.Find("Thanh_House");
+                GameObject houseObj = FindThanhHouse();
                 Vector3 groundPos = houseObj != null ? houseObj.transform.position + new Vector3(0f, 0.2f, -4.2f) : new Vector3(10.66f, 0.2f, -14.2f);
                 SafeTeleportPlayer(groundPos);
                 if (rb != null)
@@ -1822,7 +1897,7 @@ namespace SownInStone
                         rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
                     }
 
-                    GameObject houseObj = GameObject.Find("Thanh_House");
+                    GameObject houseObj = FindThanhHouse();
                     float targetY = houseObj != null ? houseObj.transform.position.y + 5.5f : 5.7f;
                     
                     Vector3 pos = PlayerController.Instance.transform.position;
