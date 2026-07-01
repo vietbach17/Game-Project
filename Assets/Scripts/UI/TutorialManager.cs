@@ -539,7 +539,7 @@ namespace SownInStone
                 GameObject bacNamHouse = GameObject.Find("BacNam_House");
                 if (bacNamHouse != null)
                 {
-                    Vector3 roofCenter = bacNamHouse.transform.TransformPoint(new Vector3(0f, 2.4f, 0f));
+                    Vector3 roofCenter = bacNamHouse.transform.TransformPoint(new Vector3(0f, 2.4f, -6.18f));
                     SafeTeleportPlayer(roofCenter);
                     SurvivalUIManager.Instance?.ShowHUDToast("Đã lên mái nhà Bác Năm – Hãy đặt 4 Bao cát gia cố!");
                 }
@@ -1280,6 +1280,57 @@ namespace SownInStone
             }
         }
 
+        private void EnsureBacNamGhostsArePositionedCorrectly()
+        {
+            if (currentStage == TutorialStage.PrepareForStorm)
+            {
+                GameObject bacNamHouse = GameObject.Find("BacNam_House");
+                if (bacNamHouse == null) return;
+
+                // 1. Kiểm tra 4 bao cát trên mái nhà
+                Vector3[] roofLocalOffsets = new Vector3[]
+                {
+                    new Vector3(-1.2f, 2.3f, -6.98f),
+                    new Vector3(1.2f, 2.3f, -6.98f),
+                    new Vector3(-1.2f, 2.3f, -5.38f),
+                    new Vector3(1.2f, 2.3f, -5.38f)
+                };
+
+                for (int i = 0; i < ghostSandbags.Count; i++)
+                {
+                    if (ghostSandbags[i] != null)
+                    {
+                        Vector3 targetPos = bacNamHouse.transform.TransformPoint(roofLocalOffsets[i]);
+                        if (Vector3.Distance(ghostSandbags[i].transform.position, targetPos) > 0.05f)
+                        {
+                            ghostSandbags[i].transform.position = targetPos;
+                            ghostSandbags[i].transform.rotation = bacNamHouse.transform.rotation;
+                        }
+                    }
+                }
+
+                // 2. Kiểm tra 2 vách chắn trước cửa
+                Vector3[] doorLocalOffsets = new Vector3[]
+                {
+                    new Vector3(-1.5f, 0.1f, -2.0f),
+                    new Vector3(1.5f, 0.1f, -2.0f)
+                };
+
+                for (int i = 0; i < ghostFloodboards.Count; i++)
+                {
+                    if (ghostFloodboards[i] != null)
+                    {
+                        Vector3 targetPos = bacNamHouse.transform.TransformPoint(doorLocalOffsets[i]);
+                        if (Vector3.Distance(ghostFloodboards[i].transform.position, targetPos) > 0.05f)
+                        {
+                            ghostFloodboards[i].transform.position = targetPos;
+                            ghostFloodboards[i].transform.rotation = bacNamHouse.transform.rotation;
+                        }
+                    }
+                }
+            }
+        }
+
         public void UpdateHUDPanel()
         {
             if (hudPanel == null) return;
@@ -1562,6 +1613,7 @@ namespace SownInStone
             }
 
             EnsureOwnHouseGhostsExist();
+            EnsureBacNamGhostsArePositionedCorrectly();
 
             if (currentStage == TutorialStage.PrepareForStorm)
             {
@@ -1572,7 +1624,7 @@ namespace SownInStone
                         GameObject bacNamHouse = GameObject.Find("BacNam_House");
                         if (bacNamHouse != null)
                         {
-                            Vector3 roofCenter = bacNamHouse.transform.TransformPoint(new Vector3(0f, 2.4f, 0f));
+                            Vector3 roofCenter = bacNamHouse.transform.TransformPoint(new Vector3(0f, 2.4f, -6.18f));
                             SafeTeleportPlayer(roofCenter);
                             SurvivalUIManager.Instance?.ShowHUDToast("Đã lên mái nhà Bác Năm – Hãy đặt 4 Bao cát gia cố!");
                         }
