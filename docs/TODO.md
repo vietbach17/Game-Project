@@ -1,6 +1,6 @@
 # TODO: Development Status & Remaining Tasks
 
-Cập nhật: **2026-06-29**.
+Cập nhật: **2026-07-01**.
 
 ---
 
@@ -27,10 +27,16 @@ Cập nhật: **2026-06-29**.
 - [x] HUD gợi ý tương tác và phím tắt được khôi phục.
 - [x] Animator di chuyển Idle/Walk/Run hoạt động hoàn hảo.
 - [x] Lội nước lũ làm giảm tốc độ di chuyển của Thành (flood movement penalty).
-- [x] Đếm ngược chạy lũ 45 giây và logic di chuyển lên nóc nhà khi hoàn thành cứu hộ.
+- [x] Giai đoạn **EvacuateNeighbors**: Đếm ngược 120 giây sơ tán 4 dân làng lên nóc nhà Thành khi nước lũ dâng cao. Có timer và rescued count HUD. Logic đếm ngược chạy lũ 45 giây và di chuyển lên nóc nhà khi hoàn thành cứu hộ.
+- [x] Giai đoạn **RoofSurvivalSharing**: Sinh tồn và chia sẻ khoai gieo cho 4 dân làng trên nóc nhà. Player di chuyển tự do (isOnRoof clamp đã được xóa).
+- [x] Giai đoạn **PostStormCleanup**: Nước lũ rút, dọn dẹp nhà cửa và trồng lại 4 luống cây tái thiết.
+- [x] `TempRoofCollider` phẳng 25×25m trên mái nhà Thành (tài sản collider tạm runtime, tự hủy khi ra khỏi giai đoạn).
 - [x] Khóa góc camera đứng yên khi mở Tab xem thông tin hành trang và mở lại khi đóng.
 - [x] Tự động hồi phục +5 thể lực mỗi giây khi người chơi đứng yên tại chỗ.
 - [x] Sửa lỗi khóa cứng con trỏ chuột khi hiển thị các bảng UI (hướng dẫn, túi đồ, cửa hàng, kết thúc game).
+- [x] **[2026-07-01]** Khắc phục triệt để lỗi player bị kẹt không đi qua được phía Bác Năm/Bé Tí trên nóc nhà (xóa isOnRoof clamp cứng X/Z trong `FixedUpdate`).
+- [x] **[2026-07-01]** Disable `CharacterController` khi vào giai đoạn nóc nhà, restore khi xuống đất.
+- [x] **[2026-07-01]** Fix `NullReferenceException` spam trong `NPCProximityOptionsUI.HandleKeyboardInput()`.
 
 ### NPC & Community
 - [x] Khắc phục triệt để lỗi NPC tự xoay khi đi ngang qua và xoay lệch tâm (mesh visual được CenterVisualModel chuẩn hóa tại Runtime, đóng băng Rigidbody).
@@ -56,11 +62,10 @@ Cập nhật: **2026-06-29**.
 ## 3. P1 — Needed for Storm/Flood Presentation
 
 ### Evacuation
-- [ ] Thay `SurvivalUIManager.StartEvacuationCountdown()` toast-only bằng panel/timer thật nếu demo cần phần chạy lũ.
-- [ ] Hiển thị rescued count `rescuedCount/4` liên tục.
-- [ ] Test `TryEvacuateNPC()` từ proximity options hoặc interaction key.
-- [ ] Hoàn thiện `ActivateNPCsOnRoof()` hoặc đổi thành cutscene/toast nếu không đủ thời gian.
-- [ ] Quyết định failure flow: toast-only hay Game Over panel thật.
+- [x] Giai đoạn `EvacuateNeighbors` đã hoàn chỉnh với timer, rescued count HUD và failure flow (Toast + reset).
+- [x] `TryEvacuateNPC()` từ proximity options hoạt động đúng các NPC: O Thắm, Bác Năm, Cụ Bảy, Bé Tí.
+- [x] `ActivateNPCsOnRoof()` đã hoàn chỉnh: teleport NPC lên mái, kích hoạt visual, chuyển collider thành trigger.
+- [x] Failure flow: Toast + reset về vị trí ban đầu nếu hết giờ.
 
 ### Community / Vần công
 - [ ] Wire `CommunityManager.TriggerStormHelpSequence()` vào thời điểm chuyển `MuaBao` hoặc `ChuanBiBao` nếu Vần công phải có tác dụng.
