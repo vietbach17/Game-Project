@@ -539,7 +539,7 @@ namespace SownInStone
                 GameObject bacNamHouse = GameObject.Find("BacNam_House");
                 if (bacNamHouse != null)
                 {
-                    Vector3 roofCenter = bacNamHouse.transform.TransformPoint(new Vector3(0f, 2.4f, -6.18f));
+                    Vector3 roofCenter = bacNamHouse.transform.TransformPoint(new Vector3(0f, 3.2f, -6.18f));
                     SafeTeleportPlayer(roofCenter);
                     SurvivalUIManager.Instance?.ShowHUDToast("Đã lên mái nhà Bác Năm – Hãy đặt 4 Bao cát gia cố!");
                 }
@@ -1624,7 +1624,7 @@ namespace SownInStone
                         GameObject bacNamHouse = GameObject.Find("BacNam_House");
                         if (bacNamHouse != null)
                         {
-                            Vector3 roofCenter = bacNamHouse.transform.TransformPoint(new Vector3(0f, 2.4f, -6.18f));
+                            Vector3 roofCenter = bacNamHouse.transform.TransformPoint(new Vector3(0f, 3.2f, -6.18f));
                             SafeTeleportPlayer(roofCenter);
                             SurvivalUIManager.Instance?.ShowHUDToast("Đã lên mái nhà Bác Năm – Hãy đặt 4 Bao cát gia cố!");
                         }
