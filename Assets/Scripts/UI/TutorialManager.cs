@@ -792,6 +792,23 @@ namespace SownInStone
             npcsInScene = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Exclude);
         }
 
+        public void OnPlasticMulchApplied()
+        {
+            if (currentStage == TutorialStage.ProtectFarmland)
+            {
+                farmlandProtected = true;
+                UpdateHUDPanel();
+                if (SurvivalUIManager.Instance != null)
+                {
+                    SurvivalUIManager.Instance.ShowDialogue(
+                        "Đất ruộng an toàn", 
+                        "\"Tốt lắm! Toàn bộ ruộng đất hoa màu đã được phủ màng nilon chống ngập úng. Hãy đi gặp Cụ Bảy để tiếp tục chuẩn bị!\""
+                    );
+                }
+                StartTalkToCuBayWorshipStage();
+            }
+        }
+
         public void StartTalkToCuBayWorshipStage()
         {
             currentStage = TutorialStage.TalkToCuBayWorship;
@@ -1041,28 +1058,27 @@ namespace SownInStone
                 WeatherManager.Instance.SetFloodLevelDirectly(2.0f);
             }
 
-            // Tạo collider tạm thời cho mái nhà Thành để người chơi không bị lún
+            // Tạo collider tạm thời cho mái nhà Thành để người chơi không bị lún (Dùng root GameObject để không bị ảnh hưởng bởi Scale)
             GameObject houseObj = GameObject.Find("Thanh_House");
             if (houseObj != null)
             {
-                Transform tempCollider = houseObj.transform.Find("TempRoofCollider");
-                if (tempCollider == null)
+                GameObject colGo = GameObject.Find("TempRoofCollider");
+                if (colGo == null)
                 {
-                    GameObject colGo = new GameObject("TempRoofCollider");
-                    colGo.transform.SetParent(houseObj.transform, false);
-                    colGo.transform.localPosition = new Vector3(0f, 5.0f, 0f);
-                    colGo.transform.localRotation = Quaternion.identity;
+                    colGo = new GameObject("TempRoofCollider");
+                    colGo.transform.position = houseObj.transform.position + new Vector3(0f, 5.2f, 0f);
+                    colGo.transform.rotation = houseObj.transform.rotation;
                     
                     var boxCol = colGo.AddComponent<BoxCollider>();
                     boxCol.size = new Vector3(8f, 0.2f, 8f);
-                    Debug.Log("[TEMP COLLIDER] Created temporary roof collider on Thanh_House at local Y = 5.0f");
+                    Debug.Log("[TEMP COLLIDER] Created temporary root roof collider on Thanh_House at world Y = " + colGo.transform.position.y);
                 }
             }
 
-            // Dịch chuyển người chơi lên nóc nhà Thành cùng mọi người
+            // Dịch chuyển người chơi lên nóc nhà Thành cùng mọi người (Teleport lên 5.5f để rơi xuống đúng trên bề mặt collider 5.3f)
             if (PlayerController.Instance != null)
             {
-                Vector3 roofPos = houseObj != null ? houseObj.transform.position + new Vector3(0f, 5.2f, 0f) : new Vector3(10.66f, 5.2f, -10.0f);
+                Vector3 roofPos = houseObj != null ? houseObj.transform.position + new Vector3(0f, 5.5f, 0f) : new Vector3(10.66f, 5.5f, -10.0f);
                 SafeTeleportPlayer(roofPos);
                 var rb = PlayerController.Instance.GetComponent<Rigidbody>();
                 if (rb != null)
@@ -1135,20 +1151,17 @@ namespace SownInStone
             }
 
             // Hủy collider tạm thời trên mái nhà Thành
-            GameObject houseObj = GameObject.Find("Thanh_House");
-            if (houseObj != null)
+            GameObject colGo = GameObject.Find("TempRoofCollider");
+            if (colGo != null)
             {
-                Transform tempCollider = houseObj.transform.Find("TempRoofCollider");
-                if (tempCollider != null)
-                {
-                    Destroy(tempCollider.gameObject);
-                    Debug.Log("[TEMP COLLIDER] Destroyed temporary roof collider on Thanh_House");
-                }
+                Destroy(colGo);
+                Debug.Log("[TEMP COLLIDER] Destroyed temporary root roof collider");
             }
 
             // Trở lại đất liền
             if (PlayerController.Instance != null)
             {
+                GameObject houseObj = GameObject.Find("Thanh_House");
                 Vector3 groundPos = houseObj != null ? houseObj.transform.position + new Vector3(0f, 0.2f, -4.2f) : new Vector3(10.66f, 0.2f, -14.2f);
                 SafeTeleportPlayer(groundPos);
                 var rb = PlayerController.Instance.GetComponent<Rigidbody>();

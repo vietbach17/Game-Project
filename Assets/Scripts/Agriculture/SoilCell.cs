@@ -164,9 +164,9 @@ namespace SownInStone.Agriculture
             if (spawnedMulchVisual == null && mulchPrefab != null)
             {
                 spawnedMulchVisual = Instantiate(mulchPrefab, transform.position, transform.rotation, transform);
-                spawnedMulchVisual.transform.localPosition = Vector3.zero;
+                spawnedMulchVisual.transform.localPosition = new Vector3(0f, 0.05f, 0f);
                 spawnedMulchVisual.transform.localRotation = Quaternion.identity;
-                spawnedMulchVisual.transform.localScale = Vector3.one;
+                spawnedMulchVisual.transform.localScale = new Vector3(1.35f, 1.0f, 1.35f);
             }
             else if (spawnedMulchVisual == null)
             {
@@ -174,8 +174,8 @@ namespace SownInStone.Agriculture
                 GameObject plane = GameObject.CreatePrimitive(PrimitiveType.Plane);
                 plane.name = "MulchVisual_Fallback";
                 plane.transform.SetParent(transform, false);
-                plane.transform.localPosition = new Vector3(0f, 0.02f, 0f);
-                plane.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
+                plane.transform.localPosition = new Vector3(0f, 0.05f, 0f);
+                plane.transform.localScale = new Vector3(0.42f, 0.42f, 0.42f);
                 Destroy(plane.GetComponent<Collider>());
                 spawnedMulchVisual = plane;
 

@@ -2568,6 +2568,11 @@ namespace SownInStone.Core
                 SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast($"🌾 Đã phủ Màng Bọc Nilon bảo vệ toàn bộ {count} ô ruộng trước bão lũ!");
             }
             Debug.Log($"[PLASTIC MULCH] Đã phủ thành công Màng nilon bảo vệ {count} ô ruộng!");
+
+            if (TutorialManager.Instance != null)
+            {
+                TutorialManager.Instance.OnPlasticMulchApplied();
+            }
         }
 
         /// <summary>
