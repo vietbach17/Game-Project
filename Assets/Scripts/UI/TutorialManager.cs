@@ -539,7 +539,7 @@ namespace SownInStone
                 GameObject bacNamHouse = GameObject.Find("BacNam_House");
                 if (bacNamHouse != null)
                 {
-                    Vector3 roofCenter = bacNamHouse.transform.position + Vector3.up * 4.3f;
+                    Vector3 roofCenter = bacNamHouse.transform.TransformPoint(new Vector3(0f, 2.4f, 0f));
                     SafeTeleportPlayer(roofCenter);
                     SurvivalUIManager.Instance?.ShowHUDToast("Đã lên mái nhà Bác Năm – Hãy đặt 4 Bao cát gia cố!");
                 }
@@ -1572,7 +1572,7 @@ namespace SownInStone
                         GameObject bacNamHouse = GameObject.Find("BacNam_House");
                         if (bacNamHouse != null)
                         {
-                            Vector3 roofCenter = bacNamHouse.transform.position + Vector3.up * 4.3f;
+                            Vector3 roofCenter = bacNamHouse.transform.TransformPoint(new Vector3(0f, 2.4f, 0f));
                             SafeTeleportPlayer(roofCenter);
                             SurvivalUIManager.Instance?.ShowHUDToast("Đã lên mái nhà Bác Năm – Hãy đặt 4 Bao cát gia cố!");
                         }
@@ -2144,14 +2144,13 @@ namespace SownInStone
             GameObject bacNamHouse = GameObject.Find("BacNam_House");
             if (bacNamHouse != null)
             {
-                // 1. Tạo 4 bao cát chỉ dẫn trên mái nhà Bác Năm (Đúng thiết kế ban đầu)
-                Vector3 roofCenter = bacNamHouse.transform.position + Vector3.up * 3.8f;
-                Vector3[] roofOffsets = new Vector3[]
+                // 1. Tạo 4 bao cát chỉ dẫn trên mái nhà Bác Năm sử dụng local space để quay/dịch chuyển theo nhà
+                Vector3[] roofLocalOffsets = new Vector3[]
                 {
-                    new Vector3(-1.2f, 0f, -0.8f),
-                    new Vector3(1.2f, 0.1f, -0.8f),
-                    new Vector3(-1.2f, 0.1f, 0.8f),
-                    new Vector3(1.2f, 0f, 0.8f)
+                    new Vector3(-1.2f, 2.3f, -0.8f),
+                    new Vector3(1.2f, 2.3f, -0.8f),
+                    new Vector3(-1.2f, 2.3f, 0.8f),
+                    new Vector3(1.2f, 2.3f, 0.8f)
                 };
 
                 for (int i = 0; i < 4; i++)
@@ -2162,7 +2161,7 @@ namespace SownInStone
                     {
                         GameObject newGhost = Instantiate(prefab);
                         newGhost.name = $"Ghost_Sandbag_{i}";
-                        newGhost.transform.position = roofCenter + roofOffsets[i];
+                        newGhost.transform.position = bacNamHouse.transform.TransformPoint(roofLocalOffsets[i]);
                         newGhost.transform.rotation = bacNamHouse.transform.rotation;
                         MakeGhostModel(newGhost);
                         newGhost.SetActive(false);
@@ -2174,14 +2173,11 @@ namespace SownInStone
                     }
                 }
 
-                // 2. Tạo 2 tấm chắn chỉ dẫn trước cửa chính
-                Vector3 housePos = bacNamHouse.transform.position;
-                Vector3 forward = bacNamHouse.transform.forward;
-                Vector3 right = bacNamHouse.transform.right;
-                Vector3[] doorPositions = new Vector3[]
+                // 2. Tạo 2 tấm chắn chỉ dẫn trước cửa chính sử dụng local space
+                Vector3[] doorLocalOffsets = new Vector3[]
                 {
-                    housePos + forward * 4.2f + right * -1.5f,
-                    housePos + forward * 4.2f + right * 1.5f
+                    new Vector3(-1.5f, 0.1f, 2.3f),
+                    new Vector3(1.5f, 0.1f, 2.3f)
                 };
 
                 for (int i = 0; i < 2; i++)
@@ -2192,7 +2188,7 @@ namespace SownInStone
                     {
                         GameObject newGhost = Instantiate(prefab);
                         newGhost.name = $"Ghost_FloodBoard_{i}";
-                        newGhost.transform.position = doorPositions[i];
+                        newGhost.transform.position = bacNamHouse.transform.TransformPoint(doorLocalOffsets[i]);
                         newGhost.transform.rotation = bacNamHouse.transform.rotation;
                         MakeGhostModel(newGhost);
                         newGhost.SetActive(false);
