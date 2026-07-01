@@ -656,17 +656,7 @@ namespace SownInStone.UI
                 }
             }
 
-            // Nút Tặng Tấm Chắn Lũ gia cố nhà dân làng (Chỉ xuất hiện trong Phase 3 Mưa Bão và trước/sau khi sơ tán)
-            if (currentPhase == GamePhase.MuaBao && 
-                stage != TutorialManager.TutorialStage.RescuingNPCs && 
-                stage != TutorialManager.TutorialStage.RoofSurvivalSharing)
-            {
-                currentOptions.Add(new ProximityOption
-                {
-                    label = $"[{currentOptions.Count + 1}] Tặng Tấm Chắn Lũ gia cố nhà (+20 NT)",
-                    action = () => TriggerGiveFloodBoard(npc)
-                });
-            }
+
 
             // Tạo các Button UI đồng bộ kích thước chuẩn (Chiều rộng 360px, Chiều cao 36px)
             float totalHeight = 39f; // Tiêu đề + padding ban đầu
@@ -784,35 +774,7 @@ namespace SownInStone.UI
 
         // --- CÁC HÀM XỬ LÝ LỰA CHỌN TƯƠNG TÁC (TÁI SỬ DỤNG LOGIC CHUẨN) ---
 
-        private void TriggerGiveFloodBoard(NPCCharacter npc)
-        {
-            if (npc == null) return;
-            ItemData floodBoardItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_flood_board.asset");
-            if (StorageManager.Instance != null && floodBoardItem != null)
-            {
-                if (StorageManager.Instance.RemoveItem(floodBoardItem, 1))
-                {
-                    CommunityManager.Instance?.ModifyGlobalKarma(20);
-                    if (SurvivalUIManager.Instance != null)
-                    {
-                        SurvivalUIManager.Instance.ShowHUDToast($"🧡 NGHĨA TÌNH: Đã tặng Tấm Chắn Lũ gia cố nhà {npc.NPCName}! (+20 Nghĩa Tình)");
-                    }
-                    GameObject floodBoardPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Resources/Prefabs/FloodBoard.prefab");
-                    if (floodBoardPrefab != null)
-                    {
-                        Vector3 spawnPos = npc.transform.position + npc.transform.forward * 1.5f + Vector3.up * 0.5f;
-                        Instantiate(floodBoardPrefab, spawnPos, npc.transform.rotation);
-                    }
-                }
-                else
-                {
-                    if (SurvivalUIManager.Instance != null)
-                    {
-                        SurvivalUIManager.Instance.ShowHUDToast("Trong Balo không còn Tấm Chắn Lũ!");
-                    }
-                }
-            }
-        }
+
 
         private void TriggerTalk(NPCCharacter npc)
         {
