@@ -1150,12 +1150,12 @@ namespace SownInStone.Core
                     }
                     if (bep != null && Vector3.Distance(transform.position, bep.position) <= 2.5f)
                     {
-                        if (PlayerStats.Instance != null)
+                        KitchenHearth hearth = bep.GetComponent<KitchenHearth>();
+                        if (hearth == null)
                         {
-                            PlayerStats.Instance.ModifyHealth(20f);
-                            PlayerStats.Instance.ModifyStamina(30f);
+                            hearth = bep.gameObject.AddComponent<KitchenHearth>();
                         }
-                        SownInStone.UI.SurvivalUIManager.Instance?.ShowHUDToast("🍳 Đã nấu ăn nóng hổi! Phục hồi sức khỏe và thể lực.");
+                        hearth.Interact();
                         return;
                     }
 
@@ -1617,7 +1617,7 @@ namespace SownInStone.Core
                             }
                             if (bep != null && Vector3.Distance(transform.position, bep.position) <= 2.5f)
                             {
-                                prompt = "[E] Nấu nướng";
+                                prompt = "[E] Nấu nướng / Chế biến";
                             }
                             else
                             {
@@ -2587,7 +2587,7 @@ namespace SownInStone.Core
                 }
             }
 
-            Vector3 targetIndoorPos = indoorSpawnPoint + new Vector3(0f, 0.2f, 0f);
+            Vector3 targetIndoorPos = indoorSpawnPoint + new Vector3(0f, 0.565f, 0f);
             if (houseInteriorInstance != null)
             {
                 houseInteriorInstance.transform.position = indoorSpawnPoint;
@@ -2619,7 +2619,7 @@ namespace SownInStone.Core
                     }
                 }
 
-                targetIndoorPos = houseInteriorInstance.transform.position + new Vector3(-1.0f, 0.1f, -2.0f);
+                targetIndoorPos = houseInteriorInstance.transform.position + new Vector3(-1.0f, 0.565f, -2.0f);
             }
 
             if (rb != null)
@@ -2652,11 +2652,11 @@ namespace SownInStone.Core
             RaycastHit hit;
             if (Physics.Raycast(outdoorPos + Vector3.up * 5f, Vector3.down, out hit, 15f, LayerMask.GetMask("Ground", "Default", "Terrain")))
             {
-                outdoorPos.y = hit.point.y + 0.1f;
+                outdoorPos.y = hit.point.y + 0.565f;
             }
             else
             {
-                outdoorPos.y = 0.2f;
+                outdoorPos.y = 0.565f;
             }
 
             if (rb != null)

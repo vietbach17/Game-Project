@@ -2449,11 +2449,12 @@ namespace SownInStone.UI
             float elapsed = 0f;
             float fadeDuration = 0.25f;
 
-            // Fade in
+            // Fade in from current alpha to 1f
+            float startAlpha = toastCanvasGroup.alpha;
             while (elapsed < fadeDuration)
             {
                 elapsed += Time.deltaTime;
-                toastCanvasGroup.alpha = Mathf.Lerp(0f, 1f, elapsed / fadeDuration);
+                toastCanvasGroup.alpha = Mathf.Lerp(startAlpha, 1f, elapsed / fadeDuration);
                 yield return null;
             }
             toastCanvasGroup.alpha = 1f;

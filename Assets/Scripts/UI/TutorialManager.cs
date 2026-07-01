@@ -575,7 +575,7 @@ namespace SownInStone
             rect.anchorMax = new Vector2(0f, 1f);
             rect.pivot = new Vector2(0f, 1f);
             rect.anchoredPosition = new Vector2(15f, -220f);
-            rect.sizeDelta = new Vector2(200f, 105f); // Tăng nhẹ chiều rộng lên 200f để chứa gọn tiêu đề nhiệm vụ không bị tràn
+            rect.sizeDelta = new Vector2(260f, 150f); // Tăng nhẹ chiều rộng lên 200f để chứa gọn tiêu đề nhiệm vụ không bị tràn
 
             Image img = hudPanel.GetComponent<Image>();
             img.color = new Color(0.08f, 0.06f, 0.05f, 0.92f); // Tối màu hơn một chút để nổi bật
@@ -597,6 +597,7 @@ namespace SownInStone
             hudTitleText = titleObj.GetComponent<TextMeshProUGUI>();
             hudTitleText.fontSize = 11; // Giảm cỡ chữ Title xuống 11
             hudTitleText.fontStyle = FontStyles.Bold;
+            hudTitleText.enableWordWrapping = true;
             hudTitleText.color = new Color(0.95f, 0.85f, 0.4f, 1f); // Gold
             if (font != null) hudTitleText.font = font;
             hudTitleText.text = "NHIỆM VỤ HƯỚNG DẪN";
