@@ -232,6 +232,7 @@ Bản thử nghiệm hiện tại hướng đến mục tiêu chứng minh thàn
 * **Sinh tồn & Canh tác:** Dọn đá cải tạo đất cằn cỗi, tưới nước bù đắp độ ẩm bị bốc hơi do nắng nóng Gió Lào, và thu hoạch khoai tươi.
 * **Ứng phó & Tích trữ:** Chế biến khoai tươi thành khoai khô dự trữ chống thối rữa trước mùa lũ ngập.
 * **Mối quan hệ làng xóm:** Gặp gỡ O Thắm để thực hiện đổi công tương trợ (Vần công), mua hạt giống hoặc trao đổi hỗ trợ vật phẩm.
+* **Sơ tán & Sinh tồn lũ (Đã hoàn chỉnh):** Chạy lũ sơ tán 4 dân làng lên nóc nhà, chia sẻ khoai gieo dự trữ để cùng nhắm bỡ qua cơn lũ.
 * **Sự bồi đắp sau lũ:** Tái canh tác trên đất phù sa sau khi bão rút và nhận gấp đôi sản lượng nông sản thu hoạch.
 
 ## 10. Recommended Development Priorities
@@ -240,3 +241,25 @@ Bản thử nghiệm hiện tại hướng đến mục tiêu chứng minh thàn
 2. **Loa phát thanh xã có âm thanh:** Ghi âm hoặc sinh procedurally giọng đọc phát thanh thông báo đầu ngày bằng tiếng Việt mang chất giọng miền Trung chân thực để tăng tính nhập vai.
 3. **Cơ chế gia cố nhà cửa bằng hình ảnh:** Khi người chơi tiêu hao điểm Vần công tương trợ chằng chống nhà cửa, mô hình ngôi nhà của Thành và các NPC sẽ hiển thị thêm lưới thép, bao cát, hoặc dây chằng xung quanh.
 4. **Cân bằng sinh lý dưới thời tiết:** Tinh chỉnh tốc độ tăng Heat Stress/Cold Stress để tạo độ thử thách vừa phải, khuyến khích người chơi ở nhà tránh nắng Gió Lào buổi trưa hoặc tránh ra đồng khi mưa lũ dâng cao.
+
+---
+
+## 11. CHANGELOG
+
+### [feature/fix-roof-survival-movement] — 2026-07-01
+
+#### Bug Fixes
+- **[CRITICAL] Khắc phục player bị kẹt trên nóc nhà (`PlayerController.cs`)**
+  - Xóa toàn bộ `Mathf.Clamp(X/Z)` và `rb.position = constrainedPos` trong khối `isOnRoof` của `FixedUpdate`.
+  - Trước đó, player bị clamp cứng X trong `[-2.2, 2.2]` theo tọa độ tuyệt đối; Bác Năm/Bé Tí ở X ≈ 3.82–3.89 vượt ra ngoài giới hạn nên player chặn hoàn toàn mỗi FixedUpdate frame.
+- **Disable `CharacterController` khi lên mái nhà (`TutorialManager.cs`)**
+  - Player có cả `CharacterController` lẫn `Rigidbody`. Khi cả hai cùng active, capsule collider ẩn của `CharacterController` xung đột với `rb.linearVelocity` gây kẹt vật lý.
+  - `CharacterController` bị disable khi bắt đầu `RoofSurvivalSharing`, restore khi sang `PostStormCleanup`.
+- **Fix `NullReferenceException` trong `NPCProximityOptionsUI.cs`**
+  - Thêm null guard `if (action != null)` trước mỗi gọi `action()` trong `HandleKeyboardInput()`.
+  - Loại bỏ hoàn toàn chuỗi exception spam mỗi frame trong Unity Console.
+
+#### Improvements
+- `TempRoofCollider` mở rộng lên 25×25m để phủ toàn bộ diện tích nóc nhà.
+- Toàn bộ collider gốc của `Thanh_House` bị tạm thời disable khi trên mái, tránh va chạm với dốc mái/chi tiết 3D.
+- NPC collider trên mái được chuyển thành trigger khi lên mái, restore khi về nhà.
