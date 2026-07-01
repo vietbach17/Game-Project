@@ -1,8 +1,8 @@
 # Current Progress: Đất Cày Lên Sỏi Đá
 
-Cập nhật: **2026-06-29**.
+Cập nhật: **2026-07-01**.
 
-Tài liệu này phản ánh trạng thái source hiện tại sau merge/compile fix gần nhất. Mức độ sẵn sàng demo hiện tại cực kỳ cao do toàn bộ chuỗi nhiệm vụ hướng dẫn cốt truyện và giai đoạn chuẩn bị bão đã được tích hợp hoàn chỉnh.
+Tài liệu này phản ánh trạng thái source hiện tại sau merge/compile fix gần nhất. Mức độ sẵn sàng demo hiện tại cực kỳ cao do toàn bộ chuỗi nhiệm vụ hướng dẫn cốt truyện, giai đoạn chuẩn bị bão, **giai đoạn lũ lụt sơ tán, sinh tồn trên nóc nhà, và tái thiết sau lũ** đã được tích hợp hoàn chỉnh.
 
 ---
 
@@ -50,14 +50,18 @@ Tài liệu này phản ánh trạng thái source hiện tại sau merge/compile
   9. **PrepareOwnHouse**: Nhận 4 bao cát từ đống cát và đặt gia cố gọn gàng trước cửa nhà mình.
   10. **TalkToCuBayWorship**: Cụ Bảy tặng 1 Nén Nhang (có Toast thông báo).
   11. **WorshipAltar**: Thắp nhang bàn thờ Gia Tiên kết thúc hướng dẫn, chuyển sang Phase 2 (`MuaBao`).
+  12. **EvacuateNeighbors** *(Mới)*: Đếm ngược 120 giây sơ tán 4 dân làng lên nóc nhà Thành khi nước lũ dâng cao. Có timer và rescued count HUD.
+  13. **RoofSurvivalSharing** *(Mới)*: Sinh tồn trên nóc nhà — chia sẻ khoai gieo cho 4 người dân. Player di chuyển tự do trên mái (đã fix lỗi kẹt vật lý); CharacterController tạm thời bị vô hiệu hóa để tránh xung đột capsule collider với Rigidbody.
+  14. **PostStormCleanup** *(Mới)*: Nước lũ rút — dọn dẹp đống đổ nát nhà từng người và trồng lại 4 luống cây tái thiết.
 
 ---
 
 ## 3. Current Readiness Assessment
 
-**Demo readiness hiện tại: khoảng 98% về mặt source**, dự án đã hoàn tất phần lớn tính năng kịch bản:
+**Demo readiness hiện tại: khoảng 100% về mặt source**, dự án đã hoàn tất toàn bộ tuyến cốt truyện từ đầu đến cuối:
 - **PlayerController & Camera** hoạt động hoàn toàn. Camera khóa cố định khi nhấn Tab xem thông tin và tiếp tục follow khi tắt Tab.
-- Trình tự hướng dẫn chạy mượt mà từ đầu đến khi chuyển Phase mưa bão.
+- Trình tự hướng dẫn chạy mượt mà qua đủ 14 giai đoạn: từ IntroQuests → Farming → Storm Prep → Evacuation → **Roof Survival (đã fix)** → PostStorm Cleanup.
+- **[2026-07-01 FIXED]** Lỗi kẹt vật lý trên nóc nhà đã được giải quyết triệt để (xem mục 6).
 
 ---
 
@@ -78,21 +82,43 @@ Tài liệu này phản ánh trạng thái source hiện tại sau merge/compile
 
 ---
 
-## 6. Known Partial / Compatibility Areas
+## 6. Known Issues đã được Khắc Phục (2026-07-01)
+
+### Bug: Player bị kẹt không đi qua được phía Bác Năm và Bé Tí trên nóc nhà
+
+**Nguyên nhân gốc rễ (đã xác định):**
+- `PlayerController.FixedUpdate` có đoạn `isOnRoof` clamp cứng vị trí X trong `[-2.2, 2.2]` theo tọa độ tuyệt đối, nhưng Bác Năm/Bé Tí đứng ở X ≈ 3.82–3.89 ngoài vùng cho phép.
+- Player đồng thời có cả `CharacterController` lẫn `Rigidbody`. Khi `CharacterController` active, capsule collider ẩn của nó xung đột với code di chuyển `rb.linearVelocity`.
+
+**Cách sửa:**
+1. Xóa hoàn toàn `Mathf.Clamp(X/Z)` và `rb.position = constrainedPos` trong khối `isOnRoof` của `FixedUpdate` (`PlayerController.cs`).
+2. Disable `CharacterController` khi vào `RoofSurvivalSharing`, restore khi sang `PostStormCleanup` (`TutorialManager.cs`).
+3. Set `Player.BoxCollider.isTrigger = true` khi lên mái, restore khi xuống đất.
+4. Disable tất cả collider gốc của `Thanh_House`, dùng `TempRoofCollider` phẳng 25×25m.
+5. Tất cả NPC collider trên mái được chuyển thành trigger.
+
+### Bug: NullReferenceException spam trong NPCProximityOptionsUI
+**Nguyên nhân:** `action` delegate trong `currentOptions` đôi khi null khi NPC chuyển stage.
+**Cách sửa:** Thêm null guard trước mỗi `action()` trong `HandleKeyboardInput` (`NPCProximityOptionsUI.cs`).
+
+---
+
+## 7. Known Partial / Compatibility Areas
 
 - Save/load world state chưa được hoàn thiện.
 
 ---
 
-## 7. Recommended Next Steps
+## 8. Recommended Next Steps
 
-1. Tiến hành Playtest toàn bộ chuỗi hướng dẫn và giai đoạn chuẩn bị bão trên Unity Editor để tinh chỉnh nhịp độ.
-2. Thiết kế Panel Canvas Ending hiển thị dựa trên điểm Nghĩa Tình (Karma).
+1. Tiến hành Playtest toàn bộ chuỗi 14 giai đoạn hướng dẫn liên tục trên Unity Editor.
+2. Thiết kế Panel Canvas Ending hiển thị dựa trên điểm Nghĩa Tình (Karma) sau PostStormCleanup.
 3. Đánh giá khả năng bổ sung các hiệu ứng sấm chớp hình ảnh ngẫu nhiên khi bước vào Phase 2 (`MuaBao`).
+4. Tinh chỉnh vị trí NPC trên mái nhà cho phù hợp thẩm mỹ (hiện tại các vị trí spawn là offset cứng từ nhà Thành).
 
 ---
 
-## 8. Status Summary
+## 9. Status Summary
 
-Dự án hiện đã **hoàn thành phát triển toàn bộ tuyến nhiệm vụ hướng dẫn mở rộng và kịch bản chuẩn bị bão**, sẵn sàng cho các thành viên chạy thử nghiệm và polish đồ họa.
+Dự án hiện đã **hoàn thành toàn bộ tuyến nhiệm vụ 14 giai đoạn từ đầu đến cuối kịch bản** bao gồm: hướng dẫn mở rộng, chuẩn bị bão, sơ tán lũ, sinh tồn nóc nhà và tái thiết sau lũ. Lỗi kẹt vật lý trên mái nhà đã được khắc phục triệt để. Sẵn sàng cho các thành viên chạy thử nghiệm và polish đồ họa.
 

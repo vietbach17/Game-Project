@@ -164,9 +164,25 @@ namespace SownInStone.Agriculture
             if (spawnedMulchVisual == null && mulchPrefab != null)
             {
                 spawnedMulchVisual = Instantiate(mulchPrefab, transform.position, transform.rotation, transform);
-                spawnedMulchVisual.transform.localPosition = Vector3.zero;
+                spawnedMulchVisual.transform.localPosition = new Vector3(0f, 0.05f, 0f);
                 spawnedMulchVisual.transform.localRotation = Quaternion.identity;
                 spawnedMulchVisual.transform.localScale = Vector3.one;
+
+                #if UNITY_EDITOR
+                Material customMat = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/Prefabs/PlasticMulch/Mat_PlasticMulch.mat");
+                if (customMat != null)
+                {
+                    foreach (var rend in spawnedMulchVisual.GetComponentsInChildren<Renderer>())
+                    {
+                        if (rend != null)
+                        {
+                            var mats = new Material[rend.sharedMaterials.Length];
+                            for (int i = 0; i < mats.Length; i++) mats[i] = customMat;
+                            rend.materials = mats;
+                        }
+                    }
+                }
+                #endif
             }
             else if (spawnedMulchVisual == null)
             {
@@ -174,8 +190,8 @@ namespace SownInStone.Agriculture
                 GameObject plane = GameObject.CreatePrimitive(PrimitiveType.Plane);
                 plane.name = "MulchVisual_Fallback";
                 plane.transform.SetParent(transform, false);
-                plane.transform.localPosition = new Vector3(0f, 0.02f, 0f);
-                plane.transform.localScale = new Vector3(0.3f, 0.3f, 0.3f);
+                plane.transform.localPosition = new Vector3(0f, 0.05f, 0f);
+                plane.transform.localScale = new Vector3(0.42f, 0.42f, 0.42f);
                 Destroy(plane.GetComponent<Collider>());
                 spawnedMulchVisual = plane;
 
@@ -230,10 +246,7 @@ namespace SownInStone.Agriculture
 
             // Bay hơi nước tỷ lệ thuận với nhiệt độ không khí
             float evaporationSpeed = 0.5f; // Tốc độ bay hơi cơ bản
-            if (WeatherManager.Instance.currentVisualWeather == WeatherType.GioLao)
-            {
-                evaporationSpeed = 3.5f; // Gió Lào thổi bay hơi nước cực nhanh!
-            }
+
 
             float tempFactor = Mathf.Max(1f, WeatherManager.Instance.Temperature / 30f);
             Moisture = Mathf.Clamp(Moisture - evaporationSpeed * tempFactor * Time.deltaTime, 0f, 100f);

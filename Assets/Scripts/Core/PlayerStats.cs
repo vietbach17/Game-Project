@@ -187,10 +187,17 @@ namespace SownInStone.Core
                 return false;
             }
 
-            // Hạt giống chỉ để gieo trồng
-            if (item.type == ItemType.HatGiong)
+            // Không cho ăn mì tôm khi đang làm nhiệm vụ gom đồ giúp O Thắm
+            if (item.ItemID == "item_mi_tom" && TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive && TutorialManager.Instance.currentStage == TutorialManager.TutorialStage.PrepareForStorm)
             {
-                TriggerAlert("Hạt giống dùng để gieo trồng cải tạo ruộng vườn!");
+                TriggerAlert("⚠️ Mì tôm này dùng để cất vào rương của O Thắm tránh bão, vui lòng không ăn!");
+                return false;
+            }
+
+            // Không cho ăn khoai gieo khi đang làm nhiệm vụ chia sẻ lương thực
+            if (item.ItemID == "item_khoai_gieo" && TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive && TutorialManager.Instance.currentStage == TutorialManager.TutorialStage.SharePreservedCrops)
+            {
+                TriggerAlert("⚠️ Khoai gieo này dùng để chia sẻ cho bà con dân làng, vui lòng không ăn!");
                 return false;
             }
 
