@@ -2551,7 +2551,17 @@ namespace SownInStone.Core
                 return;
             }
 
-            GameObject mulchPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Resources/Prefabs/PlasticMulch.prefab");
+            GameObject mulchPrefab = Resources.Load<GameObject>("Prefabs/PlasticMulch");
+            if (mulchPrefab == null)
+            {
+                #if UNITY_EDITOR
+                mulchPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Resources/Prefabs/PlasticMulch.prefab");
+                if (mulchPrefab == null)
+                {
+                    mulchPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/PlasticMulch/MangNilon_Model.fbx");
+                }
+                #endif
+            }
             var soils = FindObjectsByType<SoilCell>(FindObjectsInactive.Exclude);
             int count = 0;
             foreach (var soil in soils)

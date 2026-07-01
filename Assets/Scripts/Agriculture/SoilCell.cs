@@ -166,7 +166,23 @@ namespace SownInStone.Agriculture
                 spawnedMulchVisual = Instantiate(mulchPrefab, transform.position, transform.rotation, transform);
                 spawnedMulchVisual.transform.localPosition = new Vector3(0f, 0.05f, 0f);
                 spawnedMulchVisual.transform.localRotation = Quaternion.identity;
-                spawnedMulchVisual.transform.localScale = new Vector3(1.35f, 1.0f, 1.35f);
+                spawnedMulchVisual.transform.localScale = Vector3.one;
+
+                #if UNITY_EDITOR
+                Material customMat = UnityEditor.AssetDatabase.LoadAssetAtPath<Material>("Assets/Prefabs/PlasticMulch/Mat_PlasticMulch.mat");
+                if (customMat != null)
+                {
+                    foreach (var rend in spawnedMulchVisual.GetComponentsInChildren<Renderer>())
+                    {
+                        if (rend != null)
+                        {
+                            var mats = new Material[rend.sharedMaterials.Length];
+                            for (int i = 0; i < mats.Length; i++) mats[i] = customMat;
+                            rend.materials = mats;
+                        }
+                    }
+                }
+                #endif
             }
             else if (spawnedMulchVisual == null)
             {

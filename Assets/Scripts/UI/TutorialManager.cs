@@ -1058,7 +1058,7 @@ namespace SownInStone
                 WeatherManager.Instance.SetFloodLevelDirectly(2.0f);
             }
 
-            // Tạo collider tạm thời cho mái nhà Thành để người chơi không bị lún (Dùng root GameObject để không bị ảnh hưởng bởi Scale)
+            // Tạo collider tạm thời cho mái nhà Thành để người chơi không bị lún (Dùng root GameObject dày 2.0m để không bị lọt sàn)
             GameObject houseObj = GameObject.Find("Thanh_House");
             if (houseObj != null)
             {
@@ -1066,19 +1066,20 @@ namespace SownInStone
                 if (colGo == null)
                 {
                     colGo = new GameObject("TempRoofCollider");
-                    colGo.transform.position = houseObj.transform.position + new Vector3(0f, 5.2f, 0f);
+                    colGo.transform.position = houseObj.transform.position + new Vector3(0f, 4.9f, 0f);
                     colGo.transform.rotation = houseObj.transform.rotation;
                     
                     var boxCol = colGo.AddComponent<BoxCollider>();
-                    boxCol.size = new Vector3(8f, 0.2f, 8f);
-                    Debug.Log("[TEMP COLLIDER] Created temporary root roof collider on Thanh_House at world Y = " + colGo.transform.position.y);
+                    boxCol.size = new Vector3(8f, 2.0f, 8f);
+                    colGo.layer = houseObj.layer; // Đảm bảo cùng lớp va chạm với nhà
+                    Debug.Log("[TEMP COLLIDER] Created temporary thick root roof collider on Thanh_House at world center Y = " + colGo.transform.position.y);
                 }
             }
 
-            // Dịch chuyển người chơi lên nóc nhà Thành cùng mọi người (Teleport lên 5.5f để rơi xuống đúng trên bề mặt collider 5.3f)
+            // Dịch chuyển người chơi lên nóc nhà Thành cùng mọi người (Teleport lên 6.2f để rơi xuống đúng trên bề mặt collider 5.9f)
             if (PlayerController.Instance != null)
             {
-                Vector3 roofPos = houseObj != null ? houseObj.transform.position + new Vector3(0f, 5.5f, 0f) : new Vector3(10.66f, 5.5f, -10.0f);
+                Vector3 roofPos = houseObj != null ? houseObj.transform.position + new Vector3(0f, 6.2f, 0f) : new Vector3(10.66f, 6.2f, -10.0f);
                 SafeTeleportPlayer(roofPos);
                 var rb = PlayerController.Instance.GetComponent<Rigidbody>();
                 if (rb != null)
