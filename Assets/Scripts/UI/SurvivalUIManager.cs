@@ -3110,10 +3110,10 @@ namespace SownInStone.UI
             TextMeshProUGUI bodyTxt = bodyObj.GetComponent<TextMeshProUGUI>();
             bodyTxt.text = "<b>1. 🌾 PHỦ MÀNG NILON BẢO VỆ RUỘNG:</b>\n" +
                            "   Dùng Màng bọc Nilon bọc toàn bộ các ô ruộng để khoai không bị ngập úng.\n\n" +
-                           "<b>2. 🏠 GIA CỐ NÓC NHÀ & SINH TỒN TRONG NHÀ:</b>\n" +
-                           "   Đặt Bao cát <b>[5]</b> lên nóc nhà chằng chống mái, vào nhà trú ẩn và ăn khoai gieo khô từ rương.\n\n" +
-                           "<b>3. 🧡 CỨU TRỢ NGHĨA TÌNH DÂN LÀNG:</b>\n" +
-                           "   Gặp <b>Bác Năm</b> & <b>O Thắm</b> bấm phím <b>[4]</b> tặng Tấm Chắn Lũ để gia cố nhà nhận điểm Nghĩa Tình.";
+                           "<b>2. 🏠 CỨU HỘ DÂN LÀNG LÊN NÓC NHÀ MÌNH:</b>\n" +
+                           "   Chạy tới chỗ các NPC (O Thắm, Bác Năm, Cụ Bảy, Bé Tí) nhấn E tương tác để cứu hộ. Sau khi được cứu, họ sẽ tự động xuất hiện trên mái nhà của bạn để tránh lũ.\n\n" +
+                           "<b>3. 🧡 CHIA SẺ LƯƠNG THỰC VỚI DÂN LÀNG:</b>\n" +
+                           "   Chia sẻ lương thực cứu trợ (như mì tôm, khoai gieo khô) cho dân làng đang trú ẩn trên mái nhà của bạn.";
             bodyTxt.fontSize = 13.5f;
             bodyTxt.lineSpacing = 6;
             bodyTxt.alignment = TextAlignmentOptions.Left;

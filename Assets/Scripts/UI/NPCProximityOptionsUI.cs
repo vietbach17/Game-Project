@@ -435,22 +435,11 @@ namespace SownInStone.UI
 
                     if (!isRescued)
                     {
-                        if (PlayerController.Instance != null && PlayerController.Instance.CarriedNPC == null)
-                        {
-                            currentOptions.Add(new ProximityOption 
-                            { 
-                                label = "[E] Cõng cứu hộ (Sơ tán)", 
-                                action = () => TriggerNPCRescueCarry(npc) 
-                            });
-                        }
-                        else
-                        {
-                            currentOptions.Add(new ProximityOption 
-                            { 
-                                label = "Hãy đưa người đang cõng về nhà trước", 
-                                action = null 
-                            });
-                        }
+                        currentOptions.Add(new ProximityOption 
+                        { 
+                            label = "[E] Cứu hộ lên mái nhà", 
+                            action = () => TriggerNPCRescue(npc) 
+                        });
                     }
                     else
                     {
@@ -473,7 +462,7 @@ namespace SownInStone.UI
                     {
                         currentOptions.Add(new ProximityOption 
                         { 
-                            label = "[E] Chia sẻ khoai gieo giống", 
+                            label = "[E] Chia sẻ lương thực cứu trợ", 
                             action = () => TriggerNPCRoofFoodShare(npc) 
                         });
                     }
@@ -749,8 +738,9 @@ namespace SownInStone.UI
             bool pressed2 = Keyboard.current.digit2Key.wasPressedThisFrame || Keyboard.current.numpad2Key.wasPressedThisFrame;
             bool pressed3 = Keyboard.current.digit3Key.wasPressedThisFrame || Keyboard.current.numpad3Key.wasPressedThisFrame;
             bool pressed4 = Keyboard.current.digit4Key.wasPressedThisFrame || Keyboard.current.numpad4Key.wasPressedThisFrame;
+            bool pressedE = Keyboard.current.eKey.wasPressedThisFrame || Keyboard.current.spaceKey.wasPressedThisFrame;
 
-            if (pressed1 || pressed2 || pressed3 || pressed4)
+            if (pressed1 || pressed2 || pressed3 || pressed4 || pressedE)
             {
                 if (PlayerController.Instance != null)
                 {
@@ -758,7 +748,14 @@ namespace SownInStone.UI
                 }
             }
 
-            if (currentOptions.Count >= 1 && pressed1)
+            if (currentOptions.Count == 1 && pressedE)
+            {
+                if (currentOptions[0].action != null)
+                {
+                    currentOptions[0].action();
+                }
+            }
+            else if (currentOptions.Count >= 1 && pressed1)
             {
                 currentOptions[0].action();
             }
@@ -1259,10 +1256,11 @@ namespace SownInStone.UI
             targetAlpha = 0f;
         }
 
-        private void TriggerNPCRescueCarry(NPCCharacter npc)
+        private void TriggerNPCRescue(NPCCharacter npc)
         {
-            if (PlayerController.Instance == null) return;
-            PlayerController.Instance.CarryNPCSurge(npc);
+            if (TutorialManager.Instance == null) return;
+            TutorialManager.Instance.OnNPCRescued(npc.characterType);
+            SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_place_object");
             targetAlpha = 0f;
             gameObject.SetActive(false);
         }
@@ -1271,12 +1269,24 @@ namespace SownInStone.UI
         {
             if (StorageManager.Instance == null || PlayerStats.Instance == null) return;
 
-            var slot = StorageManager.Instance.GetStorageSlots().Find(s => s.item != null && s.item.ItemID == "item_khoai_gieo");
-            int qty = slot != null ? slot.quantity : 0;
+            // Tìm khoai gieo khô
+            var slotKhoaiGieo = StorageManager.Instance.GetStorageSlots().Find(s => s.item != null && s.item.ItemID == "item_khoai_gieo");
+            // Tìm mì tôm
+            var slotMiTom = StorageManager.Instance.GetStorageSlots().Find(s => s.item != null && s.item.ItemID == "item_mi_tom");
 
-            if (qty > 0)
+            InventorySlot slotToUse = null;
+            if (slotKhoaiGieo != null && slotKhoaiGieo.quantity > 0)
             {
-                ItemData itemToUse = slot.item;
+                slotToUse = slotKhoaiGieo;
+            }
+            else if (slotMiTom != null && slotMiTom.quantity > 0)
+            {
+                slotToUse = slotMiTom;
+            }
+
+            if (slotToUse != null)
+            {
+                ItemData itemToUse = slotToUse.item;
                 if (StorageManager.Instance.RemoveItem(itemToUse, 1))
                 {
                     CommunityManager.Instance?.ModifyGlobalKarma(15);
@@ -1287,24 +1297,24 @@ namespace SownInStone.UI
                         TutorialManager.Instance.FeedNPC(npc.characterType);
                     }
 
-                    SurvivalUIManager.Instance?.ShowHUDToast($"🧡 Đã chia sẻ khoai gieo cho {npc.NPCName}! (+15 Nghĩa Tình)");
+                    SurvivalUIManager.Instance?.ShowHUDToast($"🧡 Đã chia sẻ {itemToUse.ItemName} cho {npc.NPCName}! (+15 Nghĩa Tình)");
                     
                     string dialogue = "";
                     if (npc.characterType == NPCCharacter.StoryCharacterType.OTham)
-                        dialogue = "\"Cảm ơn con nghe Thành! Ăn khoai gieo khô ngọt dẻo ấm lòng hẳn. O Thắm sẽ không quên ơn cứu mạng này!\"";
+                        dialogue = $"\"Cảm ơn con nghe Thành! Ăn {itemToUse.ItemName} ấm lòng hẳn. O Thắm sẽ không quên ơn cứu mạng này!\"";
                     else if (npc.characterType == NPCCharacter.StoryCharacterType.BacNam)
-                        dialogue = "\"Nghĩa tình xóm giềng hoạn nạn có nhau quý lắm con. Bác Năm cảm ơn con nhiều!\"";
+                        dialogue = $"\"Nghĩa tình xóm giềng hoạn nạn có nhau quý lắm con. Bác Năm cảm ơn con nhiều!\"";
                     else if (npc.characterType == NPCCharacter.StoryCharacterType.CuBay)
-                        dialogue = "\"Tấm lòng của con bồi đắp nghĩa tình làng xóm. Cầu mong gia tiên phù hộ con tai qua nạn khỏi.\"";
+                        dialogue = $"\"Tấm lòng của con bồi đắp nghĩa tình làng xóm. Cầu mong gia tiên phù hộ con tai qua nạn khỏi.\"";
                     else if (npc.characterType == NPCCharacter.StoryCharacterType.BeTi)
-                        dialogue = "\"Ngon quá chú Thành ơi! Con hết đói bụng rồi. Con cảm ơn chú Thành nhiều chú nha!\"";
+                        dialogue = $"\"Ngon quá chú Thành ơi! Con hết đói bụng rồi. Con cảm ơn chú Thành nhiều chú nha!\"";
 
                     SurvivalUIManager.Instance?.ShowDialogue(npc.NPCName, dialogue);
                 }
             }
             else
             {
-                SurvivalUIManager.Instance?.ShowHUDToast("<color=#E74C3C>Bạn không còn củ Khoai Gieo nào trong balo để chia sẻ!</color>");
+                SurvivalUIManager.Instance?.ShowHUDToast("<color=#E74C3C>Bạn không còn củ Khoai Gieo hay gói Mì Tôm nào trong balo để chia sẻ!</color>");
             }
             targetAlpha = 0f;
             gameObject.SetActive(false);

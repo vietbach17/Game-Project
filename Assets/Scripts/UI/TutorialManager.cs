@@ -882,7 +882,7 @@ namespace SownInStone
             {
                 SurvivalUIManager.Instance.ShowDialogue(
                     "BÁO ĐỘNG LŨ LỤT",
-                    "Nước lũ dâng cao khẩn cấp ngập lụt làng quê! Bạn hãy chạy thật nhanh qua nhà từng người (O Thắm, Bác Năm, Cụ Bảy, Bé Tí) để cõng họ sơ tán về nóc nhà Thành lánh nạn. Chú ý: Chỉ cõng được từng người một và phải cứu tất cả trước khi nước dâng ngập hoàn toàn!"
+                    "Nước lũ dâng cao khẩn cấp ngập lụt làng quê! Bạn hãy chạy thật nhanh qua nhà từng người (O Thắm, Bác Năm, Cụ Bảy, Bé Tí) nhấn phím E tương tác để cứu hộ họ lánh nạn trên nóc nhà của bạn. Hãy khẩn trương cứu tất cả trước khi hết thời gian!"
                 );
             }
 
@@ -895,6 +895,9 @@ namespace SownInStone
             else if (charType == SownInStone.Community.NPCCharacter.StoryCharacterType.BacNam) bacNamRescued = true;
             else if (charType == SownInStone.Community.NPCCharacter.StoryCharacterType.CuBay) cuBayRescued = true;
             else if (charType == SownInStone.Community.NPCCharacter.StoryCharacterType.BeTi) beTiRescued = true;
+
+            // Dịch chuyển NPC lên nóc nhà Thành ngay lập tức
+            TeleportNPCToThanhHouseRoof(charType);
 
             rescuedNPCsCount = 0;
             if (oThamRescued) rescuedNPCsCount++;
@@ -911,6 +914,53 @@ namespace SownInStone
             else
             {
                 UpdateHUDPanel();
+            }
+        }
+
+        public void TeleportNPCToThanhHouseRoof(SownInStone.Community.NPCCharacter.StoryCharacterType charType)
+        {
+            var allNPCs = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Include);
+            var npc = System.Array.Find(allNPCs, n => n.characterType == charType);
+            if (npc != null)
+            {
+                GameObject houseObj = GameObject.Find("Thanh_House");
+                Vector3 center = houseObj != null ? houseObj.transform.position : Vector3.zero;
+
+                // Đặt NPC lên nóc nhà Thành tại vị trí phân tán đều để không đè lên nhau
+                // Nóc nhà Thành có cao độ Y khoảng 3.4f
+                float xOffset = 0f;
+                float zOffset = 0f;
+                switch (charType)
+                {
+                    case SownInStone.Community.NPCCharacter.StoryCharacterType.OTham:
+                        xOffset = -1.2f; zOffset = -1.0f;
+                        break;
+                    case SownInStone.Community.NPCCharacter.StoryCharacterType.BacNam:
+                        xOffset = 1.2f; zOffset = -1.0f;
+                        break;
+                    case SownInStone.Community.NPCCharacter.StoryCharacterType.CuBay:
+                        xOffset = -1.2f; zOffset = 1.0f;
+                        break;
+                    case SownInStone.Community.NPCCharacter.StoryCharacterType.BeTi:
+                        xOffset = 1.2f; zOffset = 1.0f;
+                        break;
+                }
+
+                Vector3 roofSpot = center + new Vector3(xOffset, 3.4f, zOffset);
+                npc.transform.position = roofSpot;
+                
+                var rbNPC = npc.GetComponent<Rigidbody>();
+                if (rbNPC != null)
+                {
+                    rbNPC.linearVelocity = Vector3.zero;
+                    rbNPC.position = roofSpot;
+                }
+
+                var visual = npc.transform.Find("Visual");
+                if (visual != null)
+                {
+                    visual.gameObject.SetActive(true);
+                }
             }
         }
 
