@@ -92,16 +92,20 @@ namespace SownInStone.Storage
         {
             if (string.IsNullOrEmpty(id)) return null;
 
-            // 1. Tìm trong kho đồ hiện tại
+            // 1. Tìm trong balo (kho đồ hiện tại)
             var slot = storageSlots.Find(s => s.item != null && s.item.ItemID.Equals(id, System.StringComparison.OrdinalIgnoreCase));
             if (slot != null) return slot.item;
 
-            // 2. Tìm trong tài nguyên Resources nếu có
+            // 2. Tìm trong rương dự trữ
+            var rSlot = reserveChestSlots.Find(s => s.item != null && s.item.ItemID.Equals(id, System.StringComparison.OrdinalIgnoreCase));
+            if (rSlot != null) return rSlot.item;
+
+            // 3. Tìm trong tài nguyên Resources nếu có
             ItemData resourceItem = Resources.Load<ItemData>($"Items/{id}");
             if (resourceItem != null) return resourceItem;
 
 #if UNITY_EDITOR
-            // 3. Fallback trong editor
+            // 4. Fallback trong editor
             string path = "";
             if (id.Equals("item_flood_board", System.StringComparison.OrdinalIgnoreCase)) path = "Assets/Data/Item_flood_board.asset";
             else if (id.Equals("item_sandbag", System.StringComparison.OrdinalIgnoreCase)) path = "Assets/Data/Item_sandbag.asset";
@@ -272,20 +276,7 @@ namespace SownInStone.Storage
         public List<InventorySlot> GetStorageSlots() => storageSlots;
         public List<InventorySlot> GetReserveChestSlots() => reserveChestSlots;
 
-        public ItemData GetItemDataByID(string itemID)
-        {
-            if (string.IsNullOrEmpty(itemID)) return null;
-            
-            // Tìm trong balo
-            InventorySlot bSlot = storageSlots.Find(s => s.item != null && s.item.ItemID == itemID);
-            if (bSlot != null) return bSlot.item;
-            
-            // Tìm trong rương
-            InventorySlot rSlot = reserveChestSlots.Find(s => s.item != null && s.item.ItemID == itemID);
-            if (rSlot != null) return rSlot.item;
 
-            return null;
-        }
 
         #endregion
 
