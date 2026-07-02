@@ -49,6 +49,15 @@ namespace SownInStone.Weather
         private float targetRainIntensity = 0f;
         private GameObject waterPlane3D;
 
+        [Header("--- HỆ THỐNG ÁNH SÁNG & SƯƠNG MÙ ---")]
+        private Light directionalLight;
+        private float targetLightIntensity = 1.2f;
+        private Color targetLightColor = new Color(1f, 0.95f, 0.8f);
+        private Color targetAmbientColor = new Color(0.2f, 0.22f, 0.25f);
+        private float targetFogStart = 45f;
+        private float targetFogEnd = 90f;
+        private Color targetFogColor = new Color(0.75f, 0.85f, 0.95f);
+
         [Header("--- HIỆU ỨNG HẠT MƯA ---")]
         private ParticleSystem rainParticles;
         private GameObject rainParticlesObj;
@@ -80,6 +89,9 @@ namespace SownInStone.Weather
 
             // Thiết lập mặt nước 3D
             Setup3DWaterPlane();
+
+            // Tìm Directional Light
+            FindDirectionalLight();
         }
 
         private void OnDestroy()
@@ -108,6 +120,9 @@ namespace SownInStone.Weather
 
             // Cập nhật vị trí mặt nước 3D
             Update3DWaterPlane();
+
+            // Cập nhật ánh sáng và sương mù khí hậu
+            UpdateWeatherAtmospherics();
         }
 
         /// <summary>
@@ -393,5 +408,114 @@ namespace SownInStone.Weather
         }
 
         #endregion
+
+        private void FindDirectionalLight()
+        {
+            if (directionalLight == null)
+            {
+                GameObject lightGo = GameObject.Find("Directional Light");
+                if (lightGo != null)
+                {
+                    directionalLight = lightGo.GetComponent<Light>();
+                }
+                
+                if (directionalLight == null)
+                {
+                    Light[] lights = FindObjectsByType<Light>(FindObjectsInactive.Include);
+                    foreach (var l in lights)
+                    {
+                        if (l.type == LightType.Directional)
+                        {
+                            directionalLight = l;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        private void UpdateWeatherAtmospherics()
+        {
+            if (directionalLight == null) FindDirectionalLight();
+
+            float baseLightIntensity = 1.2f;
+            Color baseLightColor = new Color(1f, 0.95f, 0.8f);
+            Color baseAmbientColor = new Color(0.2f, 0.22f, 0.25f);
+            float baseFogStart = 45f;
+            float baseFogEnd = 90f;
+            Color baseFogColor = new Color(0.75f, 0.85f, 0.95f);
+
+            bool isInside = (PlayerController.Instance != null && PlayerController.Instance.IsInsideHouse);
+
+            if (isInside)
+            {
+                baseLightIntensity = 0.5f;
+                baseLightColor = new Color(0.8f, 0.85f, 0.9f);
+                baseAmbientColor = new Color(0.15f, 0.15f, 0.18f);
+                baseFogStart = 100f;
+                baseFogEnd = 200f; 
+                baseFogColor = new Color(0.1f, 0.1f, 0.1f);
+            }
+            else
+            {
+                switch (currentVisualWeather)
+                {
+                    case WeatherType.OnDinh:
+                        baseLightIntensity = 1.3f;
+                        baseLightColor = new Color(1f, 0.95f, 0.85f);
+                        baseAmbientColor = new Color(0.25f, 0.27f, 0.3f);
+                        baseFogStart = 50f;
+                        baseFogEnd = 95f;
+                        baseFogColor = new Color(0.7f, 0.82f, 0.95f);
+                        break;
+
+                    case WeatherType.MuaGiong:
+                        baseLightIntensity = 0.6f;
+                        baseLightColor = new Color(0.65f, 0.68f, 0.72f);
+                        baseAmbientColor = new Color(0.18f, 0.2f, 0.22f);
+                        baseFogStart = 25f;
+                        baseFogEnd = 75f;
+                        baseFogColor = new Color(0.52f, 0.55f, 0.58f);
+                        break;
+
+                    case WeatherType.BaoLu:
+                        baseLightIntensity = 0.2f;
+                        baseLightColor = new Color(0.4f, 0.42f, 0.45f);
+                        baseAmbientColor = new Color(0.1f, 0.12f, 0.14f);
+                        baseFogStart = 10f;
+                        baseFogEnd = 50f; 
+                        baseFogColor = new Color(0.22f, 0.24f, 0.26f);
+                        break;
+                }
+            }
+
+            targetLightIntensity = baseLightIntensity;
+            targetLightColor = baseLightColor;
+            targetAmbientColor = baseAmbientColor;
+            targetFogStart = baseFogStart;
+            targetFogEnd = baseFogEnd;
+            targetFogColor = baseFogColor;
+
+            if (directionalLight != null)
+            {
+                directionalLight.intensity = Mathf.Lerp(directionalLight.intensity, targetLightIntensity, Time.deltaTime * 1.5f);
+                directionalLight.color = Color.Lerp(directionalLight.color, targetLightColor, Time.deltaTime * 1.5f);
+            }
+
+            RenderSettings.ambientLight = Color.Lerp(RenderSettings.ambientLight, targetAmbientColor, Time.deltaTime * 1.5f);
+
+            RenderSettings.fog = true;
+            RenderSettings.fogMode = FogMode.Linear;
+            RenderSettings.fogStartDistance = Mathf.Lerp(RenderSettings.fogStartDistance, targetFogStart, Time.deltaTime * 1.5f);
+            RenderSettings.fogEndDistance = Mathf.Lerp(RenderSettings.fogEndDistance, targetFogEnd, Time.deltaTime * 1.5f);
+            RenderSettings.fogColor = Color.Lerp(RenderSettings.fogColor, targetFogColor, Time.deltaTime * 1.5f);
+
+            if (Camera.main != null)
+            {
+                float targetClip = RenderSettings.fogEndDistance + 5f;
+                if (isInside) targetClip = 150f; 
+                Camera.main.farClipPlane = Mathf.Lerp(Camera.main.farClipPlane, targetClip, Time.deltaTime * 2.0f);
+            }
+        }
     }
 }

@@ -623,6 +623,351 @@ namespace SownInStone
             }
 
             GUILayout.EndArea();
+
+            // 9. TUTORIAL QUEST CHEATS (Column 2, below farming)
+            Rect questRect = new Rect(540, 275, 250, 240);
+            GUI.Box(questRect, "<b>TUTORIAL QUEST CHEATS</b>");
+            GUILayout.BeginArea(new Rect(questRect.x + 10, questRect.y + 20, questRect.width - 20, questRect.height - 30));
+
+            if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
+            {
+                var tut = TutorialManager.Instance;
+                GUILayout.Label($"Giai đoạn: <color=yellow>{tut.currentStage.ToString()}</color>");
+                
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button("Skip Stage ⏩"))
+                {
+                    tut.currentStage = (TutorialManager.TutorialStage)(((int)tut.currentStage + 1) % 17);
+                    tut.UpdateHUDPanel();
+                    ShowAlert($"Đã nhảy sang giai đoạn: {tut.currentStage}");
+                }
+                GUILayout.EndHorizontal();
+
+                // Button to skip slide shows
+                if (tut.currentStage == TutorialManager.TutorialStage.ShowingFarmingSlides)
+                {
+                    if (GUILayout.Button("Bỏ qua Slides Trồng trọt"))
+                    {
+                        tut.GetType().GetMethod("EndFarmingSlides", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)?.Invoke(tut, null);
+                        ShowAlert("Đã bỏ qua Slide hướng dẫn trồng trọt!");
+                    }
+                }
+                
+                // Stage 1: IntroQuests
+                if (tut.currentStage == TutorialManager.TutorialStage.IntroQuests)
+                {
+                    GUILayout.Label("Gặp 4 Dân làng:");
+                    GUILayout.BeginHorizontal();
+                    if (!tut.taskACompleted && GUILayout.Button("O Thắm"))
+                    {
+                        tut.OnDialogueClosed("O Thắm");
+                        ShowAlert("Đã hoàn thành gặp O Thắm!");
+                    }
+                    if (!tut.taskBCompleted && GUILayout.Button("Bác Năm"))
+                    {
+                        tut.OnDialogueClosed("Bác Năm");
+                        ShowAlert("Đã hoàn thành gặp Bác Năm!");
+                    }
+                    GUILayout.EndHorizontal();
+
+                    GUILayout.BeginHorizontal();
+                    if (!tut.taskCCompleted && GUILayout.Button("Cụ Bảy"))
+                    {
+                        tut.OnDialogueClosed("Cụ Bảy");
+                        ShowAlert("Đã hoàn thành gặp Cụ Bảy!");
+                    }
+                    if (!tut.taskDCompleted && GUILayout.Button("Bé Tí"))
+                    {
+                        tut.OnDialogueClosed("Bé Tí");
+                        ShowAlert("Đã hoàn thành gặp Bé Tí!");
+                    }
+                    GUILayout.EndHorizontal();
+                }
+                
+                // Stage 1.5: TalkToOThamJob
+                if (tut.currentStage == TutorialManager.TutorialStage.TalkToOThamJob)
+                {
+                    if (GUILayout.Button("Nhận việc O Thắm"))
+                    {
+                        tut.StartFarmingSlideshow();
+                        ShowAlert("Đã kích hoạt slideshow trồng trọt!");
+                    }
+                }
+                
+                // Stage 2: FarmingTutorial
+                if (tut.currentStage == TutorialManager.TutorialStage.FarmingTutorial)
+                {
+                    GUILayout.Label("Trồng trọt:");
+                    GUILayout.BeginHorizontal();
+                    if (!tut.subTask1Completed && GUILayout.Button("Dọn đá"))
+                    {
+                        tut.OnRockCleared();
+                        ShowAlert("Đã xong dọn đá!");
+                    }
+                    if (!tut.subTask2Completed && GUILayout.Button("Gieo hạt"))
+                    {
+                        tut.OnCropPlanted();
+                        ShowAlert("Đã xong gieo hạt!");
+                    }
+                    GUILayout.EndHorizontal();
+
+                    GUILayout.BeginHorizontal();
+                    if (!tut.subTask3Completed && GUILayout.Button("Tưới nước"))
+                    {
+                        tut.OnSoilWatered();
+                        ShowAlert("Đã xong tưới nước!");
+                    }
+                    if (!tut.subTask4Completed && GUILayout.Button("Thu hoạch"))
+                    {
+                        tut.subTask4Completed = true;
+                        tut.currentStage = TutorialManager.TutorialStage.SellCrops;
+                        tut.UpdateHUDPanel();
+                        ShowAlert("Đã xong thu hoạch!");
+                    }
+                    GUILayout.EndHorizontal();
+                }
+                
+                // Stage 3: SellCrops
+                if (tut.currentStage == TutorialManager.TutorialStage.SellCrops)
+                {
+                    if (GUILayout.Button("Bán khoai cho O Thắm"))
+                    {
+                        tut.OnCropsSold();
+                        ShowAlert("Đã hoàn thành bán khoai!");
+                    }
+                }
+                
+                // Stage 4: TalkToBacNamPreserve
+                if (tut.currentStage == TutorialManager.TutorialStage.TalkToBacNamPreserve)
+                {
+                    if (GUILayout.Button("Hỏi Bác Năm về trữ khoai"))
+                    {
+                        tut.OnBacNamPreserveTalked();
+                        ShowAlert("Đã hoàn thành hỏi trữ khoai!");
+                    }
+                }
+                
+                // Stage 5: CraftPreservedCrops
+                if (tut.currentStage == TutorialManager.TutorialStage.CraftPreservedCrops)
+                {
+                    GUILayout.Label($"Đã chế biến: {tut.preservedCropsCrafted}/4");
+                    if (GUILayout.Button("Chế biến 1 Khoai Gieo"))
+                    {
+                        tut.OnPreservedCropCrafted();
+                        ShowAlert("Đã chế biến +1 Khoai Gieo!");
+                    }
+                }
+                
+                // Stage 6: SharePreservedCrops
+                if (tut.currentStage == TutorialManager.TutorialStage.SharePreservedCrops)
+                {
+                    GUILayout.Label("Chia sẻ 4 khoai gieo:");
+                    GUILayout.BeginHorizontal();
+                    if (!tut.sharedOTham && GUILayout.Button("O Thắm"))
+                    {
+                        tut.OnPreservedCropShared(NPCCharacter.StoryCharacterType.OTham);
+                        ShowAlert("Đã chia khoai cho O Thắm!");
+                    }
+                    if (!tut.sharedBacNam && GUILayout.Button("Bác Năm"))
+                    {
+                        tut.OnPreservedCropShared(NPCCharacter.StoryCharacterType.BacNam);
+                        ShowAlert("Đã chia khoai cho Bác Năm!");
+                    }
+                    GUILayout.EndHorizontal();
+
+                    GUILayout.BeginHorizontal();
+                    if (!tut.sharedCuBay && GUILayout.Button("Cụ Bảy"))
+                    {
+                        tut.OnPreservedCropShared(NPCCharacter.StoryCharacterType.CuBay);
+                        ShowAlert("Đã chia khoai cho Cụ Bảy!");
+                    }
+                    if (!tut.sharedBeTi && GUILayout.Button("Bé Tí"))
+                    {
+                        tut.OnPreservedCropShared(NPCCharacter.StoryCharacterType.BeTi);
+                        ShowAlert("Đã chia khoai cho Bé Tí!");
+                    }
+                    GUILayout.EndHorizontal();
+                }
+                
+                // Stage 7: PrepareForStorm
+                if (tut.currentStage == TutorialManager.TutorialStage.PrepareForStorm)
+                {
+                    GUILayout.Label("Gia cố trước bão:");
+                    if (!tut.bacNamPrepped)
+                    {
+                        GUILayout.Label($"Bác Năm: {tut.bacNamFloodBoardsPlaced}/2 ván, {tut.bacNamSandbagsPlaced}/4 cát");
+                        GUILayout.BeginHorizontal();
+                        if (tut.bacNamFloodBoardsPlaced < 2 && GUILayout.Button("+1 Tấm chắn"))
+                        {
+                            tut.OnBacNamFloodBoardPlaced();
+                            ShowAlert("Đã đặt +1 tấm chắn lũ nhà Bác Năm!");
+                        }
+                        if (tut.bacNamSandbagsPlaced < 4 && GUILayout.Button("+1 Bao cát"))
+                        {
+                            tut.OnBacNamSandbagPlaced();
+                            ShowAlert("Đã đặt +1 bao cát nhà Bác Năm!");
+                        }
+                        GUILayout.EndHorizontal();
+                    }
+                    if (!tut.oThamPrepped)
+                    {
+                        GUILayout.Label($"O Thắm: {tut.oThamItemsStored}/5 gói mì");
+                        if (GUILayout.Button("+1 Mì tôm cất rương"))
+                        {
+                            if (StorageManager.Instance != null)
+                            {
+                                ItemData noodles = StorageManager.Instance.GetItemDataByID("item_mi_tom");
+                                if (noodles != null && !StorageManager.Instance.HasItem(noodles, 1))
+                                {
+                                    StorageManager.Instance.AddItem(noodles, 1);
+                                }
+                            }
+                            if (tut.oThamCarryingCount == 0) tut.oThamCarryingCount = 1;
+                            tut.OnOThamItemStored();
+                            ShowAlert("Đã cất +1 mì gói cho O Thắm!");
+                        }
+                    }
+                }
+                
+                // Stage 8: PrepareOwnHouse
+                if (tut.currentStage == TutorialManager.TutorialStage.PrepareOwnHouse)
+                {
+                    GUILayout.Label($"Nhà mình: {tut.ownHouseSandbagsPlaced}/4 tấm ván");
+                    if (GUILayout.Button("+1 Tấm ván nhà mình"))
+                    {
+                        tut.OnOwnHouseSandbagPlaced();
+                        ShowAlert("Đã gia cố +1 tấm ván nhà mình!");
+                    }
+                }
+                
+                // Stage 8.5: ProtectFarmland
+                if (tut.currentStage == TutorialManager.TutorialStage.ProtectFarmland)
+                {
+                    if (GUILayout.Button("Phủ Nilon ruộng (Xong)"))
+                    {
+                        tut.OnPlasticMulchApplied();
+                        ShowAlert("Đã phủ nilon bảo vệ ruộng!");
+                    }
+                }
+                
+                // Stage 9: TalkToCuBayWorship
+                if (tut.currentStage == TutorialManager.TutorialStage.TalkToCuBayWorship)
+                {
+                    if (GUILayout.Button("Hỏi Cụ Bảy về thờ cúng"))
+                    {
+                        tut.OnCuBayWorshipTalked();
+                        ShowAlert("Đã hoàn thành hỏi thờ cúng!");
+                    }
+                }
+                
+                // Stage 10: WorshipAltar
+                if (tut.currentStage == TutorialManager.TutorialStage.WorshipAltar)
+                {
+                    if (GUILayout.Button("Thắp nhang bàn thờ"))
+                    {
+                        tut.OnAltarWorshipped();
+                        ShowAlert("Đã thắp nhang ban thờ xong!");
+                    }
+                }
+                
+                // Stage 11: RescuingNPCs
+                if (tut.currentStage == TutorialManager.TutorialStage.RescuingNPCs)
+                {
+                    GUILayout.Label($"Cứu hộ: {tut.rescuedNPCsCount}/4 người");
+                    GUILayout.BeginHorizontal();
+                    if (!tut.oThamRescued && GUILayout.Button("O Thắm"))
+                    {
+                        tut.OnNPCRescued(NPCCharacter.StoryCharacterType.OTham);
+                        ShowAlert("Đã cứu hộ O Thắm!");
+                    }
+                    if (!tut.bacNamRescued && GUILayout.Button("Bác Năm"))
+                    {
+                        tut.OnNPCRescued(NPCCharacter.StoryCharacterType.BacNam);
+                        ShowAlert("Đã cứu hộ Bác Năm!");
+                    }
+                    GUILayout.EndHorizontal();
+
+                    GUILayout.BeginHorizontal();
+                    if (!tut.cuBayRescued && GUILayout.Button("Cụ Bảy"))
+                    {
+                        tut.OnNPCRescued(NPCCharacter.StoryCharacterType.CuBay);
+                        ShowAlert("Đã cứu hộ Cụ Bảy!");
+                    }
+                    if (!tut.beTiRescued && GUILayout.Button("Bé Tí"))
+                    {
+                        tut.OnNPCRescued(NPCCharacter.StoryCharacterType.BeTi);
+                        ShowAlert("Đã cứu hộ Bé Tí!");
+                    }
+                    GUILayout.EndHorizontal();
+                }
+                
+                // Stage 12: RoofSurvivalSharing
+                if (tut.currentStage == TutorialManager.TutorialStage.RoofSurvivalSharing)
+                {
+                    GUILayout.Label("Chia sẻ trên mái:");
+                    GUILayout.BeginHorizontal();
+                    if (!tut.oThamFed && GUILayout.Button("O Thắm"))
+                    {
+                        tut.FeedNPC(NPCCharacter.StoryCharacterType.OTham);
+                        ShowAlert("Đã chia sẻ thức ăn cho O Thắm!");
+                    }
+                    if (!tut.bacNamFed && GUILayout.Button("Bác Năm"))
+                    {
+                        tut.FeedNPC(NPCCharacter.StoryCharacterType.BacNam);
+                        ShowAlert("Đã chia sẻ thức ăn cho Bác Năm!");
+                    }
+                    GUILayout.EndHorizontal();
+
+                    GUILayout.BeginHorizontal();
+                    if (!tut.cuBayFed && GUILayout.Button("Cụ Bảy"))
+                    {
+                        tut.FeedNPC(NPCCharacter.StoryCharacterType.CuBay);
+                        ShowAlert("Đã chia sẻ thức ăn cho Cụ Bảy!");
+                    }
+                    if (!tut.beTiFed && GUILayout.Button("Bé Tí"))
+                    {
+                        tut.FeedNPC(NPCCharacter.StoryCharacterType.BeTi);
+                        ShowAlert("Đã chia sẻ thức ăn cho Bé Tí!");
+                    }
+                    GUILayout.EndHorizontal();
+                }
+                
+                // Stage 13: PostStormCleanup
+                if (tut.currentStage == TutorialManager.TutorialStage.PostStormCleanup)
+                {
+                    GUILayout.Label("Dọn dẹp & Tái thiết:");
+                    GUILayout.BeginHorizontal();
+                    if (!tut.oThamHouseCleaned && GUILayout.Button("O Thắm"))
+                    {
+                        tut.CleanHouse(NPCCharacter.StoryCharacterType.OTham);
+                        ShowAlert("Đã giúp dọn dẹp nhà O Thắm!");
+                    }
+                    if (!tut.bacNamHouseCleaned && GUILayout.Button("Bác Năm"))
+                    {
+                        tut.CleanHouse(NPCCharacter.StoryCharacterType.BacNam);
+                        ShowAlert("Đã giúp dọn dẹp nhà Bác Năm!");
+                    }
+                    GUILayout.EndHorizontal();
+
+                    GUILayout.BeginHorizontal();
+                    if (!tut.cuBayHouseCleaned && GUILayout.Button("Cụ Bảy"))
+                    {
+                        tut.CleanHouse(NPCCharacter.StoryCharacterType.CuBay);
+                        ShowAlert("Đã giúp dọn dẹp ngõ đi chung!");
+                    }
+                    if (tut.postStormCropsPlanted < 4 && GUILayout.Button("Gieo hạt ruộng"))
+                    {
+                        tut.OnCropPlanted();
+                        ShowAlert("Đã gieo hạt ruộng mới!");
+                    }
+                    GUILayout.EndHorizontal();
+                }
+            }
+            else
+            {
+                GUILayout.Label("Hướng dẫn chưa kích hoạt hoặc đã hoàn thành.");
+            }
+            GUILayout.EndArea();
         }
 
         private void DrawProgressBar(Color color)

@@ -792,6 +792,19 @@ namespace SownInStone.Core
 
         private void FixedUpdate()
         {
+            // Khôi phục vị trí nếu nhân vật lỡ bị rơi ra ngoài map dưới mặt đất
+            if (transform.position.y < -50f)
+            {
+                GameObject houseObj = GameObject.Find("Thanh_House");
+                Vector3 spawnPos = houseObj != null ? houseObj.transform.position + new Vector3(0f, 0.565f, -4.2f) : new Vector3(10.66f, 0.565f, -14.2f);
+                transform.position = spawnPos;
+                if (rb != null)
+                {
+                    rb.position = spawnPos;
+                    rb.linearVelocity = Vector3.zero;
+                }
+            }
+
             // Khóa di chuyển nếu đang thực hiện động tác trồng trọt
             if (isPerformingAction)
             {
@@ -861,6 +874,23 @@ namespace SownInStone.Core
                 // Khi trên nóc nhà: chỉ giữ vận tốc Y = 0 để không rơi xuống.
                 // Việc khóa cứng tọa độ X/Z đã được xóa để người chơi đi chuyển tự do khắp nóc nhà.
                 rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+            }
+            else if (!isInsideHouse)
+            {
+                // Tự động snap độ cao Y của nhân vật theo địa hình Terrain thực tế ngoài trời
+                // giúp đi lên/xuống dốc tự nhiên mà không cần trọng lực Rigidbody (tránh rơi tự do ra ngoài map)
+                if (UnityEngine.Terrain.activeTerrain != null)
+                {
+                    float terrainHeight = UnityEngine.Terrain.activeTerrain.SampleHeight(transform.position) + UnityEngine.Terrain.activeTerrain.transform.position.y;
+                    Vector3 pos = transform.position;
+                    pos.y = terrainHeight;
+                    transform.position = pos;
+                    if (rb != null)
+                    {
+                        rb.position = pos;
+                        rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
+                    }
+                }
             }
         }
 
@@ -1590,80 +1620,96 @@ namespace SownInStone.Core
                         }
                         else
                         {
-                            Coracle boat = closestCollider.GetComponent<Coracle>();
-                            if (boat != null)
+                            OThamChest chest = closestCollider.GetComponent<OThamChest>();
+                            if (chest != null)
                             {
-                            prompt = $"[{keyInteract}] Lên thuyền thúng";
-                        }
-                        else
-                        {
-                            MudPuddle mud = closestCollider.GetComponent<MudPuddle>();
-                            if (mud != null)
-                            {
-                                prompt = $"[{keyInteract}] Dọn dẹp bùn đất";
+                                prompt = "[E] Cất mì tôm cứu trợ";
                             }
                             else
                             {
-                                SoilCell soil = closestCollider.GetComponent<SoilCell>();
-                                if (soil != null)
+                                OThamScatteredItem scatteredItem = closestCollider.GetComponent<OThamScatteredItem>();
+                                if (scatteredItem != null)
                                 {
-                                    SoilCell activeSoil = soil.parentField != null ? soil.parentField : soil;
-
-                                    int cellsWithRocks = 0;
-                                    int emptySlots = 0;
-                                    bool hasReadyCrops = false;
-                                    int dryCells = 0;
-
-                                    if (activeSoil.IsParentField)
+                                    prompt = $"[E] Nhặt {scatteredItem.itemDisplayName}";
+                                }
+                                else
+                                {
+                                    Coracle boat = closestCollider.GetComponent<Coracle>();
+                                    if (boat != null)
                                     {
-                                        foreach (var child in activeSoil.childCells)
+                                        prompt = $"[{keyInteract}] Lên thuyền thúng";
+                                    }
+                                    else
+                                    {
+                                        MudPuddle mud = closestCollider.GetComponent<MudPuddle>();
+                                        if (mud != null)
                                         {
-                                            if (child != null)
+                                            prompt = $"[{keyInteract}] Dọn dẹp bùn đất";
+                                        }
+                                        else
+                                        {
+                                            SoilCell soil = closestCollider.GetComponent<SoilCell>();
+                                            if (soil != null)
                                             {
-                                                if (child.RockDensity > 0f) cellsWithRocks++;
-                                                if (child.plantedCrop == null) emptySlots++;
-                                                if (child.plantedCrop != null && child.plantedCrop.IsReadyToHarvest()) hasReadyCrops = true;
-                                                if (child.Moisture < 40f) dryCells++;
+                                                SoilCell activeSoil = soil.parentField != null ? soil.parentField : soil;
+
+                                                int cellsWithRocks = 0;
+                                                int emptySlots = 0;
+                                                bool hasReadyCrops = false;
+                                                int dryCells = 0;
+
+                                                if (activeSoil.IsParentField)
+                                                {
+                                                    foreach (var child in activeSoil.childCells)
+                                                    {
+                                                        if (child != null)
+                                                        {
+                                                            if (child.RockDensity > 0f) cellsWithRocks++;
+                                                            if (child.plantedCrop == null) emptySlots++;
+                                                            if (child.plantedCrop != null && child.plantedCrop.IsReadyToHarvest()) hasReadyCrops = true;
+                                                            if (child.Moisture < 40f) dryCells++;
+                                                        }
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    if (activeSoil.RockDensity > 0f) cellsWithRocks = 1;
+                                                    if (activeSoil.plantedCrop == null) emptySlots = 1;
+                                                    if (activeSoil.plantedCrop != null && activeSoil.plantedCrop.IsReadyToHarvest()) hasReadyCrops = true;
+                                                    if (activeSoil.Moisture < 40f) dryCells = 1;
+                                                }
+
+                                                int availableSeeds = 0;
+                                                if (testSeedData != null && seedItem != null && StorageManager.Instance != null)
+                                                {
+                                                    var slots = StorageManager.Instance.GetStorageSlots();
+                                                    var seedSlot = slots.Find(s => s.item != null && s.item.ItemID == seedItem.ItemID);
+                                                    if (seedSlot != null && seedSlot.quantity > 0)
+                                                    {
+                                                        availableSeeds = seedSlot.quantity;
+                                                    }
+                                                }
+
+                                                if (cellsWithRocks > 0)
+                                                    prompt = "[E] Dọn đá cải tạo ruộng";
+                                                else if (hasReadyCrops)
+                                                    prompt = "[E] Thu hoạch khoai tươi";
+                                                else if (emptySlots > 0 && availableSeeds > 0 && !(TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive && TutorialManager.Instance.subTask2Completed))
+                                                    prompt = "[E] Gieo hạt giống khoai";
+                                                else if (dryCells > 0)
+                                                    prompt = "[E] Tưới nước cho đất ẩm";
+                                                else
+                                                    prompt = "Đất đã được gieo hạt";
+
+                                                string stateInfo = activeSoil.IsProtectedByFloodBarrier() ? "Được bảo vệ" : (activeSoil.Moisture >= 90f ? "NGẬP ÚNG!" : "An toàn");
+                                                prompt += $" (Ẩm: {Mathf.RoundToInt(activeSoil.Moisture)}% - {stateInfo})";
                                             }
                                         }
                                     }
-                                    else
-                                    {
-                                        if (activeSoil.RockDensity > 0f) cellsWithRocks = 1;
-                                        if (activeSoil.plantedCrop == null) emptySlots = 1;
-                                        if (activeSoil.plantedCrop != null && activeSoil.plantedCrop.IsReadyToHarvest()) hasReadyCrops = true;
-                                        if (activeSoil.Moisture < 40f) dryCells = 1;
-                                    }
-
-                                    int availableSeeds = 0;
-                                    if (testSeedData != null && seedItem != null && StorageManager.Instance != null)
-                                    {
-                                        var slots = StorageManager.Instance.GetStorageSlots();
-                                        var seedSlot = slots.Find(s => s.item != null && s.item.ItemID == seedItem.ItemID);
-                                        if (seedSlot != null && seedSlot.quantity > 0)
-                                        {
-                                            availableSeeds = seedSlot.quantity;
-                                        }
-                                    }
-
-                                    if (cellsWithRocks > 0)
-                                        prompt = "[E] Dọn đá cải tạo ruộng";
-                                    else if (hasReadyCrops)
-                                        prompt = "[E] Thu hoạch khoai tươi";
-                                    else if (emptySlots > 0 && availableSeeds > 0 && !(TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive && TutorialManager.Instance.subTask2Completed))
-                                        prompt = "[E] Gieo hạt giống khoai";
-                                    else if (dryCells > 0)
-                                        prompt = "[E] Tưới nước cho đất ẩm";
-                                    else
-                                        prompt = "Đất đã được gieo hạt";
-
-                                    string stateInfo = activeSoil.IsProtectedByFloodBarrier() ? "Được bảo vệ" : (activeSoil.Moisture >= 90f ? "NGẬP ÚNG!" : "An toàn");
-                                    prompt += $" (Ẩm: {Mathf.RoundToInt(activeSoil.Moisture)}% - {stateInfo})";
                                 }
                             }
                         }
                     }
-                }
             }
 
                 SownInStone.UI.SurvivalUIManager.Instance.SetInteractionPrompt(prompt);

@@ -685,7 +685,7 @@ namespace SownInStone
             ItemData noodles = StorageManager.Instance.GetItemDataByID("item_mi_tom");
             if (noodles == null) return;
 
-            var slot = StorageManager.Instance.GetStorageSlots().Find(s => s.item != null && s.item.ItemID == noodles.ItemID);
+            var slot = StorageManager.Instance.GetStorageSlots().Find(s => s.item != null && s.item.ItemID.Equals(noodles.ItemID, StringComparison.OrdinalIgnoreCase));
             int carryingInBackpack = slot != null ? slot.quantity : 0;
 
             // We only take noodles up to what O Thắm gave us for this job
@@ -1532,14 +1532,23 @@ namespace SownInStone
                 GameObject ownHouse = GameObject.Find("Thanh_House");
                 if (ownHouse != null)
                 {
-                    Vector3 houseCenter = ownHouse.transform.position;
-                    Vector3[] houseOffsets = new Vector3[]
+                    // Use local offsets and convert to world coordinates using TransformPoint
+                    // to correctly account for the house's Y rotation of 180 degrees.
+                    // The offsets are moved slightly outward (X = +/-4.1f, Z = +/-3.2f)
+                    // so they sit completely outside the main wall and porch colliders of Thanh_House.
+                    Vector3[] localOffsets = new Vector3[]
                     {
-                        houseCenter + new Vector3(-3.2f, 0.1f, -2.2f),
-                        houseCenter + new Vector3(3.2f, 0.1f, -2.2f),
-                        houseCenter + new Vector3(-3.2f, 0.1f, 1.8f),
-                        houseCenter + new Vector3(3.2f, 0.1f, 1.8f)
+                        new Vector3(-4.1f, 0.1f, -3.2f),
+                        new Vector3(4.1f, 0.1f, -3.2f),
+                        new Vector3(-4.1f, 0.1f, 3.2f),
+                        new Vector3(4.1f, 0.1f, 3.2f)
                     };
+
+                    Vector3[] houseOffsets = new Vector3[4];
+                    for (int i = 0; i < 4; i++)
+                    {
+                        houseOffsets[i] = ownHouse.transform.TransformPoint(localOffsets[i]);
+                    }
 
                     for (int i = 0; i < 4; i++)
                     {
@@ -2624,9 +2633,15 @@ namespace SownInStone
                 // Create a cube representing the wooden chest
                 GameObject chestObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 chestObj.name = "OTham_Chest";
-                chestObj.transform.position = oTham.transform.position + oTham.transform.forward * 2.2f + oTham.transform.right * -1.8f;
+                
+                // Use default directions based on O Thắm's default rotation (0, 180, 0)
+                // to prevent spawning in random positions if O Thắm is rotated/looking at the player.
+                Vector3 defaultForward = new Vector3(0f, 0f, -1f);
+                Vector3 defaultRight = new Vector3(-1f, 0f, 0f);
+                
+                chestObj.transform.position = oTham.transform.position + defaultForward * 2.0f + defaultRight * -1.0f;
                 chestObj.transform.localScale = new Vector3(0.9f, 0.6f, 0.6f);
-                chestObj.transform.rotation = oTham.transform.rotation;
+                chestObj.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
 
                 // Add OThamChest component
                 chestObj.AddComponent<Interactions.OThamChest>();
