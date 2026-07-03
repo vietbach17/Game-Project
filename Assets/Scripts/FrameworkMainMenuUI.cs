@@ -577,9 +577,9 @@ namespace SownInStone
             GUILayout.Space(25);
             
             GUILayout.Label("<b>Đội Ngũ Phát Triển:</b>", bodyStyle);
-            GUILayout.Label("• <b>Thiết Kế:</b> Bạn và Đội Ngũ", bodyStyle);
-            GUILayout.Label("• <b>Lập Trình:</b> Antigravity AI", bodyStyle);
-            GUILayout.Label("• <b>Mỹ Thuật:</b> Nhóm Bạn Lập Nghiệp", bodyStyle);
+            GUILayout.Label("• <b>Thiết Kế:</b> Học sinh thầy HÙNG", bodyStyle);
+            GUILayout.Label("• <b>Lập Trình:</b> Học sinh thầy HÙNG", bodyStyle);
+            GUILayout.Label("• <b>Mỹ Thuật:</b> Học sinh thầy HÙNG", bodyStyle);
 
             GUILayout.Space(45);
             
