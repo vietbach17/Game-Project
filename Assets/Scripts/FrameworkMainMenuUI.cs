@@ -499,15 +499,15 @@ namespace SownInStone
                 var introPlayer = gameObject.AddComponent<SownInStone.UI.IntroVideoPlayer>();
                 introPlayer.PlayIntroVideo(() =>
                 {
-                    // Sau khi video kết thúc, tiếp tục flow bình thường
+                    // Sau khi video kết thúc, tiếp tục flow bình thường (bỏ qua loading)
                     bool enableTutorial = PlayerPrefs.GetInt("ShowTutorialSetting", 1) == 1;
                     if (enableTutorial && TutorialManager.Instance != null)
                     {
-                        TutorialManager.Instance.ShowTutorial(() => TriggerLoading(StartJourney));
+                        TutorialManager.Instance.ShowTutorial(() => StartJourney());
                     }
                     else
                     {
-                        TriggerLoading(StartJourney);
+                        StartJourney();
                     }
                 });
             }

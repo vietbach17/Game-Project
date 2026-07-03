@@ -2659,9 +2659,8 @@ namespace SownInStone.Core
             }
             transform.position = targetIndoorPos;
 
-            // Giữ chuẩn góc nhìn 3D ngang vai phong cách PUBG
-            CameraFollow3D.Instance?.SetCameraMode(CameraFollow3D.CameraMode.ThirdPerson);
-
+            // Góc nhìn hiện tại đã được giữ nguyên theo tùy chỉnh của người chơi, không ép về ThirdPerson nữa
+            
             if (SownInStone.UI.SurvivalUIManager.Instance != null)
             {
                 SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast("🏠 Bạn đã vào bên trong nhà an toàn tránh bão lũ!");
@@ -2696,9 +2695,8 @@ namespace SownInStone.Core
             }
             transform.position = outdoorPos;
 
-            // Khôi phục góc nhìn camera 3D ngoài trời
-            CameraFollow3D.Instance?.SetCameraMode(CameraFollow3D.CameraMode.ThirdPerson);
-
+            // Góc nhìn hiện tại đã được giữ nguyên theo tùy chỉnh của người chơi, không ép về ThirdPerson nữa
+            
             if (SownInStone.UI.SurvivalUIManager.Instance != null)
             {
                 SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast("🚪 Bạn đã ra ngoài sân trước cửa nhà!");
