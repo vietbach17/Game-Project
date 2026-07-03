@@ -71,7 +71,7 @@ namespace SownInStone.Core
         // ════════════════════════════════════════════════════════════════════
         [Header("--- [FirstPerson] EYE SETTINGS ---")]
         [Tooltip("Chiều cao mắt nhân vật (so với gốc transform).")]
-        [SerializeField] private float eyeHeight        = 1.65f;
+        [SerializeField] private float eyeHeight        = 1.45f;
         [Tooltip("FOV khi ở góc nhìn thứ nhất.")]
         [SerializeField] private float fpsFOV           = 75f;
         [Tooltip("Độ nhạy chuột ngang (Yaw) FPS.")]
