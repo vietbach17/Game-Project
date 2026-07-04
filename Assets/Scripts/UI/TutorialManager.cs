@@ -1429,14 +1429,14 @@ namespace SownInStone
             rect.anchorMax = new Vector2(0f, 1f);
             rect.pivot = new Vector2(0f, 1f);
             rect.anchoredPosition = new Vector2(15f, -220f);
-            rect.sizeDelta = new Vector2(260f, 150f); // Tăng nhẹ chiều rộng lên 200f để chứa gọn tiêu đề nhiệm vụ không bị tràn
+            rect.sizeDelta = new Vector2(285f, 125f); // Tăng chiều rộng lên 285f và giảm chiều cao tối ưu xuống 125f để cân đối
 
             Image img = hudPanel.GetComponent<Image>();
-            img.color = new Color(0.08f, 0.06f, 0.05f, 0.92f); // Tối màu hơn một chút để nổi bật
+            img.color = new Color(0.06f, 0.05f, 0.04f, 0.90f); // Nền Mahogany mờ ảo sang trọng
 
             Outline outline = hudPanel.AddComponent<Outline>();
-            outline.effectColor = new Color(0.38f, 0.30f, 0.22f, 1f);
-            outline.effectDistance = new Vector2(1.5f, 1.5f);
+            outline.effectColor = new Color(0.65f, 0.48f, 0.28f, 0.45f); // Viền vàng đồng tối giản, bóng bẩy
+            outline.effectDistance = new Vector2(1f, 1f);
 
             // Title Text
             GameObject titleObj = new GameObject("TitleText", typeof(RectTransform), typeof(TextMeshProUGUI));
@@ -1445,14 +1445,14 @@ namespace SownInStone
             titleRect.anchorMin = new Vector2(0f, 1f);
             titleRect.anchorMax = new Vector2(1f, 1f);
             titleRect.pivot = new Vector2(0f, 1f);
-            titleRect.anchoredPosition = new Vector2(10f, -8f);
-            titleRect.sizeDelta = new Vector2(180f, 16f);
+            titleRect.anchoredPosition = new Vector2(12f, -10f);
+            titleRect.sizeDelta = new Vector2(261f, 18f); // Tăng chiều ngang để không bị quấn dòng
 
             hudTitleText = titleObj.GetComponent<TextMeshProUGUI>();
-            hudTitleText.fontSize = 11; // Giảm cỡ chữ Title xuống 11
+            hudTitleText.fontSize = 11.5f; // Cỡ chữ tiêu đề sắc nét
             hudTitleText.fontStyle = FontStyles.Bold;
             hudTitleText.enableWordWrapping = true;
-            hudTitleText.color = new Color(0.95f, 0.85f, 0.4f, 1f); // Gold
+            hudTitleText.color = new Color(0.95f, 0.82f, 0.45f, 1f); // Màu vàng gold sang trọng
             if (font != null) hudTitleText.font = font;
             hudTitleText.text = "NHIỆM VỤ HƯỚNG DẪN";
 
@@ -1463,11 +1463,11 @@ namespace SownInStone
             taskARect.anchorMin = new Vector2(0f, 1f);
             taskARect.anchorMax = new Vector2(1f, 1f);
             taskARect.pivot = new Vector2(0f, 1f);
-            taskARect.anchoredPosition = new Vector2(10f, -26f);
-            taskARect.sizeDelta = new Vector2(180f, 16f);
+            taskARect.anchoredPosition = new Vector2(12f, -34f);
+            taskARect.sizeDelta = new Vector2(261f, 18f);
 
             hudTaskAText = taskAObj.GetComponent<TextMeshProUGUI>();
-            hudTaskAText.fontSize = 10; // Giảm cỡ chữ xuống 10
+            hudTaskAText.fontSize = 10.5f; // Tăng lên 10.5 giúp đọc dấu tiếng Việt cực rõ
             hudTaskAText.color = Color.white;
             if (font != null) hudTaskAText.font = font;
 
@@ -1478,11 +1478,11 @@ namespace SownInStone
             taskBRect.anchorMin = new Vector2(0f, 1f);
             taskBRect.anchorMax = new Vector2(1f, 1f);
             taskBRect.pivot = new Vector2(0f, 1f);
-            taskBRect.anchoredPosition = new Vector2(10f, -42f);
-            taskBRect.sizeDelta = new Vector2(180f, 16f);
+            taskBRect.anchoredPosition = new Vector2(12f, -54f);
+            taskBRect.sizeDelta = new Vector2(261f, 18f);
 
             hudTaskBText = taskBObj.GetComponent<TextMeshProUGUI>();
-            hudTaskBText.fontSize = 10; // Giảm cỡ chữ xuống 10
+            hudTaskBText.fontSize = 10.5f;
             hudTaskBText.color = Color.white;
             if (font != null) hudTaskBText.font = font;
 
@@ -1493,11 +1493,11 @@ namespace SownInStone
             taskCRect.anchorMin = new Vector2(0f, 1f);
             taskCRect.anchorMax = new Vector2(1f, 1f);
             taskCRect.pivot = new Vector2(0f, 1f);
-            taskCRect.anchoredPosition = new Vector2(10f, -58f);
-            taskCRect.sizeDelta = new Vector2(180f, 16f);
+            taskCRect.anchoredPosition = new Vector2(12f, -74f);
+            taskCRect.sizeDelta = new Vector2(261f, 18f);
 
             hudTaskCText = taskCObj.GetComponent<TextMeshProUGUI>();
-            hudTaskCText.fontSize = 10; // Giảm cỡ chữ xuống 10
+            hudTaskCText.fontSize = 10.5f;
             hudTaskCText.color = Color.white;
             if (font != null) hudTaskCText.font = font;
 
@@ -1508,11 +1508,11 @@ namespace SownInStone
             taskDRect.anchorMin = new Vector2(0f, 1f);
             taskDRect.anchorMax = new Vector2(1f, 1f);
             taskDRect.pivot = new Vector2(0f, 1f);
-            taskDRect.anchoredPosition = new Vector2(10f, -74f);
-            taskDRect.sizeDelta = new Vector2(180f, 16f);
+            taskDRect.anchoredPosition = new Vector2(12f, -94f);
+            taskDRect.sizeDelta = new Vector2(261f, 18f);
 
             hudTaskDText = taskDObj.GetComponent<TextMeshProUGUI>();
-            hudTaskDText.fontSize = 10; // Giảm cỡ chữ xuống 10
+            hudTaskDText.fontSize = 10.5f;
             hudTaskDText.color = Color.white;
             if (font != null) hudTaskDText.font = font;
 
@@ -1643,6 +1643,7 @@ namespace SownInStone
         {
             if (hudPanel == null) return;
             EnsureOwnHouseGhostsExist();
+            UpdateOThamChestVisibility();
 
             if (currentStage == TutorialStage.IntroQuests)
             {
@@ -2622,7 +2623,7 @@ namespace SownInStone
 
         private void EnsureOThamChestExists()
         {
-            var existingChest = GameObject.FindAnyObjectByType<Interactions.OThamChest>();
+            var existingChest = FindAnyObjectByType<Interactions.OThamChest>(FindObjectsInactive.Include);
             if (existingChest != null) return; // Already exists
 
             // Find NPC O Thắm to position the chest in front of her shop
@@ -2660,7 +2661,27 @@ namespace SownInStone
                     boxCol.isTrigger = false;
                 }
 
+                // Set initial active state based on job state
+                bool shouldShow = (currentStage == TutorialStage.PrepareForStorm && oThamJobAccepted && !oThamStoreDone);
+                chestObj.SetActive(shouldShow);
+
                 Debug.Log("[CHEST SETUP] Dynamically spawned O Thắm's chest in front of her tiệm.");
+            }
+        }
+
+        private void UpdateOThamChestVisibility()
+        {
+            EnsureOThamChestExists();
+
+            var chest = FindAnyObjectByType<Interactions.OThamChest>(FindObjectsInactive.Include);
+            if (chest != null)
+            {
+                bool shouldShow = (currentStage == TutorialStage.PrepareForStorm && oThamJobAccepted && !oThamStoreDone);
+                if (chest.gameObject.activeSelf != shouldShow)
+                {
+                    chest.gameObject.SetActive(shouldShow);
+                    Debug.Log($"[CHEST VISIBILITY] Set O Thắm's chest active state to: {shouldShow}");
+                }
             }
         }
 

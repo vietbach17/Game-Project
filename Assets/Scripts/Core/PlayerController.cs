@@ -883,7 +883,7 @@ namespace SownInStone.Core
                 {
                     float terrainHeight = UnityEngine.Terrain.activeTerrain.SampleHeight(transform.position) + UnityEngine.Terrain.activeTerrain.transform.position.y;
                     Vector3 pos = transform.position;
-                    pos.y = terrainHeight;
+                    pos.y = terrainHeight + 0.565f; // Thêm offset 0.565f để nhân vật đứng vững trên bề mặt thay vì lún nửa người
                     transform.position = pos;
                     if (rb != null)
                     {
