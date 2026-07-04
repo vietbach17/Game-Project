@@ -24,6 +24,14 @@ namespace SownInStone.UI
         /// </summary>
         public void PlayIntroVideo(System.Action onFinished)
         {
+            PlayVideoClip("UI/videomoman", onFinished);
+        }
+
+        /// <summary>
+        /// Phát video từ đường dẫn trong thư mục Resources. Gọi callback khi video kết thúc hoặc bị skip.
+        /// </summary>
+        public void PlayVideoClip(string videoPath, System.Action onFinished)
+        {
             onVideoFinished = onFinished;
             isPlaying = true;
             hasFinished = false;
@@ -48,7 +56,7 @@ namespace SownInStone.UI
             videoPlayer.isLooping = false;
 
             // Load video từ Resources
-            VideoClip clip = Resources.Load<VideoClip>("UI/videomoman");
+            VideoClip clip = Resources.Load<VideoClip>(videoPath);
             if (clip != null)
             {
                 videoPlayer.clip = clip;
@@ -58,7 +66,7 @@ namespace SownInStone.UI
             }
             else
             {
-                Debug.LogWarning("[IntroVideoPlayer] Không tìm thấy video Resources/UI/videomoman! Bỏ qua video.");
+                Debug.LogWarning($"[IntroVideoPlayer] Không tìm thấy video Resources/{videoPath}! Bỏ qua video.");
                 FinishVideo();
             }
         }

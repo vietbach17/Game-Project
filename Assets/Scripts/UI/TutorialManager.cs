@@ -987,7 +987,26 @@ namespace SownInStone
             
             // Store NPC positions first to ensure reset works correctly
             StoreNPCHomePositions();
-            StartRescuingNPCsStage();
+
+            // Khóa di chuyển của người chơi khi đang xem video cutscene chuyển phase
+            if (PlayerController.Instance != null)
+            {
+                PlayerController.Instance.IsPerformingAction = true;
+            }
+
+            // Tạo và kích hoạt đối tượng phát video cutscene bão lũ
+            var cutscenePlayer = gameObject.AddComponent<SownInStone.UI.IntroVideoPlayer>();
+            cutscenePlayer.PlayVideoClip("UI/storm_cutscene", () =>
+            {
+                // Giải phóng di chuyển sau khi xem xong hoặc bỏ qua video
+                if (PlayerController.Instance != null)
+                {
+                    PlayerController.Instance.IsPerformingAction = false;
+                }
+
+                // Tiến hành chuyển giai đoạn bão lũ
+                StartRescuingNPCsStage();
+            });
         }
 
         public void StartRescuingNPCsStage()

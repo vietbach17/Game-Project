@@ -637,9 +637,11 @@ namespace SownInStone
                 GUILayout.BeginHorizontal();
                 if (GUILayout.Button("Skip Stage ⏩"))
                 {
+                    TutorialManager.TutorialStage prevStage = tut.currentStage;
+                    SupplementItemsForStage(prevStage, tut);
                     tut.currentStage = (TutorialManager.TutorialStage)(((int)tut.currentStage + 1) % 17);
                     tut.UpdateHUDPanel();
-                    ShowAlert($"Đã nhảy sang giai đoạn: {tut.currentStage}");
+                    ShowAlert($"Đã nhảy sang giai đoạn: {tut.currentStage} và cấp bù vật phẩm tương ứng!");
                 }
                 GUILayout.EndHorizontal();
 
@@ -689,8 +691,14 @@ namespace SownInStone
                 {
                     if (GUILayout.Button("Nhận việc O Thắm"))
                     {
+                        if (StorageManager.Instance != null)
+                        {
+                            ItemData seed = PlayerController.Instance != null ? PlayerController.Instance.seedItem : null;
+                            if (seed == null) seed = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Seed.asset");
+                            if (seed != null) StorageManager.Instance.AddItem(seed, 12);
+                        }
                         tut.StartFarmingSlideshow();
-                        ShowAlert("Đã kích hoạt slideshow trồng trọt!");
+                        ShowAlert("Đã nhận việc & nhận 12 hạt giống!");
                     }
                 }
                 
@@ -720,9 +728,15 @@ namespace SownInStone
                     if (!tut.subTask4Completed && GUILayout.Button("Thu hoạch"))
                     {
                         tut.subTask4Completed = true;
+                        if (StorageManager.Instance != null)
+                        {
+                            ItemData fresh = StorageManager.Instance.GetItemDataByID("item_fresh_crop");
+                            if (fresh == null) fresh = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_FreshCrop.asset");
+                            if (fresh != null) StorageManager.Instance.AddItem(fresh, 24);
+                        }
                         tut.currentStage = TutorialManager.TutorialStage.SellCrops;
                         tut.UpdateHUDPanel();
-                        ShowAlert("Đã xong thu hoạch!");
+                        ShowAlert("Đã thu hoạch và nhận 24 Khoai lang tươi!");
                     }
                     GUILayout.EndHorizontal();
                 }
@@ -732,8 +746,17 @@ namespace SownInStone
                 {
                     if (GUILayout.Button("Bán khoai cho O Thắm"))
                     {
+                        if (PlayerStats.Instance != null) PlayerStats.Instance.ModifyCoins(120);
+                        if (StorageManager.Instance != null)
+                        {
+                            ItemData fresh = StorageManager.Instance.GetItemDataByID("item_fresh_crop");
+                            if (fresh != null && StorageManager.Instance.HasItem(fresh, 12))
+                            {
+                                StorageManager.Instance.RemoveItem(fresh, 12);
+                            }
+                        }
                         tut.OnCropsSold();
-                        ShowAlert("Đã hoàn thành bán khoai!");
+                        ShowAlert("Đã bán khoai: +120 Coins!");
                     }
                 }
                 
@@ -753,6 +776,12 @@ namespace SownInStone
                     GUILayout.Label($"Đã chế biến: {tut.preservedCropsCrafted}/4");
                     if (GUILayout.Button("Chế biến 1 Khoai Gieo"))
                     {
+                        if (StorageManager.Instance != null)
+                        {
+                            ItemData preserved = StorageManager.Instance.GetItemDataByID("item_khoai_gieo");
+                            if (preserved == null) preserved = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_PreservedCrop.asset");
+                            if (preserved != null) StorageManager.Instance.AddItem(preserved, 1);
+                        }
                         tut.OnPreservedCropCrafted();
                         ShowAlert("Đã chế biến +1 Khoai Gieo!");
                     }
@@ -855,8 +884,14 @@ namespace SownInStone
                 {
                     if (GUILayout.Button("Hỏi Cụ Bảy về thờ cúng"))
                     {
+                        if (StorageManager.Instance != null)
+                        {
+                            ItemData incense = StorageManager.Instance.GetItemDataByID("item_incense");
+                            if (incense == null) incense = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Incense.asset");
+                            if (incense != null) StorageManager.Instance.AddItem(incense, 1);
+                        }
                         tut.OnCuBayWorshipTalked();
-                        ShowAlert("Đã hoàn thành hỏi thờ cúng!");
+                        ShowAlert("Đã nhận 1 Nén Nhang cúng tế!");
                     }
                 }
                 
@@ -1000,6 +1035,60 @@ namespace SownInStone
 
             GUI.DrawTexture(new Rect(r.x, r.y, r.width * percent, r.height), Texture2D.whiteTexture); // Vẽ thanh trượt
             GUI.color = Color.white;
+        }
+
+        private void SupplementItemsForStage(TutorialManager.TutorialStage stage, TutorialManager tut)
+        {
+            if (StorageManager.Instance == null) return;
+
+            switch (stage)
+            {
+                case TutorialManager.TutorialStage.TalkToOThamJob:
+                    // Cấp 12 hạt giống
+                    ItemData seed = PlayerController.Instance != null ? PlayerController.Instance.seedItem : null;
+                    if (seed == null) seed = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Seed.asset");
+                    if (seed != null) StorageManager.Instance.AddItem(seed, 12);
+                    break;
+
+                case TutorialManager.TutorialStage.FarmingTutorial:
+                    // Cấp 24 khoai lang tươi
+                    ItemData freshCrop = StorageManager.Instance.GetItemDataByID("item_fresh_crop");
+                    if (freshCrop == null) freshCrop = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_FreshCrop.asset");
+                    if (freshCrop != null) StorageManager.Instance.AddItem(freshCrop, 24);
+                    break;
+
+                case TutorialManager.TutorialStage.SellCrops:
+                    // Tăng 120 Coins và đảm bảo balo có đủ 12 khoai lang tươi làm vốn cho Bác Năm sấy khoai
+                    if (PlayerStats.Instance != null) PlayerStats.Instance.ModifyCoins(120);
+                    ItemData fresh = StorageManager.Instance.GetItemDataByID("item_fresh_crop");
+                    if (fresh == null) fresh = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_FreshCrop.asset");
+                    if (fresh != null && !StorageManager.Instance.HasItem(fresh, 12))
+                    {
+                        StorageManager.Instance.AddItem(fresh, 12);
+                    }
+                    break;
+
+                case TutorialManager.TutorialStage.CraftPreservedCrops:
+                    // Cấp 4 khoai gieo sấy khô
+                    ItemData preserved = StorageManager.Instance.GetItemDataByID("item_khoai_gieo");
+                    if (preserved == null) preserved = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_PreservedCrop.asset");
+                    if (preserved != null) StorageManager.Instance.AddItem(preserved, 4);
+                    break;
+
+                case TutorialManager.TutorialStage.PrepareForStorm:
+                    // Cấp 4 mì tôm cứu trợ còn dư
+                    ItemData noodles = StorageManager.Instance.GetItemDataByID("item_mi_tom");
+                    if (noodles == null) noodles = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Noodles.asset");
+                    if (noodles != null) StorageManager.Instance.AddItem(noodles, 4);
+                    break;
+
+                case TutorialManager.TutorialStage.TalkToCuBayWorship:
+                    // Cấp 1 nhang cúng tế
+                    ItemData incense = StorageManager.Instance.GetItemDataByID("item_incense");
+                    if (incense == null) incense = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Incense.asset");
+                    if (incense != null) StorageManager.Instance.AddItem(incense, 1);
+                    break;
+            }
         }
 
         private string GetPhaseVietnameseName(GamePhase phase)

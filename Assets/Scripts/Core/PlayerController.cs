@@ -119,6 +119,23 @@ namespace SownInStone.Core
         private SoilCell currentTargetSoil;
         public SoilCell CurrentTargetSoilCell => currentTargetSoil;
 
+        public bool IsPerformingAction
+        {
+            get => isPerformingAction;
+            set
+            {
+                isPerformingAction = value;
+                if (value)
+                {
+                    moveInput = Vector2.zero;
+                    if (rb != null)
+                    {
+                        rb.linearVelocity = new Vector3(0f, rb.linearVelocity.y, 0f);
+                    }
+                }
+            }
+        }
+
         [Header("--- XEM TRƯỚC VỊ TRÍ ĐẶT (GHOST PREVIEW) ---")]
         private bool isPlacingPreview = false;
         private ItemData previewItemData;

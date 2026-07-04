@@ -82,7 +82,7 @@ Tài liệu này phản ánh trạng thái source hiện tại sau merge/compile
 
 ---
 
-## 6. Known Issues đã được Khắc Phục (2026-07-01)
+## 6. Known Issues đã được Khắc Phục (2026-07-01 đến 2026-07-02)
 
 ### Bug: Player bị kẹt không đi qua được phía Bác Năm và Bé Tí trên nóc nhà
 
@@ -100,6 +100,23 @@ Tài liệu này phản ánh trạng thái source hiện tại sau merge/compile
 ### Bug: NullReferenceException spam trong NPCProximityOptionsUI
 **Nguyên nhân:** `action` delegate trong `currentOptions` đôi khi null khi NPC chuyển stage.
 **Cách sửa:** Thêm null guard trước mỗi `action()` trong `HandleKeyboardInput` (`NPCProximityOptionsUI.cs`).
+
+### Bug: Nhân vật đi xuyên dốc Terrain hoặc lún sâu xuống lòng đất / rơi tự do (2026-07-02)
+**Nguyên nhân:** Khóa trục Y (`FreezePositionY`) và tắt trọng lực trên Rigidbody khiến nhân vật không thể di chuyển lên xuống theo độ dốc của Terrain. Khi bật trọng lực vật lý, do lớp va chạm chưa cấu hình chuẩn dẫn đến nhân vật rơi lọt qua map xuống Y < -270m.
+**Cách sửa:**
+1. Giữ nguyên chế độ tắt trọng lực vật lý để tránh lỗi va chạm của Unity, thay vào đó bổ sung cơ chế **Terrain Height Snapping** thủ công trong `FixedUpdate()` giúp ép tọa độ Y của nhân vật bằng với bề mặt Terrain thực tế ngoài trời, cộng thêm chiều cao offset **`+ 0.565f`** để nhân vật đứng thẳng trên mặt đất.
+2. Thêm cơ chế cứu hộ tự động (Fail-safe): Nếu tọa độ Y của nhân vật lỡ bị rơi xuống dưới `-50f`, ngay lập tức tự động teleport nhân vật trở lại sân nhà Thành an toàn (`10.66, 0.565, -14.2`).
+
+### Bug: Rìa bản đồ hiển thị khoảng không vô tận thiếu thẩm mỹ (2026-07-02)
+**Nguyên nhân:** Camera có tầm vẽ mặc định quá xa (`farClipPlane = 1000m`), để lộ phần trống ngoài viền của map.
+**Cách sửa:** Triển khai cơ chế **Sương mù khí hậu (Dynamic Fog)** tự động thay đổi mật độ và màu sắc theo thời tiết của Phase hiện tại (ổn định, giông bão, mưa lũ) và đồng bộ với tầm vẽ `farClipPlane = fogEndDistance + 5f` của Camera để che khuất viền bản đồ một cách tự nhiên. Khi người chơi bước vào trong nhà Thành, sương mù tự động được đẩy ra xa để không làm cản trở tầm nhìn bên trong.
+
+### Bug: Rương cất mì cứu trợ của O Thắm hiển thị dư thừa (2026-07-02)
+**Nguyên nhân:** Rương gỗ xuất hiện ngay từ đầu Phase 2 gây nhầm lẫn trước khi nhận nhiệm vụ.
+**Cách sửa:** Cập nhật `TutorialManager` tự động ẩn rương gỗ và chỉ kích hoạt hiển thị khi nhiệm vụ cất mì chính thức được chấp nhận, sau đó ẩn lại khi đã cất đủ 5 gói mì.
+
+### Cải tiến: Căn chỉnh giao diện Bảng nhiệm vụ (Task HUD Panel) đẹp hơn (2026-07-02)
+**Cách sửa:** Tăng chiều rộng Panel lên `285f` và khung chữ lên `261f` để ngăn hiện tượng quấn dòng đối với các nhiệm vụ dài. Căn chỉnh lề trái lùi vào `12f` cân đối, tăng kích thước chữ nhiệm vụ lên `10.5f` / `11.5f` và thiết lập nền mờ mahogany cổ điển cùng viền vàng đồng sang trọng.
 
 ---
 
