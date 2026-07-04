@@ -8,10 +8,10 @@ namespace SownInStone.Core
 {
     /// <summary>
     /// Camera hỗ trợ 3 góc nhìn:
-    ///   1. ThirdPerson  — Roblox-style follow cam (mặc định cũ).
+    ///   1. ThirdPerson  — Roblox-style follow cam.
     ///   2. Fixed        — Camera cố định nhìn xuống theo góc isometric.
-    ///   3. FirstPerson  — Camera gắn vào đầu nhân vật, nhìn từ mắt Thành.
-    /// Chuyển đổi qua menu Settings hoặc phím [V].
+    ///   3. FirstPerson  — Camera gắn vào đầu nhân vật, nhìn từ mắt Thành (mặc định).
+    /// Chuyển đổi qua menu Cài đặt (Settings).
     /// </summary>
     public class CameraFollow3D : MonoBehaviour
     {
@@ -20,7 +20,7 @@ namespace SownInStone.Core
 
         // ─── Camera Mode ──────────────────────────────────────────────────────
         public enum CameraMode { ThirdPerson = 0, Fixed = 1, FirstPerson = 2 }
-        private CameraMode currentMode = CameraMode.ThirdPerson;
+        private CameraMode currentMode = CameraMode.FirstPerson;
         public CameraMode CurrentMode => currentMode;
 
         [Header("--- TARGETS ---")]
@@ -71,7 +71,7 @@ namespace SownInStone.Core
         // ════════════════════════════════════════════════════════════════════
         [Header("--- [FirstPerson] EYE SETTINGS ---")]
         [Tooltip("Chiều cao mắt nhân vật (so với gốc transform).")]
-        [SerializeField] private float eyeHeight        = 1.65f;
+        [SerializeField] private float eyeHeight        = 1.45f;
         [Tooltip("FOV khi ở góc nhìn thứ nhất.")]
         [SerializeField] private float fpsFOV           = 75f;
         [Tooltip("Độ nhạy chuột ngang (Yaw) FPS.")]
@@ -144,8 +144,8 @@ namespace SownInStone.Core
 
         private void Start()
         {
-            // Load saved mode
-            int savedMode = PlayerPrefs.GetInt("CameraMode", 0);
+            // Load saved mode (mặc định là FirstPerson = 2)
+            int savedMode = PlayerPrefs.GetInt("CameraMode", 2);
             currentMode = (CameraMode)savedMode;
             ResetCameraToTargetImmediate();
         }
@@ -389,27 +389,13 @@ namespace SownInStone.Core
 
 
 
-            // Phím [V] để cycle qua 3 mode
-#if ENABLE_INPUT_SYSTEM
-            if (Keyboard.current != null && Keyboard.current.vKey.wasPressedThisFrame)
-            {
-                CycleCameraMode();
-                return;
-            }
-
             // Phím [P] để bật/tắt con trỏ chuột
+#if ENABLE_INPUT_SYSTEM
             if (Keyboard.current != null && Keyboard.current.pKey.wasPressedThisFrame)
             {
                 ToggleCursorVisibility();
             }
 #else
-            if (Input.GetKeyDown(KeyCode.V))
-            {
-                CycleCameraMode();
-                return;
-            }
-
-            // Phím [P] để bật/tắt con trỏ chuột
             if (Input.GetKeyDown(KeyCode.P))
             {
                 ToggleCursorVisibility();
