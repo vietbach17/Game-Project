@@ -137,6 +137,7 @@ namespace SownInStone.UI
         public bool IsInventoryOpen => isInventoryOpen;
         public bool IsCommunityOpen => isCommunityOpen;
         public bool IsWeatherDetailsOpen => isWeatherDetailsOpen;
+        public bool IsQuantityPopupOpen => isQuantityPopupOpen;
         public TextMeshProUGUI SpeakerNameText => speakerNameText;
         public ItemData IncenseItem => incenseItem;
         public ItemData SandbagItem => sandbagItem;
@@ -185,39 +186,15 @@ namespace SownInStone.UI
             }
 
 #if UNITY_EDITOR
-            // Tự động tải tài nguyên nếu thiếu để Designer không phải kéo thả
-            if (seedItem == null)
-            {
-                seedItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Seed.asset");
-            }
-            if (incenseItem == null)
-            {
-                incenseItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Incense.asset");
-            }
-            if (noodlesItem == null)
-            {
-                noodlesItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Noodles.asset");
-            }
-            if (freshCropItem == null)
-            {
-                freshCropItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_FreshCrop.asset");
-            }
-            if (preservedCropItem == null)
-            {
-                preservedCropItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_PreservedCrop.asset");
-            }
-            if (nonLaItem == null)
-            {
-                nonLaItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_non_la.asset");
-            }
-            if (sandbagItem == null)
-            {
-                sandbagItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_sandbag.asset");
-            }
-            if (floodBoardItem == null)
-            {
-                floodBoardItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_flood_board.asset");
-            }
+            // Tự động tải tài nguyên để đảm bảo không bị mất reference trong Editor
+            seedItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Seed.asset");
+            incenseItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Incense.asset");
+            noodlesItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Noodles.asset");
+            freshCropItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_FreshCrop.asset");
+            preservedCropItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_PreservedCrop.asset");
+            nonLaItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_non_la.asset");
+            sandbagItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_sandbag.asset");
+            floodBoardItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_flood_board.asset");
 #endif
 
             // Tạo các panel bổ sung
@@ -801,6 +778,11 @@ namespace SownInStone.UI
             isDialogueActive = true;
             isChoiceActive = false;
 
+            if (HotbarManager.Instance != null)
+            {
+                HotbarManager.Instance.ToggleHotbarVisible(false);
+            }
+
             if (choiceContainer != null)
             {
                 choiceContainer.SetActive(false);
@@ -841,6 +823,11 @@ namespace SownInStone.UI
             dialoguePanel.transform.SetAsLastSibling();
             isDialogueActive = true;
             isChoiceActive = true;
+
+            if (HotbarManager.Instance != null)
+            {
+                HotbarManager.Instance.ToggleHotbarVisible(false);
+            }
 
             // Đăng ký callback
             onChoice1Selected = onChoice1;
@@ -913,6 +900,11 @@ namespace SownInStone.UI
             if (choiceContainer != null)
             {
                 choiceContainer.SetActive(false);
+            }
+
+            if (HotbarManager.Instance != null)
+            {
+                HotbarManager.Instance.ToggleHotbarVisible(true);
             }
 
             if (TutorialManager.Instance != null && speakerNameText != null)
@@ -1529,288 +1521,14 @@ namespace SownInStone.UI
                     return;
                 }
 
-                // 2. Xử lý Bao Cát và Tấm Chắn Lũ (Placement)
+                // 2. Xử lý Bao Cát và Tấm Chắn Lũ (Placement) thông qua Hotbar
                 if (item.ItemID == "item_sandbag" || item.ItemID == "item_flood_board")
                 {
-                    bool isSandbag = item.ItemID == "item_sandbag";
-                    string actionName = isSandbag ? "Đặt bao cát" : "Dựng tấm chắn";
-                    string desc = isSandbag 
-                        ? "Bạn có muốn đặt Bao Cát này xuống đất để chặn nước lũ ngập úng không?\n\nHiệu quả:\n• Che chắn úng lụt cho các cây trồng gần đó (bán kính 2.2m)."
-                        : "Bạn có muốn dựng Tấm Chắn Lũ này xuống đất để ngăn nước ngập ruộng không?\n\nHiệu quả:\n• Che chắn úng lụt cho các cây trồng gần đó (bán kính 2.2m).";
-
-                    ShowDialogueWithChoices(
-                        item.ItemName,
-                        desc,
-                        actionName,
-                        () => {
-                            if (StorageManager.Instance != null && StorageManager.Instance.RemoveItem(item, 1))
-                            {
-                                if (PlayerController.Instance != null)
-                                {
-                                    string prefabPath = isSandbag ? "Prefabs/Sandbag" : "Prefabs/FloodBoard";
-                                    GameObject prefab = Resources.Load<GameObject>(prefabPath);
-                                    if (prefab != null)
-                                    {
-                                        Vector3 spawnPos = PlayerController.Instance.transform.position;
-                                        spawnPos.y = 0.0f; // Đặt ngang mặt đất
-                                        
-                                        // Đặt cách người chơi một khoảng nhỏ phía trước
-                                        Vector3 forwardOffset = PlayerController.Instance.transform.forward * 1.0f;
-                                        forwardOffset.y = 0f;
-                                        Vector3 finalPos = spawnPos + forwardOffset;
-                                        bool didMakePrePlacedSolid = false;
-
-                                        if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
-                                        {
-                                            var stage = TutorialManager.Instance.currentStage;
-                                            if (stage == TutorialManager.TutorialStage.PrepareForStorm)
-                                            {
-                                                if (isSandbag)
-                                                {
-                                                    if (TutorialManager.Instance.ghostSandbags.Count > 0)
-                                                    {
-                                                        int bestIndex = -1;
-                                                        float minDistance = float.MaxValue;
-                                                        for (int i = 0; i < TutorialManager.Instance.ghostSandbags.Count; i++)
-                                                        {
-                                                            if (i >= 4) break;
-                                                            if (TutorialManager.Instance.bacNamTargetsPlaced[i]) continue;
-                                                            Vector3 spawnPos2D = spawnPos;
-                                                            Vector3 targetPos2D = TutorialManager.Instance.ghostSandbags[i].transform.position;
-                                                            spawnPos2D.y = 0f;
-                                                            targetPos2D.y = 0f;
-                                                            float dist = Vector3.Distance(spawnPos2D, targetPos2D);
-                                                            if (dist < minDistance)
-                                                            {
-                                                                minDistance = dist;
-                                                                bestIndex = i;
-                                                            }
-                                                        }
-                                                        
-                                                        if (bestIndex != -1 && minDistance < 3.5f)
-                                                        {
-                                                            TutorialManager.Instance.MakeSolidModel(TutorialManager.Instance.ghostSandbags[bestIndex]);
-                                                            TutorialManager.Instance.bacNamTargetsPlaced[bestIndex] = true;
-                                                            TutorialManager.Instance.OnBacNamSandbagPlaced();
-                                                            didMakePrePlacedSolid = true;
-                                                        }
-                                                        else
-                                                        {
-                                                            PlayerStats.Instance?.TriggerAlert("Hãy đến gần chấm chỉ dẫn trên mái để đặt!");
-                                                            StorageManager.Instance?.AddItem(item, 1);
-                                                            RefreshInventoryUI();
-                                                            CloseDialogue();
-                                                            return;
-                                                        }
-                                                    }
-                                                    else
-                                                    {
-                                                        GameObject bacNamHouse = GameObject.Find("BacNam_House");
-                                                        if (bacNamHouse != null && Vector3.Distance(spawnPos, bacNamHouse.transform.position) < 15f)
-                                                        {
-                                                            Vector3 roofCenter = bacNamHouse.transform.position + Vector3.up * 3.8f;
-                                                            Vector3[] roofOffsets = new Vector3[]
-                                                            {
-                                                                new Vector3(-1.2f, 0f, -0.8f),
-                                                                new Vector3(1.2f, 0.1f, -0.8f),
-                                                                new Vector3(-1.2f, 0.1f, 0.8f),
-                                                                new Vector3(1.2f, 0f, 0.8f)
-                                                            };
-                                                            
-                                                            int bestIndex = -1;
-                                                            float minDistance = float.MaxValue;
-                                                            for (int i = 0; i < 4; i++)
-                                                            {
-                                                                if (TutorialManager.Instance.bacNamTargetsPlaced[i]) continue;
-                                                                Vector3 spawnPos2D = spawnPos;
-                                                                Vector3 targetPos2D = roofCenter + roofOffsets[i];
-                                                                spawnPos2D.y = 0f;
-                                                                targetPos2D.y = 0f;
-                                                                float dist = Vector3.Distance(spawnPos2D, targetPos2D);
-                                                                if (dist < minDistance)
-                                                                {
-                                                                    minDistance = dist;
-                                                                    bestIndex = i;
-                                                                }
-                                                            }
-                                                            
-                                                            if (bestIndex != -1 && minDistance < 3.5f)
-                                                            {
-                                                                finalPos = roofCenter + roofOffsets[bestIndex];
-                                                                TutorialManager.Instance.bacNamTargetsPlaced[bestIndex] = true;
-                                                                TutorialManager.Instance.OnBacNamSandbagPlaced();
-                                                            }
-                                                            else
-                                                            {
-                                                                PlayerStats.Instance?.TriggerAlert("Hãy đến gần chấm chỉ dẫn trên mái để đặt!");
-                                                                StorageManager.Instance?.AddItem(item, 1);
-                                                                RefreshInventoryUI();
-                                                                CloseDialogue();
-                                                                return;
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                                else
-                                                {
-                                                    if (TutorialManager.Instance.ghostFloodboards.Count > 0)
-                                                    {
-                                                        int bestIndex = -1;
-                                                        float minDistance = float.MaxValue;
-                                                        for (int i = 0; i < TutorialManager.Instance.ghostFloodboards.Count; i++)
-                                                        {
-                                                            if (i >= 4) break;
-                                                            if (TutorialManager.Instance.oThamTargetsPlaced[i]) continue;
-                                                            Vector3 spawnPos2D = spawnPos;
-                                                            Vector3 targetPos2D = TutorialManager.Instance.ghostFloodboards[i].transform.position;
-                                                            spawnPos2D.y = 0f;
-                                                            targetPos2D.y = 0f;
-                                                            float dist = Vector3.Distance(spawnPos2D, targetPos2D);
-                                                            if (dist < minDistance)
-                                                            {
-                                                                minDistance = dist;
-                                                                bestIndex = i;
-                                                            }
-                                                        }
-                                                        
-                                                        if (bestIndex != -1 && minDistance < 3.5f)
-                                                        {
-                                                            TutorialManager.Instance.MakeSolidModel(TutorialManager.Instance.ghostFloodboards[bestIndex]);
-                                                            TutorialManager.Instance.oThamTargetsPlaced[bestIndex] = true;
-                                                            TutorialManager.Instance.OnOThamFloodBoardPlaced();
-                                                            didMakePrePlacedSolid = true;
-                                                        }
-                                                        else
-                                                        {
-                                                            PlayerStats.Instance?.TriggerAlert("Hãy đến gần chấm chỉ dẫn trước cửa tiệm để đặt!");
-                                                            StorageManager.Instance?.AddItem(item, 1);
-                                                            RefreshInventoryUI();
-                                                            CloseDialogue();
-                                                            return;
-                                                        }
-                                                    }
-                                                    else
-                                                    {
-                                                        var npcs = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Exclude);
-                                                        var oTham = System.Array.Find(npcs, n => n.characterType == NPCCharacter.StoryCharacterType.OTham);
-                                                        if (oTham != null && Vector3.Distance(spawnPos, oTham.transform.position) < 15f)
-                                                        {
-                                                            Vector3 oThamPos = oTham.transform.position;
-                                                            Vector3 forward = oTham.transform.forward;
-                                                            Vector3 right = oTham.transform.right;
-
-                                                            Vector3[] targets = new Vector3[]
-                                                            {
-                                                                oThamPos + forward * 2.5f + right * -1.8f,
-                                                                oThamPos + forward * 2.5f + right * -0.6f,
-                                                                oThamPos + forward * 2.5f + right * 0.6f,
-                                                                oThamPos + forward * 2.5f + right * 1.8f
-                                                            };
-
-                                                            int bestIndex = -1;
-                                                            float minDistance = float.MaxValue;
-                                                            for (int i = 0; i < 4; i++)
-                                                            {
-                                                                if (TutorialManager.Instance.oThamTargetsPlaced[i]) continue;
-                                                                Vector3 spawnPos2D = spawnPos;
-                                                                Vector3 targetPos2D = targets[i];
-                                                                spawnPos2D.y = 0f;
-                                                                targetPos2D.y = 0f;
-                                                                float dist = Vector3.Distance(spawnPos2D, targetPos2D);
-                                                                if (dist < minDistance)
-                                                                {
-                                                                    minDistance = dist;
-                                                                    bestIndex = i;
-                                                                }
-                                                            }
-
-                                                            if (bestIndex != -1 && minDistance < 3.5f)
-                                                            {
-                                                                finalPos = targets[bestIndex];
-                                                                TutorialManager.Instance.oThamTargetsPlaced[bestIndex] = true;
-                                                                TutorialManager.Instance.OnOThamFloodBoardPlaced();
-                                                            }
-                                                            else
-                                                            {
-                                                                PlayerStats.Instance?.TriggerAlert("Hãy đến gần chấm chỉ dẫn trước cửa tiệm để đặt!");
-                                                                StorageManager.Instance?.AddItem(item, 1);
-                                                                RefreshInventoryUI();
-                                                                CloseDialogue();
-                                                                return;
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                            else if (stage == TutorialManager.TutorialStage.PrepareOwnHouse)
-                                            {
-                                                if (isSandbag)
-                                                {
-                                                    GameObject ownHouse = GameObject.Find("Thanh_House");
-                                                    if (ownHouse != null && Vector3.Distance(spawnPos, ownHouse.transform.position) < 15f)
-                                                    {
-                                                        Vector3 houseCenter = ownHouse.transform.position;
-                                                        Vector3[] houseOffsets = new Vector3[]
-                                                        {
-                                                            houseCenter + new Vector3(-1.5f, 0.1f, -1.0f),
-                                                            houseCenter + new Vector3(-0.5f, 0.1f, -1.0f),
-                                                            houseCenter + new Vector3(0.5f, 0.1f, -1.0f),
-                                                            houseCenter + new Vector3(1.5f, 0.1f, -1.0f)
-                                                        };
-
-                                                        int bestIndex = -1;
-                                                        float minDistance = float.MaxValue;
-                                                        for (int i = 0; i < 4; i++)
-                                                        {
-                                                            if (TutorialManager.Instance.ownHouseSandbagsPlaced > i) continue;
-                                                            float dist = Vector3.Distance(spawnPos, houseOffsets[i]);
-                                                            if (dist < minDistance)
-                                                            {
-                                                                minDistance = dist;
-                                                                bestIndex = i;
-                                                            }
-                                                        }
-
-                                                        if (bestIndex != -1 && minDistance < 3f)
-                                                        {
-                                                            finalPos = houseOffsets[bestIndex];
-                                                            TutorialManager.Instance.OnOwnHouseSandbagPlaced();
-                                                        }
-                                                        else
-                                                        {
-                                                            PlayerStats.Instance?.TriggerAlert("Hãy đến gần chấm chỉ dẫn trước nhà để đặt!");
-                                                            StorageManager.Instance?.AddItem(item, 1);
-                                                            RefreshInventoryUI();
-                                                            CloseDialogue();
-                                                            return;
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-
-                                        if (!didMakePrePlacedSolid)
-                                        {
-                                            GameObject deployed = Instantiate(prefab, finalPos, Quaternion.identity);
-                                            deployed.name = isSandbag ? "Deployed_Sandbag" : "Deployed_FloodBoard";
-                                        }
-
-                                        PlayerStats.Instance?.TriggerAlert($"Đã đặt {item.ItemName}!");
-                                    }
-                                    else
-                                    {
-                                        Debug.LogError($"[SURVIVAL UI] Không tìm thấy prefab {prefabPath} trong Resources!");
-                                    }
-                                }
-                            }
-                            RefreshInventoryUI();
-                            CloseDialogue();
-                        },
-                        "Hủy bỏ",
-                        () => {
-                            CloseDialogue();
-                        }
-                    );
+                    CloseDialogue();
+                    if (PlayerController.Instance != null)
+                    {
+                        PlayerController.Instance.UseItemFromHotbar(item);
+                    }
                     return;
                 }
 
@@ -2123,9 +1841,9 @@ namespace SownInStone.UI
                         title = "TIẾNG TRỐNG ĐÌNH LÀNG";
                         message = "Loa phát thanh xã xin thông báo: Hôm nay bà con ra đồng dọn ruộng, chuẩn bị vụ khoai đầu mùa. Mong mọi người giúp đỡ nhau, giữ gìn tình làng nghĩa xóm.";
                         break;
-                    case GamePhase.GioLao:
-                        title = "NẮNG CHÁY GIÓ LÀO";
-                        message = "Loa phát thanh xã xin thông báo: Gió Lào đang thổi mạnh, bà con hạn chế ra đồng giữa trưa, tiết kiệm nước tưới và chú ý giữ sức khỏe.";
+                    case GamePhase.ChuanBiBao:
+                        title = "LOA BÁO BÃO KHẨN CẤP";
+                        message = "Loa phát thanh xã xin thông báo: Siêu bão đang hướng thẳng vào đất liền, đề nghị bà con khẩn trương gia cố mái nhà, đắp đập đê cát chắn lũ!";
                         break;
                     case GamePhase.MuaBao:
                         title = "TÌNH NGƯỜI TRONG MƯA BÃO";
@@ -2159,9 +1877,9 @@ namespace SownInStone.UI
                     phaseNumber = "GIAI ĐOẠN 1";
                     phaseName = "TIẾNG TRỐNG ĐÌNH LÀNG (LẬP NGHIỆP)";
                     break;
-                case GamePhase.GioLao:
+                case GamePhase.ChuanBiBao:
                     phaseNumber = "GIAI ĐOẠN 2";
-                    phaseName = "NẮNG CHÁY GIÓ LÀO (THỬ THÁCH)";
+                    phaseName = "GIA CỐ TRƯỚC BÃO (CHUẨN BỊ)";
                     break;
                 case GamePhase.MuaBao:
                     phaseNumber = "GIAI ĐOẠN 3";
@@ -2457,11 +2175,12 @@ namespace SownInStone.UI
             float elapsed = 0f;
             float fadeDuration = 0.25f;
 
-            // Fade in
+            // Fade in from current alpha to 1f
+            float startAlpha = toastCanvasGroup.alpha;
             while (elapsed < fadeDuration)
             {
                 elapsed += Time.deltaTime;
-                toastCanvasGroup.alpha = Mathf.Lerp(0f, 1f, elapsed / fadeDuration);
+                toastCanvasGroup.alpha = Mathf.Lerp(startAlpha, 1f, elapsed / fadeDuration);
                 yield return null;
             }
             toastCanvasGroup.alpha = 1f;
@@ -2715,7 +2434,7 @@ namespace SownInStone.UI
             switch (phase)
             {
                 case GamePhase.LapNghiep: return "Tiếng Trống Đình Làng (Lập Nghiệp)";
-                case GamePhase.GioLao: return "Nắng Cháy Gió Lào (Gió Tây Nam)";
+                case GamePhase.ChuanBiBao: return "Gia Cố Trước Bão (Chuẩn Bị)";
                 case GamePhase.MuaBao: return "Tình Người Trong Lũ (Mưa Bão)";
                 case GamePhase.PhuSa: return "Phù Sa Sau Lũ (Cải Tạo Tái Thiết)";
                 default: return phase.ToString();
@@ -3006,13 +2725,14 @@ namespace SownInStone.UI
 
                 if (row == null || param.item == null) continue;
 
-                // Lấy số lượng đang sở hữu trong Inventory
+                // Lấy số lượng đang sở hữu trong Inventory (bao gồm cả balo và rương)
                 int ownedCount = 0;
                 if (StorageManager.Instance != null)
                 {
-                    var slots = StorageManager.Instance.GetStorageSlots();
-                    var slot = slots.Find(s => s.item.ItemID == param.item.ItemID);
-                    ownedCount = slot != null ? slot.quantity : 0;
+                    var backpackSlot = StorageManager.Instance.GetStorageSlots().Find(s => s.item != null && s.item.ItemID == param.item.ItemID);
+                    var chestSlot = StorageManager.Instance.GetReserveChestSlots().Find(s => s.item != null && s.item.ItemID == param.item.ItemID);
+                    if (backpackSlot != null) ownedCount += backpackSlot.quantity;
+                    if (chestSlot != null) ownedCount += chestSlot.quantity;
                 }
 
                 // Cập nhật Info Text
@@ -3149,9 +2869,10 @@ namespace SownInStone.UI
             int owned = 0;
             if (StorageManager.Instance != null)
             {
-                var slots = StorageManager.Instance.GetStorageSlots();
-                var slot = slots.Find(s => s.item.ItemID == popupTargetItem.ItemID);
-                owned = slot != null ? slot.quantity : 0;
+                var backpackSlot = StorageManager.Instance.GetStorageSlots().Find(s => s.item != null && s.item.ItemID == popupTargetItem.ItemID);
+                var chestSlot = StorageManager.Instance.GetReserveChestSlots().Find(s => s.item != null && s.item.ItemID == popupTargetItem.ItemID);
+                if (backpackSlot != null) owned += backpackSlot.quantity;
+                if (chestSlot != null) owned += chestSlot.quantity;
             }
             GUILayout.Label($"Đơn giá: <color=#F4D03F>{popupUnitPrice} Xu</color>  |  Đang sở hữu: {owned}", labelStyle);
             GUILayout.Space(12);
@@ -3269,9 +2990,11 @@ namespace SownInStone.UI
             }
             else
             {
-                var slots = StorageManager.Instance.GetStorageSlots();
-                var slot = slots.Find(s => s.item.ItemID == popupTargetItem.ItemID);
-                int owned = slot != null ? slot.quantity : 0;
+                int owned = 0;
+                var backpackSlot = StorageManager.Instance.GetStorageSlots().Find(s => s.item != null && s.item.ItemID == popupTargetItem.ItemID);
+                var chestSlot = StorageManager.Instance.GetReserveChestSlots().Find(s => s.item != null && s.item.ItemID == popupTargetItem.ItemID);
+                if (backpackSlot != null) owned += backpackSlot.quantity;
+                if (chestSlot != null) owned += chestSlot.quantity;
 
                 if (owned >= quantity)
                 {
@@ -3386,12 +3109,10 @@ namespace SownInStone.UI
             GameObject bodyObj = new GameObject("BodyText", typeof(RectTransform), typeof(TextMeshProUGUI));
             bodyObj.transform.SetParent(phase3QuestPanelObj.transform, false);
             TextMeshProUGUI bodyTxt = bodyObj.GetComponent<TextMeshProUGUI>();
-            bodyTxt.text = "<b>1. 🌾 PHỦ MÀNG NILON BẢO VỆ RUỘNG:</b>\n" +
-                           "   Dùng Màng bọc Nilon bọc toàn bộ các ô ruộng để khoai không bị ngập úng.\n\n" +
-                           "<b>2. 🏠 GIA CỐ NÓC NHÀ & SINH TỒN TRONG NHÀ:</b>\n" +
-                           "   Đặt Bao cát <b>[5]</b> lên nóc nhà chằng chống mái, vào nhà trú ẩn và ăn khoai gieo khô từ rương.\n\n" +
-                           "<b>3. 🧡 CỨU TRỢ NGHĨA TÌNH DÂN LÀNG:</b>\n" +
-                           "   Gặp <b>Bác Năm</b> & <b>O Thắm</b> bấm phím <b>[4]</b> tặng Tấm Chắn Lũ để gia cố nhà nhận điểm Nghĩa Tình.";
+            bodyTxt.text = "<b>1. 🏠 CỨU HỘ DÂN LÀNG LÊN NÓC NHÀ MÌNH:</b>\n" +
+                           "   Chạy tới chỗ các NPC (O Thắm, Bác Năm, Cụ Bảy, Bé Tí) nhấn E tương tác để cứu hộ. Sau khi được cứu, họ sẽ tự động xuất hiện trên mái nhà của bạn để tránh lũ.\n\n" +
+                           "<b>2. 🧡 CHIA SẺ LƯƠNG THỰC VỚI DÂN LÀNG:</b>\n" +
+                           "   Chia sẻ lương thực cứu trợ (như mì tôm, khoai gieo khô) cho dân làng đang trú ẩn trên mái nhà của bạn.";
             bodyTxt.fontSize = 13.5f;
             bodyTxt.lineSpacing = 6;
             bodyTxt.alignment = TextAlignmentOptions.Left;

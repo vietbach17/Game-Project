@@ -50,12 +50,11 @@ namespace SownInStone.Storage
         private void Start()
         {
             storageSlots.Clear(); // Khởi đầu trắng tay: xóa toàn bộ kho đồ khi bắt đầu game
+            reserveChestSlots.Clear(); // Xóa rương đồ dự trữ ban đầu để bắt đầu trống không
             if (GameManager.Instance != null)
             {
                 GameManager.Instance.OnDayChanged += OnNewDayDecayCheck;
             }
-
-            AutoLoadDefaultItems();
         }
 
         private void AutoLoadDefaultItems()
@@ -85,6 +84,47 @@ namespace SownInStone.Storage
             }
         }
 
+        /// <summary>
+        /// Tìm ItemData tương ứng với ID chỉ định.
+        /// Quét trong kho đồ hiện tại hoặc tự động tìm kiếm dự phòng.
+        /// </summary>
+        public ItemData GetItemDataByID(string id)
+        {
+            if (string.IsNullOrEmpty(id)) return null;
+
+            // 1. Tìm trong balo (kho đồ hiện tại)
+            var slot = storageSlots.Find(s => s.item != null && s.item.ItemID.Equals(id, System.StringComparison.OrdinalIgnoreCase));
+            if (slot != null) return slot.item;
+
+            // 2. Tìm trong rương dự trữ
+            var rSlot = reserveChestSlots.Find(s => s.item != null && s.item.ItemID.Equals(id, System.StringComparison.OrdinalIgnoreCase));
+            if (rSlot != null) return rSlot.item;
+
+            // 3. Tìm trong tài nguyên Resources nếu có
+            ItemData resourceItem = Resources.Load<ItemData>($"Items/{id}");
+            if (resourceItem != null) return resourceItem;
+
+#if UNITY_EDITOR
+            // 4. Fallback trong editor
+            string path = "";
+            if (id.Equals("item_flood_board", System.StringComparison.OrdinalIgnoreCase)) path = "Assets/Data/Item_flood_board.asset";
+            else if (id.Equals("item_sandbag", System.StringComparison.OrdinalIgnoreCase)) path = "Assets/Data/Item_sandbag.asset";
+            else if (id.Equals("item_seed_potato", System.StringComparison.OrdinalIgnoreCase) || id.Equals("item_seed", System.StringComparison.OrdinalIgnoreCase)) path = "Assets/Data/Item_seed_potato.asset";
+            else if (id.Equals("item_non_la", System.StringComparison.OrdinalIgnoreCase)) path = "Assets/Data/Item_non_la.asset";
+            else if (id.Equals("item_plastic_mulch", System.StringComparison.OrdinalIgnoreCase)) path = "Assets/Data/Item_plastic_mulch.asset";
+            else if (id.Equals("item_fresh_potato", System.StringComparison.OrdinalIgnoreCase) || id.Equals("item_fresh_crop", System.StringComparison.OrdinalIgnoreCase)) path = "Assets/Data/Item_fresh_potato.asset";
+            else if (id.Equals("item_khoai_gieo", System.StringComparison.OrdinalIgnoreCase)) path = "Assets/Data/Item_PreservedCrop.asset";
+            else if (id.Equals("item_mi_tom", System.StringComparison.OrdinalIgnoreCase)) path = "Assets/Data/Item_Noodles.asset";
+
+            if (!string.IsNullOrEmpty(path))
+            {
+                return UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>(path);
+            }
+#endif
+
+            return null;
+        }
+
         #region QUẢN LÝ THÊM/BỚT ĐỒ KHO
         
         public int GetMaxBackpackStack(ItemData item)
@@ -95,7 +135,7 @@ namespace SownInStone.Storage
 
             if (id.Contains("potato") || name.Contains("khoai"))
             {
-                return 15; // Khoai lang giới hạn 15 trong balo
+                return 30; // Khoai lang: cho phép stack tối đa 30 (đủ chứa 24 khoai thu hoạch 1 lần)
             }
             if (id.Contains("sandbag") || id.Contains("board") || id.Contains("mulch") || name.Contains("đá") || name.Contains("bùn") || name.Contains("gỗ"))
             {
@@ -235,6 +275,8 @@ namespace SownInStone.Storage
 
         public List<InventorySlot> GetStorageSlots() => storageSlots;
         public List<InventorySlot> GetReserveChestSlots() => reserveChestSlots;
+
+
 
         #endregion
 

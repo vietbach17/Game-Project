@@ -217,18 +217,10 @@ namespace SownInStone.Core
             }
 
 #if UNITY_EDITOR
-            if (seedItem == null)
-            {
-                seedItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Seed.asset");
-            }
-            if (noodlesItem == null)
-            {
-                noodlesItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Noodles.asset");
-            }
-            if (testSeedData == null)
-            {
-                testSeedData = UnityEditor.AssetDatabase.LoadAssetAtPath<CropData>("Assets/Data/Crop_KhoaiLang.asset");
-            }
+            // Tự động tải tài nguyên để đảm bảo không bị mất reference trong Editor
+            seedItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Seed.asset");
+            noodlesItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Noodles.asset");
+            testSeedData = UnityEditor.AssetDatabase.LoadAssetAtPath<CropData>("Assets/Data/Crop_KhoaiLang.asset");
 #endif
         }
 
@@ -742,39 +734,60 @@ namespace SownInStone.Core
             }
 
             // 4. Lắng nghe phím [E] hoặc [Space] và phím nhanh [1..5]
+            bool isUIOpen = false;
+            if (SownInStone.UI.SurvivalUIManager.Instance != null)
+            {
+                isUIOpen = SownInStone.UI.SurvivalUIManager.Instance.IsDialogueActive ||
+                           SownInStone.UI.SurvivalUIManager.Instance.IsShopOpen ||
+                           SownInStone.UI.SurvivalUIManager.Instance.IsQuantityPopupOpen ||
+                           SownInStone.UI.SurvivalUIManager.Instance.IsInventoryOpen ||
+                           SownInStone.UI.SurvivalUIManager.Instance.IsCommunityOpen ||
+                           SownInStone.UI.SurvivalUIManager.Instance.IsWeatherDetailsOpen;
+            }
+
 #if ENABLE_INPUT_SYSTEM
             if (Keyboard.current != null)
             {
-                if (Keyboard.current.eKey.wasPressedThisFrame || Keyboard.current.spaceKey.wasPressedThisFrame)
+                if (!isUIOpen && (Keyboard.current.eKey.wasPressedThisFrame || Keyboard.current.spaceKey.wasPressedThisFrame))
                 {
                     TryPerformInteraction();
                 }
 
-                if (Keyboard.current.digit1Key.wasPressedThisFrame || Keyboard.current.numpad1Key.wasPressedThisFrame) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(0);
-                if (Keyboard.current.digit2Key.wasPressedThisFrame || Keyboard.current.numpad2Key.wasPressedThisFrame) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(1);
-                if (Keyboard.current.digit3Key.wasPressedThisFrame || Keyboard.current.numpad3Key.wasPressedThisFrame) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(2);
-                if (Keyboard.current.digit4Key.wasPressedThisFrame || Keyboard.current.numpad4Key.wasPressedThisFrame) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(3);
-                if (Keyboard.current.digit5Key.wasPressedThisFrame || Keyboard.current.numpad5Key.wasPressedThisFrame) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(4);
+                if (!isUIOpen)
+                {
+                    if (Keyboard.current.digit1Key.wasPressedThisFrame || Keyboard.current.numpad1Key.wasPressedThisFrame) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(0);
+                    if (Keyboard.current.digit2Key.wasPressedThisFrame || Keyboard.current.numpad2Key.wasPressedThisFrame) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(1);
+                    if (Keyboard.current.digit3Key.wasPressedThisFrame || Keyboard.current.numpad3Key.wasPressedThisFrame) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(2);
+                    if (Keyboard.current.digit4Key.wasPressedThisFrame || Keyboard.current.numpad4Key.wasPressedThisFrame) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(3);
+                    if (Keyboard.current.digit5Key.wasPressedThisFrame || Keyboard.current.numpad5Key.wasPressedThisFrame) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(4);
+                }
             }
+#else
             if (Input.GetKeyDown(KeyCode.F2))
             {
                 GameManager.Instance?.SetTime(22.95f);
                 SownInStone.UI.SurvivalUIManager.Instance?.ShowHUDToast("⚙️ [DEBUG] Đã tua thời gian sang ban đêm (22:57)! Chuẩn bị nhận cảnh báo 23:00!");
             }
 
-            if (Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.Space))
+            if (!isUIOpen && (Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.Space)))
             {
                 TryPerformInteraction();
             }
 
-            if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1)) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(0);
-            if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2)) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(1);
-            if (Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3)) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(2);
-            if (Input.GetKeyDown(KeyCode.Alpha4) || Input.GetKeyDown(KeyCode.Keypad4)) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(3);
-            if (Input.GetKeyDown(KeyCode.Alpha5) || Input.GetKeyDown(KeyCode.Keypad5)) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(4);
+            if (!isUIOpen)
+            {
+                if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1)) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(0);
+                if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2)) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(1);
+                if (Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3)) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(2);
+                if (Input.GetKeyDown(KeyCode.Alpha4) || Input.GetKeyDown(KeyCode.Keypad4)) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(3);
+                if (Input.GetKeyDown(KeyCode.Alpha5) || Input.GetKeyDown(KeyCode.Keypad5)) SownInStone.UI.HotbarManager.Instance?.UseHotbarSlot(4);
+            }
 #endif
             // Cập nhật gợi ý tương tác lên UI
             UpdateInteractionPrompt();
+
+            // Xử lý tiêu hao/hồi phục thể lực
+            HandleStaminaDrainOnMove();
         }
 
         private void FixedUpdate()
@@ -845,13 +858,8 @@ namespace SownInStone.Core
 
             if (isOnRoof)
             {
-                Vector3 constrainedPos = rb.position;
-                constrainedPos.x = Mathf.Clamp(constrainedPos.x, -2.2f, 2.2f);
-                constrainedPos.z = Mathf.Clamp(constrainedPos.z, -12.0f, -8.0f);
-                constrainedPos.y = 3.5f;
-
-                rb.position = constrainedPos;
-                transform.position = constrainedPos;
+                // Khi trên nóc nhà: chỉ giữ vận tốc Y = 0 để không rơi xuống.
+                // Việc khóa cứng tọa độ X/Z đã được xóa để người chơi đi chuyển tự do khắp nóc nhà.
                 rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
             }
         }
@@ -909,8 +917,8 @@ namespace SownInStone.Core
             }
             else
             {
-                // Hồi phục thể lực khi đứng yên tại chỗ (+5 thể lực/giây)
-                PlayerStats.Instance.ModifyStamina(5f * Time.deltaTime);
+                // Hồi phục thể lực khi đứng yên tại chỗ (+3 thể lực/giây)
+                PlayerStats.Instance.ModifyStamina(3f * Time.deltaTime);
             }
         }
 
@@ -945,153 +953,7 @@ namespace SownInStone.Core
 
             if (isPerformingAction) return;
 
-            // Kiểm tra xem người chơi có đang đứng gần vị trí chỉ dẫn đặt ván/bao cát bão không
-            if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
-            {
-                var stage = TutorialManager.Instance.currentStage;
-                if (stage == TutorialManager.TutorialStage.PrepareForStorm)
-                {
-                    if (TutorialManager.Instance.activeStormJob == TutorialManager.ActiveStormJob.OThamFloodboards)
-                    {
-                        if (TutorialManager.Instance.ghostFloodboards.Count > 0)
-                        {
-                            for (int i = 0; i < TutorialManager.Instance.ghostFloodboards.Count; i++)
-                            {
-                                if (i >= 4) break;
-                                if (!TutorialManager.Instance.oThamTargetsPlaced[i])
-                                {
-                                    Vector3 playerPos = transform.position;
-                                    Vector3 targetPos = TutorialManager.Instance.ghostFloodboards[i].transform.position;
-                                    playerPos.y = 0f;
-                                    targetPos.y = 0f;
-                                    if (Vector3.Distance(playerPos, targetPos) < 3.5f)
-                                    {
-                                        TryDirectPlaceItem("item_flood_board");
-                                        return;
-                                    }
-                                }
-                            }
-                        }
-                        else
-                        {
-                            var oTham = System.Array.Find(FindObjectsByType<NPCCharacter>(FindObjectsInactive.Exclude), n => n.characterType == NPCCharacter.StoryCharacterType.OTham);
-                            if (oTham != null)
-                            {
-                                Vector3 oThamPos = oTham.transform.position;
-                                Vector3 forward = oTham.transform.forward;
-                                Vector3 right = oTham.transform.right;
-                                Vector3[] targets = new Vector3[]
-                                {
-                                    oThamPos + forward * 2.5f + right * -1.8f,
-                                    oThamPos + forward * 2.5f + right * -0.6f,
-                                    oThamPos + forward * 2.5f + right * 0.6f,
-                                    oThamPos + forward * 2.5f + right * 1.8f
-                                };
 
-                                for (int i = 0; i < 4; i++)
-                                {
-                                    if (!TutorialManager.Instance.oThamTargetsPlaced[i])
-                                    {
-                                        Vector3 playerPos = transform.position;
-                                        Vector3 targetPos = targets[i];
-                                        playerPos.y = 0f;
-                                        targetPos.y = 0f;
-                                        if (Vector3.Distance(playerPos, targetPos) < 3.5f)
-                                        {
-                                            TryDirectPlaceItem("item_flood_board");
-                                            return;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    else if (TutorialManager.Instance.activeStormJob == TutorialManager.ActiveStormJob.BacNamSandbags)
-                    {
-                        if (TutorialManager.Instance.ghostSandbags.Count > 0)
-                        {
-                            for (int i = 0; i < TutorialManager.Instance.ghostSandbags.Count; i++)
-                            {
-                                if (i >= 4) break;
-                                if (!TutorialManager.Instance.bacNamTargetsPlaced[i])
-                                {
-                                    Vector3 playerPos = transform.position;
-                                    Vector3 targetPos = TutorialManager.Instance.ghostSandbags[i].transform.position;
-                                    playerPos.y = 0f;
-                                    targetPos.y = 0f;
-                                    if (Vector3.Distance(playerPos, targetPos) < 3.5f)
-                                    {
-                                        TryDirectPlaceItem("item_sandbag");
-                                        return;
-                                    }
-                                }
-                            }
-                        }
-                        else
-                        {
-                            GameObject bacNamHouse = GameObject.Find("BacNam_House");
-                            if (bacNamHouse != null)
-                            {
-                                Vector3 roofCenter = bacNamHouse.transform.position + Vector3.up * 3.8f;
-                                Vector3[] roofOffsets = new Vector3[]
-                                {
-                                    new Vector3(-1.2f, 0f, -0.8f),
-                                    new Vector3(1.2f, 0.1f, -0.8f),
-                                    new Vector3(-1.2f, 0.1f, 0.8f),
-                                    new Vector3(1.2f, 0f, 0.8f)
-                                };
-
-                                for (int i = 0; i < 4; i++)
-                                {
-                                    if (!TutorialManager.Instance.bacNamTargetsPlaced[i])
-                                    {
-                                        Vector3 playerPos = transform.position;
-                                        Vector3 targetPos = roofCenter + roofOffsets[i];
-                                        playerPos.y = 0f;
-                                        targetPos.y = 0f;
-                                        if (Vector3.Distance(playerPos, targetPos) < 3.5f)
-                                        {
-                                            TryDirectPlaceItem("item_sandbag");
-                                            return;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                else if (stage == TutorialManager.TutorialStage.PrepareOwnHouse)
-                {
-                    GameObject ownHouse = GameObject.Find("Thanh_House");
-                    if (ownHouse != null)
-                    {
-                        Vector3 houseCenter = ownHouse.transform.position;
-                        Vector3[] targets = new Vector3[]
-                        {
-                            houseCenter + new Vector3(-1.5f, 0.1f, -1.0f),
-                            houseCenter + new Vector3(-0.5f, 0.1f, -1.0f),
-                            houseCenter + new Vector3(0.5f, 0.1f, -1.0f),
-                            houseCenter + new Vector3(1.5f, 0.1f, -1.0f)
-                        };
-
-                        for (int i = 0; i < 4; i++)
-                        {
-                            if (TutorialManager.Instance.ownHouseSandbagsPlaced <= i)
-                            {
-                                Vector3 playerPos = transform.position;
-                                Vector3 targetPos = targets[i];
-                                playerPos.y = 0f;
-                                targetPos.y = 0f;
-                                if (Vector3.Distance(playerPos, targetPos) < 3.5f)
-                                {
-                                    TryDirectPlaceItem("item_sandbag");
-                                    return;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
 
             Debug.Log("[PLAYER] Bấm phím tương tác [E]!");
 
@@ -1138,12 +1000,12 @@ namespace SownInStone.Core
                     }
                     if (bep != null && Vector3.Distance(transform.position, bep.position) <= 2.5f)
                     {
-                        if (PlayerStats.Instance != null)
+                        KitchenHearth hearth = bep.GetComponent<KitchenHearth>();
+                        if (hearth == null)
                         {
-                            PlayerStats.Instance.ModifyHealth(20f);
-                            PlayerStats.Instance.ModifyStamina(30f);
+                            hearth = bep.gameObject.AddComponent<KitchenHearth>();
                         }
-                        SownInStone.UI.SurvivalUIManager.Instance?.ShowHUDToast("🍳 Đã nấu ăn nóng hổi! Phục hồi sức khỏe và thể lực.");
+                        hearth.Interact();
                         return;
                     }
 
@@ -1192,7 +1054,21 @@ namespace SownInStone.Core
                 Vector3 doorPos = thanhHouse != null ? thanhHouse.transform.TransformPoint(new Vector3(0f, 0f, 2.0f)) : new Vector3(10.66f, 0f, -8.0f);
                 if (Vector3.Distance(transform.position, doorPos) <= 2.5f)
                 {
-                    EnterHouse();
+                    if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive && TutorialManager.Instance.currentStage == TutorialManager.TutorialStage.RescuingNPCs)
+                    {
+                        if (carriedNPC != null)
+                        {
+                            DropCarriedNPCAtThanhHouse();
+                        }
+                        else
+                        {
+                            SownInStone.UI.SurvivalUIManager.Instance?.ShowHUDToast("⚠️ Bão lũ đang dồn dập! Hãy chạy đi cứu giúp dân làng trước!");
+                        }
+                    }
+                    else
+                    {
+                        EnterHouse();
+                    }
                     return;
                 }
             }
@@ -1605,7 +1481,7 @@ namespace SownInStone.Core
                             }
                             if (bep != null && Vector3.Distance(transform.position, bep.position) <= 2.5f)
                             {
-                                prompt = "[E] Nấu nướng";
+                                prompt = "[E] Nấu nướng / Chế biến";
                             }
                             else
                             {
@@ -1958,19 +1834,19 @@ namespace SownInStone.Core
         {
             Collider closest = null;
             float minDistance = float.MaxValue;
+
+            // First pass: try to find actual interactable objects (chest, altar, soil, boat, mud puddle)
             foreach (var col in colliders)
             {
                 if (col.gameObject == gameObject) continue;
 
-                // Kiểm tra xem đối tượng có chứa bất kỳ Script tương tác nào không
-                bool isInteractable = col.GetComponent<IInteractable>() != null ||
-                                      col.GetComponent<NPCCharacter>() != null ||
-                                      col.GetComponent<AncestralAltar>() != null ||
-                                      col.GetComponent<Coracle>() != null ||
-                                      col.GetComponent<SoilCell>() != null ||
-                                      col.GetComponent<MudPuddle>() != null;
+                bool isRealInteractable = col.GetComponent<IInteractable>() != null ||
+                                          col.GetComponent<AncestralAltar>() != null ||
+                                          col.GetComponent<Coracle>() != null ||
+                                          col.GetComponent<SoilCell>() != null ||
+                                          col.GetComponent<MudPuddle>() != null;
 
-                if (isInteractable)
+                if (isRealInteractable)
                 {
                     float dist = Vector3.Distance(transform.position, col.transform.position);
                     if (dist < minDistance)
@@ -1980,6 +1856,27 @@ namespace SownInStone.Core
                     }
                 }
             }
+
+            // Second pass: if no real interactable object is found, check for NPCs
+            if (closest == null)
+            {
+                minDistance = float.MaxValue;
+                foreach (var col in colliders)
+                {
+                    if (col.gameObject == gameObject) continue;
+
+                    if (col.GetComponent<NPCCharacter>() != null)
+                    {
+                        float dist = Vector3.Distance(transform.position, col.transform.position);
+                        if (dist < minDistance)
+                        {
+                            minDistance = dist;
+                            closest = col;
+                        }
+                    }
+                }
+            }
+
             return closest;
         }
 
@@ -2098,7 +1995,7 @@ namespace SownInStone.Core
                                     float minDistance = float.MaxValue;
                                     for (int i = 0; i < TutorialManager.Instance.ghostFloodboards.Count; i++)
                                     {
-                                        if (i >= 4) break;
+                                        if (i >= 2) break; // Bac Nam task requires 2 floodboards
                                         if (TutorialManager.Instance.oThamTargetsPlaced[i]) continue;
                                         Vector3 playerPos = transform.position;
                                         Vector3 targetPos = TutorialManager.Instance.ghostFloodboards[i].transform.position;
@@ -2115,29 +2012,26 @@ namespace SownInStone.Core
                                     {
                                         TutorialManager.Instance.MakeSolidModel(TutorialManager.Instance.ghostFloodboards[bestIndex]);
                                         TutorialManager.Instance.oThamTargetsPlaced[bestIndex] = true;
-                                        TutorialManager.Instance.OnOThamFloodBoardPlaced();
+                                        TutorialManager.Instance.OnBacNamFloodBoardPlaced();
                                         didMakePrePlacedSolid = true;
                                     }
                                 }
                                 else
                                 {
-                                    var npcs = FindObjectsByType<NPCCharacter>(FindObjectsInactive.Exclude);
-                                    var oTham = System.Array.Find(npcs, n => n.characterType == NPCCharacter.StoryCharacterType.OTham);
-                                    if (oTham != null)
+                                    GameObject bacNamHouse = GameObject.Find("BacNam_House");
+                                    if (bacNamHouse != null)
                                     {
-                                        Vector3 oThamPos = oTham.transform.position;
-                                        Vector3 forward = oTham.transform.forward;
-                                        Vector3 right = oTham.transform.right;
+                                        Vector3 housePos = bacNamHouse.transform.position;
+                                        Vector3 forward = bacNamHouse.transform.forward;
+                                        Vector3 right = bacNamHouse.transform.right;
                                         Vector3[] targets = new Vector3[]
                                         {
-                                            oThamPos + forward * 2.5f + right * -1.8f,
-                                            oThamPos + forward * 2.5f + right * -0.6f,
-                                            oThamPos + forward * 2.5f + right * 0.6f,
-                                            oThamPos + forward * 2.5f + right * 1.8f
+                                            housePos + forward * 4.2f + right * -1.5f,
+                                            housePos + forward * 4.2f + right * 1.5f
                                         };
                                         int bestIndex = -1;
                                         float minDistance = float.MaxValue;
-                                        for (int i = 0; i < 4; i++)
+                                        for (int i = 0; i < 2; i++)
                                         {
                                             if (TutorialManager.Instance.oThamTargetsPlaced[i]) continue;
                                             Vector3 playerPos = transform.position;
@@ -2155,7 +2049,7 @@ namespace SownInStone.Core
                                         {
                                             finalPos = targets[bestIndex];
                                             TutorialManager.Instance.oThamTargetsPlaced[bestIndex] = true;
-                                            TutorialManager.Instance.OnOThamFloodBoardPlaced();
+                                            TutorialManager.Instance.OnBacNamFloodBoardPlaced();
                                         }
                                     }
                                 }
@@ -2336,6 +2230,7 @@ namespace SownInStone.Core
             // Cập nhật vị trí mô hình xem trước theo con trỏ chuột và hỗ trợ xếp chồng (Stacking)
             Vector3 targetPos = transform.position + transform.forward * 1.5f;
             Camera mainCam = Camera.main;
+            bool isHittingBarrier = false;
             if (mainCam != null)
             {
                 Vector3 mouseScreenPos = Input.mousePosition;
@@ -2354,12 +2249,46 @@ namespace SownInStone.Core
                     if (mouseHit.collider != null && mouseHit.collider.GetComponentInParent<Interactions.FloodBarrier>() != null)
                     {
                         targetPos.y = mouseHit.collider.bounds.max.y;
+                        isHittingBarrier = true;
                     }
                 }
                 else if (Physics.Raycast(targetPos + Vector3.up * 3f, Vector3.down, out RaycastHit hit, 10f))
                 {
                     targetPos.y = hit.point.y;
                 }
+            }
+
+            // [FIX] Nếu đứng dưới mặt đất và không xếp chồng, ép độ cao preview luôn nằm trên nền đất (Terrain/Ground) để không bị cản bởi nhà/tường
+            if (transform.position.y < 2.0f && !isHittingBarrier)
+            {
+                float groundY = transform.position.y;
+                if (UnityEngine.Terrain.activeTerrain != null)
+                {
+                    groundY = UnityEngine.Terrain.activeTerrain.SampleHeight(targetPos) + UnityEngine.Terrain.activeTerrain.transform.position.y;
+                }
+                else
+                {
+                    RaycastHit[] hits = Physics.RaycastAll(new Vector3(targetPos.x, targetPos.y + 10f, targetPos.z), Vector3.down, 25f);
+                    float bestY = transform.position.y;
+                    float minHitDist = float.MaxValue;
+                    foreach (var h in hits)
+                    {
+                        if (h.collider != null && !h.collider.isTrigger)
+                        {
+                            string cName = h.collider.name.ToLower();
+                            if (cName.Contains("player") || cName.Contains("npc") || cName.Contains("preview") || cName.Contains("ghost") || cName.Contains("house") || cName.Contains("door") || cName.Contains("wall") || cName.Contains("roof"))
+                                continue;
+
+                            if (h.distance < minHitDist)
+                            {
+                                minHitDist = h.distance;
+                                bestY = h.point.y;
+                            }
+                        }
+                    }
+                    groundY = bestY;
+                }
+                targetPos.y = groundY;
             }
 
             activeGhostObject.transform.position = targetPos;
@@ -2429,11 +2358,109 @@ namespace SownInStone.Core
                 Quaternion finalRot = activeGhostObject.transform.rotation;
                 Vector3 finalScale = activeGhostObject.transform.localScale;
                 string placedName = previewItemName;
+                string itemId = previewItemData.ItemID;
 
                 CancelPlacementPreview();
 
-                GameObject placedGo = Instantiate(previewPrefab, finalPos, finalRot);
-                placedGo.transform.localScale = finalScale;
+                bool didSnap = false;
+
+                if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
+                {
+                    var stage = TutorialManager.Instance.currentStage;
+                    if (stage == TutorialManager.TutorialStage.PrepareForStorm)
+                    {
+                        if (itemId == "item_sandbag")
+                        {
+                            if (TutorialManager.Instance.ghostSandbags.Count > 0)
+                            {
+                                int bestIndex = -1;
+                                float minDistance = float.MaxValue;
+                                for (int i = 0; i < TutorialManager.Instance.ghostSandbags.Count; i++)
+                                {
+                                    if (i >= 4) break;
+                                    if (TutorialManager.Instance.bacNamTargetsPlaced[i]) continue;
+                                    
+                                    float dist = Vector3.Distance(finalPos, TutorialManager.Instance.ghostSandbags[i].transform.position);
+                                    if (dist < minDistance)
+                                    {
+                                        minDistance = dist;
+                                        bestIndex = i;
+                                    }
+                                }
+                                if (bestIndex != -1 && minDistance < 3.5f)
+                                {
+                                    TutorialManager.Instance.MakeSolidModel(TutorialManager.Instance.ghostSandbags[bestIndex]);
+                                    TutorialManager.Instance.bacNamTargetsPlaced[bestIndex] = true;
+                                    TutorialManager.Instance.OnBacNamSandbagPlaced();
+                                    didSnap = true;
+                                }
+                            }
+                        }
+                        else if (itemId == "item_flood_board")
+                        {
+                            if (TutorialManager.Instance.ghostFloodboards.Count > 0)
+                            {
+                                int bestIndex = -1;
+                                float minDistance = float.MaxValue;
+                                for (int i = 0; i < TutorialManager.Instance.ghostFloodboards.Count; i++)
+                                {
+                                    if (i >= 2) break; // Bac Nam task requires 2 floodboards
+                                    if (TutorialManager.Instance.oThamTargetsPlaced[i]) continue;
+                                    
+                                    float dist = Vector3.Distance(finalPos, TutorialManager.Instance.ghostFloodboards[i].transform.position);
+                                    if (dist < minDistance)
+                                    {
+                                        minDistance = dist;
+                                        bestIndex = i;
+                                    }
+                                }
+                                if (bestIndex != -1 && minDistance < 3.5f)
+                                {
+                                    TutorialManager.Instance.MakeSolidModel(TutorialManager.Instance.ghostFloodboards[bestIndex]);
+                                    TutorialManager.Instance.oThamTargetsPlaced[bestIndex] = true;
+                                    TutorialManager.Instance.OnBacNamFloodBoardPlaced();
+                                    didSnap = true;
+                                }
+                            }
+                        }
+                    }
+                    else if (stage == TutorialManager.TutorialStage.PrepareOwnHouse)
+                    {
+                        if (itemId == "item_flood_board")
+                        {
+                            if (TutorialManager.Instance.ownHouseGhostFloodboards.Count > 0)
+                            {
+                                int bestIndex = -1;
+                                float minDistance = float.MaxValue;
+                                for (int i = 0; i < TutorialManager.Instance.ownHouseGhostFloodboards.Count; i++)
+                                {
+                                    if (i >= 4) break;
+                                    if (TutorialManager.Instance.ownHouseFloodboardsPlaced[i]) continue;
+                                    
+                                    float dist = Vector3.Distance(finalPos, TutorialManager.Instance.ownHouseGhostFloodboards[i].transform.position);
+                                    if (dist < minDistance)
+                                    {
+                                        minDistance = dist;
+                                        bestIndex = i;
+                                    }
+                                }
+                                if (bestIndex != -1 && minDistance < 3.5f)
+                                {
+                                    TutorialManager.Instance.MakeSolidModel(TutorialManager.Instance.ownHouseGhostFloodboards[bestIndex]);
+                                    TutorialManager.Instance.ownHouseFloodboardsPlaced[bestIndex] = true;
+                                    TutorialManager.Instance.OnOwnHouseSandbagPlaced();
+                                    didSnap = true;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (!didSnap)
+                {
+                    GameObject placedGo = Instantiate(previewPrefab, finalPos, finalRot);
+                    placedGo.transform.localScale = finalScale;
+                }
 
                 if (SownInStone.UI.SurvivalUIManager.Instance != null)
                 {
@@ -2519,7 +2546,17 @@ namespace SownInStone.Core
                 return;
             }
 
-            GameObject mulchPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Resources/Prefabs/PlasticMulch.prefab");
+            GameObject mulchPrefab = Resources.Load<GameObject>("Prefabs/PlasticMulch");
+            if (mulchPrefab == null)
+            {
+                #if UNITY_EDITOR
+                mulchPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Resources/Prefabs/PlasticMulch.prefab");
+                if (mulchPrefab == null)
+                {
+                    mulchPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/PlasticMulch/MangNilon_Model.fbx");
+                }
+                #endif
+            }
             var soils = FindObjectsByType<SoilCell>(FindObjectsInactive.Exclude);
             int count = 0;
             foreach (var soil in soils)
@@ -2536,6 +2573,11 @@ namespace SownInStone.Core
                 SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast($"🌾 Đã phủ Màng Bọc Nilon bảo vệ toàn bộ {count} ô ruộng trước bão lũ!");
             }
             Debug.Log($"[PLASTIC MULCH] Đã phủ thành công Màng nilon bảo vệ {count} ô ruộng!");
+
+            if (TutorialManager.Instance != null)
+            {
+                TutorialManager.Instance.OnPlasticMulchApplied();
+            }
         }
 
         /// <summary>
@@ -2575,7 +2617,7 @@ namespace SownInStone.Core
                 }
             }
 
-            Vector3 targetIndoorPos = indoorSpawnPoint + new Vector3(0f, 0.2f, 0f);
+            Vector3 targetIndoorPos = indoorSpawnPoint + new Vector3(0f, 0.565f, 0f);
             if (houseInteriorInstance != null)
             {
                 houseInteriorInstance.transform.position = indoorSpawnPoint;
@@ -2586,6 +2628,9 @@ namespace SownInStone.Core
                     child.gameObject.SetActive(true);
                 }
 
+                // Giữ lại toàn bộ các Collider để cản di chuyển (không chạy xuyên tường, giường, bếp...)
+                // và đảm bảo các vùng tương tác (Trigger/Collider của KitchenHearth, Altar) không bị xoá mất.
+                /*
                 foreach (var col in houseInteriorInstance.GetComponentsInChildren<Collider>())
                 {
                     if (col.gameObject.transform.parent != null && col.gameObject.transform.parent.name == "PhysicalWalls")
@@ -2594,6 +2639,7 @@ namespace SownInStone.Core
                     }
                     Destroy(col);
                 }
+                */
 
                 foreach (var rend in houseInteriorInstance.GetComponentsInChildren<Renderer>())
                 {
@@ -2603,7 +2649,7 @@ namespace SownInStone.Core
                     }
                 }
 
-                targetIndoorPos = houseInteriorInstance.transform.position + new Vector3(-1.0f, 0.1f, -2.0f);
+                targetIndoorPos = houseInteriorInstance.transform.position + new Vector3(-1.0f, 0.565f, -2.0f);
             }
 
             if (rb != null)
@@ -2613,12 +2659,15 @@ namespace SownInStone.Core
             }
             transform.position = targetIndoorPos;
 
-            // Giữ chuẩn góc nhìn 3D ngang vai phong cách PUBG
-            CameraFollow3D.Instance?.SetCameraMode(CameraFollow3D.CameraMode.ThirdPerson);
-
+            // Góc nhìn hiện tại đã được giữ nguyên theo tùy chỉnh của người chơi, không ép về ThirdPerson nữa
+            
             if (SownInStone.UI.SurvivalUIManager.Instance != null)
             {
                 SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast("🏠 Bạn đã vào bên trong nhà an toàn tránh bão lũ!");
+            }
+            if (TutorialManager.Instance != null)
+            {
+                TutorialManager.Instance.UpdateHUDPanel();
             }
         }
 
@@ -2626,7 +2675,19 @@ namespace SownInStone.Core
         {
             isInsideHouse = false;
             GameObject houseObj = GameObject.Find("Thanh_House");
-            Vector3 outdoorPos = houseObj != null ? houseObj.transform.TransformPoint(new Vector3(0f, 0.2f, 4.2f)) : new Vector3(10.66f, 0.2f, -5.8f);
+            Vector3 outdoorPos = houseObj != null ? houseObj.transform.TransformPoint(new Vector3(0f, 1.0f, 4.2f)) : new Vector3(10.66f, 1.0f, -5.8f);
+
+            // Bắn raycast xuống dưới để dò bề mặt Ground/Terrain thực tế, tránh nhân vật bị chôn chân dưới đất
+            RaycastHit hit;
+            if (Physics.Raycast(outdoorPos + Vector3.up * 5f, Vector3.down, out hit, 15f, LayerMask.GetMask("Ground", "Default", "Terrain")))
+            {
+                outdoorPos.y = hit.point.y + 0.565f;
+            }
+            else
+            {
+                outdoorPos.y = 0.565f;
+            }
+
             if (rb != null)
             {
                 rb.linearVelocity = Vector3.zero;
@@ -2634,12 +2695,15 @@ namespace SownInStone.Core
             }
             transform.position = outdoorPos;
 
-            // Khôi phục góc nhìn camera 3D ngoài trời
-            CameraFollow3D.Instance?.SetCameraMode(CameraFollow3D.CameraMode.ThirdPerson);
-
+            // Góc nhìn hiện tại đã được giữ nguyên theo tùy chỉnh của người chơi, không ép về ThirdPerson nữa
+            
             if (SownInStone.UI.SurvivalUIManager.Instance != null)
             {
                 SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast("🚪 Bạn đã ra ngoài sân trước cửa nhà!");
+            }
+            if (TutorialManager.Instance != null)
+            {
+                TutorialManager.Instance.UpdateHUDPanel();
             }
         }
 
@@ -2674,6 +2738,83 @@ namespace SownInStone.Core
 
             yield return new WaitForSeconds(1.0f);
             isPerformingAction = false;
+        }
+
+        [Header("--- LOGIC CÕNG NPC CỨU HỘ ---")]
+        private NPCCharacter carriedNPC = null;
+        public NPCCharacter CarriedNPC => carriedNPC;
+
+        public void CarryNPCSurge(NPCCharacter npc)
+        {
+            if (carriedNPC != null)
+            {
+                if (SownInStone.UI.SurvivalUIManager.Instance != null)
+                {
+                    SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast("⚠️ Bạn đang cõng một người rồi! Hãy đưa họ về nhà Thành trước.");
+                }
+                return;
+            }
+
+            carriedNPC = npc;
+            
+            // Ẩn visual model của NPC trong scene để tạo cảm giác cõng đi
+            var visual = npc.transform.Find("Visual");
+            if (visual != null)
+            {
+                visual.gameObject.SetActive(false);
+            }
+
+            if (SownInStone.UI.SurvivalUIManager.Instance != null)
+            {
+                SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast($"🏃‍♂️ CÕNG CỨU HỘ: Đang cõng {npc.NPCName}! Hãy chạy nhanh về nhà Thành.");
+            }
+        }
+
+        public void DropCarriedNPCForced()
+        {
+            if (carriedNPC != null)
+            {
+                var visual = carriedNPC.transform.Find("Visual");
+                if (visual != null)
+                {
+                    visual.gameObject.SetActive(true);
+                }
+                carriedNPC = null;
+            }
+        }
+
+        private void DropCarriedNPCAtThanhHouse()
+        {
+            if (carriedNPC == null) return;
+
+            GameObject houseObj = GameObject.Find("Thanh_House");
+            Vector3 center = houseObj != null ? houseObj.transform.position : transform.position;
+            
+            // Đặt NPC lên nóc nhà tại một góc ngẫu nhiên
+            Vector3 roofSpot = center + new Vector3(UnityEngine.Random.Range(-1.5f, 1.5f), 5.2f, UnityEngine.Random.Range(-1.5f, 1.5f));
+            
+            carriedNPC.transform.position = roofSpot;
+            var rbNPC = carriedNPC.GetComponent<Rigidbody>();
+            if (rbNPC != null)
+            {
+                rbNPC.linearVelocity = Vector3.zero;
+                rbNPC.position = roofSpot;
+            }
+
+            var visual = carriedNPC.transform.Find("Visual");
+            if (visual != null)
+            {
+                visual.gameObject.SetActive(true);
+            }
+
+            // Gọi hàm trong TutorialManager để ghi nhận cứu hộ
+            if (TutorialManager.Instance != null)
+            {
+                TutorialManager.Instance.OnNPCRescued(carriedNPC.characterType);
+            }
+
+            carriedNPC = null;
+            SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_place_object");
         }
     }
 }

@@ -11,7 +11,8 @@ namespace SownInStone.Editor
         {
             foreach (string str in importedAssets)
             {
-                if (str.Contains("MangNilon.png") || str.Contains("PlasticMulch"))
+                // Only trigger setup on the raw source files, avoiding infinite loops when generated assets are re-imported
+                if (str.Contains("MangNilon.png") || str.Contains("MangNilon_Texture.png") || str.Contains("MangNilon_Model.fbx"))
                 {
                     Setup();
                     break;

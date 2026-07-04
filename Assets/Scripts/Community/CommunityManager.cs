@@ -13,7 +13,7 @@ namespace SownInStone.Community
 
         [Header("--- NGHĨA TÌNH & NGHIỆP QUẢ ---")]
         [Tooltip("Điểm nghĩa tình chung của người chơi trong cả làng (0 - 100). Đạt càng cao càng có nhiều đặc quyền xã hội.")]
-        [SerializeField] private int globalKarmaPoints = 20;
+        [SerializeField] private int globalKarmaPoints = 0;
 
         [Header("--- SỰ KIỆN CỘNG ĐỒNG (PHASE-BASED EVENTS) ---")]
         public bool eventOThamFoodCompleted = false;
@@ -30,6 +30,7 @@ namespace SownInStone.Community
             {
                 Instance = this;
                 DontDestroyOnLoad(gameObject);
+                globalKarmaPoints = 0; // Ép khởi đầu Nghĩa Tình = 0
             }
             else
             {

@@ -9,8 +9,7 @@ namespace SownInStone.Core
     public enum GamePhase
     {
         LapNghiep,  // Giai đoạn 1: Khởi đầu phục hồi bờ cõi, cải tạo đất
-        GioLao,     // Giai đoạn 2: Nắng cháy, Gió Tây Nam cực độ hạn hán
-        ChuanBiBao, // Giai đoạn trung gian: Chuẩn bị bão, loa phát thanh báo bão
+        ChuanBiBao, // Giai đoạn 2: Chuẩn bị bão, loa phát thanh báo bão
         MuaBao,     // Giai đoạn 3: Bão lũ cuồng phong, nước sông dâng cô lập
         PhuSa       // Giai đoạn 4: Phù sa sau lũ, tái thiết và mừng công
     }
@@ -122,24 +121,20 @@ namespace SownInStone.Core
         /// </summary>
         private void CheckPhaseTransitionProgress()
         {
-            if (currentDay == lapNghiepDaysLimit && currentPhase == GamePhase.LapNghiep)
-            {
-                TransitionToPhase(GamePhase.GioLao);
-            }
-            else if (currentDay == gioLaoDaysLimit && currentPhase == GamePhase.GioLao)
+            if (currentDay == 3 && currentPhase == GamePhase.LapNghiep)
             {
                 TransitionToPhase(GamePhase.ChuanBiBao);
             }
-            else if (currentDay == chuanBiBaoDaysLimit && currentPhase == GamePhase.ChuanBiBao)
+            else if (currentDay == 5 && currentPhase == GamePhase.ChuanBiBao)
             {
                 TransitionToPhase(GamePhase.MuaBao);
             }
-            else if (currentDay == muaBaoDaysLimit && currentPhase == GamePhase.MuaBao)
+            else if (currentDay == 7 && currentPhase == GamePhase.MuaBao)
             {
                 TransitionToPhase(GamePhase.PhuSa);
             }
 
-            if (currentDay >= endingDayLimit)
+            if (currentDay >= 8)
             {
                 if (SownInStone.UI.EndingManager.Instance != null)
                 {
@@ -157,7 +152,7 @@ namespace SownInStone.Core
             
             // Cập nhật ngày tương ứng với giai đoạn để đồng bộ UI và progression
             if (newPhase == GamePhase.LapNghiep) currentDay = 1;
-            else if (newPhase == GamePhase.GioLao) currentDay = 3;
+            else if (newPhase == GamePhase.ChuanBiBao) currentDay = 3;
             else if (newPhase == GamePhase.MuaBao) currentDay = 5;
             else if (newPhase == GamePhase.PhuSa) currentDay = 7;
 
@@ -263,7 +258,7 @@ namespace SownInStone.Core
         /// </summary>
         public bool IsDangerousNoon()
         {
-            return currentPhase == GamePhase.GioLao && (currentHour >= 11f && currentHour <= 15f);
+            return false;
         }
         #endregion
     }

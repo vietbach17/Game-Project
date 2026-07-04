@@ -152,7 +152,11 @@ namespace SownInStone.Editor
                     SpawnFBXModel(houseFrame.transform, "Assets/Prefabs/CustomPrefabs/GiuongNgu/GiuongNgu_Model.fbx", "GiuongNguModel", matGiuongNgu, new Vector3(-0.006f, -0.005f, 0f), new Vector3(0f, 0f, 180f), new Vector3(0.3f, 0.3f, 0.3f));
 
                     // 🍳 BẾP GAS (PZ: 0)
-                    SpawnFBXModel(houseFrame.transform, "Assets/Prefabs/CustomPrefabs/Bep_gas/bep_gas.fbx", "BepGasModel", matBepGas, new Vector3(0.005f, -0.005f, 0f), Vector3.zero, new Vector3(0.1f, 0.1f, 0.1f));
+                    GameObject bepGas = SpawnFBXModel(houseFrame.transform, "Assets/Prefabs/CustomPrefabs/Bep_gas/bep_gas.fbx", "BepGasModel", matBepGas, new Vector3(0.005f, -0.005f, 0f), Vector3.zero, new Vector3(0.1f, 0.1f, 0.1f));
+                    if (bepGas != null)
+                    {
+                        bepGas.AddComponent<SownInStone.Interactions.KitchenHearth>();
+                    }
                 }
 
                 // 7. Dựng 4 Bức tường cản vật lý kín 100% xung quanh không gian nhà

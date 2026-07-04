@@ -244,6 +244,16 @@ namespace SownInStone.Community
                 return npcData.GetDialogue(currentPhase, Affection);
             }
 
+            // Ghi đè hội thoại theo yêu cầu của User
+            if (characterType == StoryCharacterType.OTham)
+            {
+                return "\"Thành đấy hả con, lâu quá rồi không gặp con nhỉ\"";
+            }
+            if (characterType == StoryCharacterType.BeTi)
+            {
+                return "\"aaa chú Thànhhhhhh\"";
+            }
+
             // Ngược lại, trả về lời thoại cốt truyện được viết tay cực hay cho Bác Năm và O Thắm
             return GetFallbackStoryDialogue(currentPhase);
         }
@@ -262,10 +272,6 @@ namespace SownInStone.Community
                         if (Affection > 70) return "\"Ráng lên con! Hãy dựng lại bờ giậu tre chống gió dột, cuốc hết sỏi đá vườn rồi bác chỉ cách trồng khoai lang chịu hạn.\"";
                         return "\"Đất đai tổ tiên để lại xơ xác quá, con gánh thêm nước giếng làng tưới ẩm cho luống đất cát bạc màu đi.\"";
 
-                    case GamePhase.GioLao:
-                        if (Affection < 30) return "\"Gió Lào thổi khô rát như lò lửa thế này, làm việc giữa trưa là sốc nhiệt ngất xỉu đó con, vô mát nghỉ đi.\"";
-                        if (Affection > 70) return "\"Giếng nhà con cạn rồi đúng không? Qua bưng khạp nước ngọt cuối vườn nhà bác về xài tạm, nhớ tiết kiệm tưới ớt con nghe.\"";
-                        return "\"Đêm nay gió mát hơn, xóm mình ra bóng cây đa uống chè xanh om đặc, ăn miếng kẹo cu đơ hò ví dặm xua đi cái nóng rát.\"";
 
                     case GamePhase.ChuanBiBao:
                         if (Affection < 30) return "\"Bão sắp vô rồi Thành ơi! Bác nghe loa phóng thanh giục giã dữ lắm. Lo dọn ruộng gặt non lẹ đi con!\"";
@@ -291,10 +297,6 @@ namespace SownInStone.Community
                         if (Affection > 70) return "\"Về quê bám đất thờ cúng tổ tiên là ngoan lắm con, o cằn nhằn xíu thôi chứ thiếu thốn cái gì o cho ghi sổ nợ sang năm trả!\"";
                         return "\"Hành tăm (ném) với đậu phộng o mới nhập giống tốt lắm, lấy vài cân gieo trồng ngắn ngày đi con.\"";
 
-                    case GamePhase.GioLao:
-                        if (Affection < 30) return "\"Nắng rát ruột gan thế này thì ớt cháy lá hết. O xót ruộng ớt nhà con quá, tối ra gánh nước đêm cứu ruộng đi con.\"";
-                        if (Affection > 70) return "\"Mệt quá thì vào đây o om ấm chè xanh đặc nóng, o Thắm phát kẹo cu đơ cho ăn đỡ mệt, cả xóm đang hò ví dặm vui lắm!\"";
-                        return "\"Gió Lào Trường Sơn khô bỏng da, o bán bớt phân đạm đắt tiền, lấy phân hữu cơ ủ phân chuồng phân xanh giữ ẩm đất nha.\"";
 
                     case GamePhase.ChuanBiBao:
                         if (Affection < 30) return "\"Thành ơi, lo chằng nhà lẹ đi! Bão to lắm đó, o Thắm đang bận bán mấy bao cát cứu hộ đầu làng nè!\"";
@@ -317,8 +319,6 @@ namespace SownInStone.Community
                 {
                     case GamePhase.LapNghiep:
                         return "\"Con à, đất lội thì nghèo, đất cát thì heo hút. Nhưng bám trụ Trường Sơn gieo khoai gieo ném thì có hạt ăn hạt gieo.\"";
-                    case GamePhase.GioLao:
-                        return "\"Cái Gió Lào Trường Sơn này nó thiêu đốt cỏ cây. Lấy rơm rạ hay lá cọ phủ gốc khoai mới giữ được ẩm đó con.\"";
                     case GamePhase.ChuanBiBao:
                         return "\"Chim bay về núi là bão sắp đổ bộ rồi. Lo chèn bao cát chắc chắn lên mái tranh kẻo gió cuốn bay tuốt.\"";
                     case GamePhase.MuaBao:
@@ -333,8 +333,6 @@ namespace SownInStone.Community
                 {
                     case GamePhase.LapNghiep:
                         return "\"Chú Thành ơi, con đói quá... Nhưng con vẫn giúp mẹ nhặt củi khô ở góc vườn nè!\"";
-                    case GamePhase.GioLao:
-                        return "\"Nắng to quá chú Thành ơi, chân con giẫm lên cát nóng bỏng rát luôn. Con cầu trời mau mưa xuống chú trồng khoai lang nha.\"";
                     case GamePhase.ChuanBiBao:
                         return "\"Mây đen thui che kín trời rồi chú Thành ơi. Con sợ tiếng sấm lắm, chú dắt con vô nhà trú bão với nha!\"";
                     case GamePhase.MuaBao:

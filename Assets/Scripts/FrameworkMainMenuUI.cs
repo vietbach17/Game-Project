@@ -368,7 +368,7 @@ namespace SownInStone
             GUILayout.Space(5);
             if (hasStartedJourney)
             {
-                if (DrawMenuButton(0, "Continue Game", clearBtnStyle))
+                if (DrawMenuButton(0, "Tiếp tục", clearBtnStyle))
                 {
                     SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
                     LoadGame();
@@ -377,7 +377,7 @@ namespace SownInStone
                 GUILayout.Space(5);
             }
             
-            if (DrawMenuButton(1, "New Game", clearBtnStyle))
+            if (DrawMenuButton(1, "Màn mới", clearBtnStyle))
             {
                 SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
                 if (hasStartedJourney)
@@ -388,28 +388,28 @@ namespace SownInStone
             }
             GUILayout.Space(5);
             
-            if (DrawMenuButton(2, "How To Play", clearBtnStyle))
+            if (DrawMenuButton(2, "Hướng dẫn", clearBtnStyle))
             {
                 SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
                 currentTab = MenuTab.KyUcMienTrung;
             }
             GUILayout.Space(5);
             
-            if (DrawMenuButton(3, "Settings", clearBtnStyle))
+            if (DrawMenuButton(3, "Cài đặt", clearBtnStyle))
             {
                 SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
                 currentTab = MenuTab.Settings;
             }
             GUILayout.Space(5);
             
-            if (DrawMenuButton(4, "Credits", clearBtnStyle))
+            if (DrawMenuButton(4, "Đội ngũ", clearBtnStyle))
             {
                 SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
                 currentTab = MenuTab.DoiNgu;
             }
             GUILayout.Space(5);
             
-            if (DrawMenuButton(5, "Exit", clearBtnStyle))
+            if (DrawMenuButton(5, "Thoát", clearBtnStyle))
             {
                 SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
                 TriggerLoading(ExecuteExit);
@@ -490,16 +490,26 @@ namespace SownInStone
                 PlayerPrefs.Save();
                 hasStartedJourney = false;
 
-                bool enableTutorial = PlayerPrefs.GetInt("ShowTutorialSetting", 1) == 1;
-                if (enableTutorial && TutorialManager.Instance != null)
+                // Ẩn menu và phát video intro trước khi bắt đầu game
+                isMenuOpen = false;
+                currentTab = MenuTab.Main;
+                SownInStone.Audio.AudioManager.Instance?.StopMusic();
+                if (ambientWindAudio != null) ambientWindAudio.Stop();
+
+                var introPlayer = gameObject.AddComponent<SownInStone.UI.IntroVideoPlayer>();
+                introPlayer.PlayIntroVideo(() =>
                 {
-                    isMenuOpen = false;
-                    TutorialManager.Instance.ShowTutorial(() => TriggerLoading(StartJourney));
-                }
-                else
-                {
-                    TriggerLoading(StartJourney);
-                }
+                    // Sau khi video kết thúc, tiếp tục flow bình thường (bỏ qua loading)
+                    bool enableTutorial = PlayerPrefs.GetInt("ShowTutorialSetting", 1) == 1;
+                    if (enableTutorial && TutorialManager.Instance != null)
+                    {
+                        TutorialManager.Instance.ShowTutorial(() => StartJourney());
+                    }
+                    else
+                    {
+                        StartJourney();
+                    }
+                });
             }
 
             GUILayout.Space(20);
@@ -567,9 +577,9 @@ namespace SownInStone
             GUILayout.Space(25);
             
             GUILayout.Label("<b>Đội Ngũ Phát Triển:</b>", bodyStyle);
-            GUILayout.Label("• <b>Thiết Kế:</b> Bạn và Đội Ngũ", bodyStyle);
-            GUILayout.Label("• <b>Lập Trình:</b> Antigravity AI", bodyStyle);
-            GUILayout.Label("• <b>Mỹ Thuật:</b> Nhóm Bạn Lập Nghiệp", bodyStyle);
+            GUILayout.Label("• <b>Thiết Kế:</b> Học sinh thầy HÙNG", bodyStyle);
+            GUILayout.Label("• <b>Lập Trình:</b> Học sinh thầy HÙNG", bodyStyle);
+            GUILayout.Label("• <b>Mỹ Thuật:</b> Học sinh thầy HÙNG", bodyStyle);
 
             GUILayout.Space(45);
             
@@ -812,6 +822,39 @@ namespace SownInStone
                 GUILayout.EndHorizontal();
 
                 GUILayout.Space(10);
+                GUILayout.Label("<b>GÓC NHÌN CAMERA</b>", headerStyle);
+                GUILayout.Space(5);
+
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Chọn góc nhìn", labelStyle, GUILayout.Width(200));
+                
+                // Lấy mode hiện tại từ CameraFollow3D
+                var camMode = CameraFollow3D.Instance != null ? CameraFollow3D.Instance.CurrentMode : CameraFollow3D.CameraMode.FirstPerson;
+
+                GUI.backgroundColor = camMode == CameraFollow3D.CameraMode.FirstPerson ? new Color(0.85f, 0.7f, 0.35f, 1f) : Color.white;
+                if (GUILayout.Button("Thứ nhất", buttonStyle, GUILayout.Width(80)))
+                {
+                    SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
+                    CameraFollow3D.Instance?.SetCameraMode(CameraFollow3D.CameraMode.FirstPerson);
+                }
+
+                GUI.backgroundColor = camMode == CameraFollow3D.CameraMode.ThirdPerson ? new Color(0.85f, 0.7f, 0.35f, 1f) : Color.white;
+                if (GUILayout.Button("Thứ ba", buttonStyle, GUILayout.Width(80)))
+                {
+                    SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
+                    CameraFollow3D.Instance?.SetCameraMode(CameraFollow3D.CameraMode.ThirdPerson);
+                }
+
+                GUI.backgroundColor = camMode == CameraFollow3D.CameraMode.Fixed ? new Color(0.85f, 0.7f, 0.35f, 1f) : Color.white;
+                if (GUILayout.Button("Cố định", buttonStyle, GUILayout.Width(80)))
+                {
+                    SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
+                    CameraFollow3D.Instance?.SetCameraMode(CameraFollow3D.CameraMode.Fixed);
+                }
+                GUI.backgroundColor = Color.white;
+                GUILayout.EndHorizontal();
+
+                GUILayout.Space(10);
                 GUILayout.Label("<b>HƯỚNG DẪN TÂN THỦ</b>", headerStyle);
                 GUILayout.Space(5);
 
@@ -924,7 +967,6 @@ namespace SownInStone
                     {
                         case SownInStone.Weather.WeatherType.OnDinh: weatherName = "Bình thường / Nắng dịu"; break;
                         case SownInStone.Weather.WeatherType.NangNong: weatherName = "Nắng nóng gay gắt"; break;
-                        case SownInStone.Weather.WeatherType.GioLao: weatherName = "Gió Lào bỏng rát"; break;
                         case SownInStone.Weather.WeatherType.MuaGiong: weatherName = "Mưa giông"; break;
                         case SownInStone.Weather.WeatherType.BaoLu: weatherName = "Mưa bão & Lũ ngập"; break;
                     }
@@ -949,8 +991,7 @@ namespace SownInStone
                     switch (SownInStone.Core.GameManager.Instance.CurrentPhase)
                     {
                         case SownInStone.Core.GamePhase.LapNghiep: phaseName = "Giai đoạn 1: Lập nghiệp / Cải tạo đất"; break;
-                        case SownInStone.Core.GamePhase.GioLao: phaseName = "Giai đoạn 2: Nắng hạn / Gió Lào"; break;
-                        case SownInStone.Core.GamePhase.ChuanBiBao: phaseName = "Chuẩn bị bão giông"; break;
+                        case SownInStone.Core.GamePhase.ChuanBiBao: phaseName = "Giai đoạn 2: Chuẩn bị bão giông"; break;
                         case SownInStone.Core.GamePhase.MuaBao: phaseName = "Giai đoạn 3: Mưa bão / Thiên tai lũ lụt"; break;
                         case SownInStone.Core.GamePhase.PhuSa: phaseName = "Giai đoạn 4: Đắp đập phù sa / Tái thiết"; break;
                     }
@@ -1164,7 +1205,6 @@ namespace SownInStone
                 switch (GameManager.Instance.CurrentPhase)
                 {
                     case GamePhase.LapNghiep: phaseName = "Lập Nghiệp"; break;
-                    case GamePhase.GioLao: phaseName = "Gió Lào"; break;
                     case GamePhase.ChuanBiBao: phaseName = "Chuẩn Bị Bão"; break;
                     case GamePhase.MuaBao: phaseName = "Mùa Bão Lũ"; break;
                     case GamePhase.PhuSa: phaseName = "Phù Sa Sau Lũ"; break;
