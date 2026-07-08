@@ -2362,6 +2362,56 @@ namespace SownInStone.Core
                 targetPos.y = groundY;
             }
 
+            // --- Snap vào ghost hướng dẫn gần nhất (nếu đang trong tutorial) ---
+            if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
+            {
+                GameObject closestGhost = null;
+                float closestDist = 2.5f; // bán kính snap
+                var stage = TutorialManager.Instance.currentStage;
+
+                if (stage == TutorialManager.TutorialStage.PrepareForStorm && previewItemData != null)
+                {
+                    if (previewItemData.ItemID == "item_sandbag")
+                    {
+                        for (int gi = 0; gi < Mathf.Min(TutorialManager.Instance.ghostSandbags.Count, 4); gi++)
+                        {
+                            if (TutorialManager.Instance.bacNamTargetsPlaced != null && gi < TutorialManager.Instance.bacNamTargetsPlaced.Length && TutorialManager.Instance.bacNamTargetsPlaced[gi]) continue;
+                            var g = TutorialManager.Instance.ghostSandbags[gi];
+                            if (g == null) continue;
+                            float d = Vector3.Distance(targetPos, g.transform.position);
+                            if (d < closestDist) { closestDist = d; closestGhost = g; }
+                        }
+                    }
+                    else if (previewItemData.ItemID == "item_flood_board")
+                    {
+                        for (int gi = 0; gi < Mathf.Min(TutorialManager.Instance.ghostFloodboards.Count, 2); gi++)
+                        {
+                            if (TutorialManager.Instance.oThamTargetsPlaced != null && gi < TutorialManager.Instance.oThamTargetsPlaced.Length && TutorialManager.Instance.oThamTargetsPlaced[gi]) continue;
+                            var g = TutorialManager.Instance.ghostFloodboards[gi];
+                            if (g == null) continue;
+                            float d = Vector3.Distance(targetPos, g.transform.position);
+                            if (d < closestDist) { closestDist = d; closestGhost = g; }
+                        }
+                    }
+                }
+                else if (stage == TutorialManager.TutorialStage.PrepareOwnHouse && previewItemData != null && previewItemData.ItemID == "item_flood_board")
+                {
+                    for (int gi = 0; gi < Mathf.Min(TutorialManager.Instance.ownHouseGhostFloodboards.Count, 4); gi++)
+                    {
+                        if (TutorialManager.Instance.ownHouseFloodboardsPlaced != null && gi < TutorialManager.Instance.ownHouseFloodboardsPlaced.Length && TutorialManager.Instance.ownHouseFloodboardsPlaced[gi]) continue;
+                        var g = TutorialManager.Instance.ownHouseGhostFloodboards[gi];
+                        if (g == null) continue;
+                        float d = Vector3.Distance(targetPos, g.transform.position);
+                        if (d < closestDist) { closestDist = d; closestGhost = g; }
+                    }
+                }
+
+                if (closestGhost != null)
+                {
+                    targetPos = closestGhost.transform.position;
+                }
+            }
+
             activeGhostObject.transform.position = targetPos;
 
             // Xoay mô hình xem trước đồng bộ theo hướng đứng thực tế của nhân vật (characterVisual)

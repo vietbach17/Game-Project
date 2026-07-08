@@ -436,20 +436,34 @@ namespace SownInStone.UI
                     else if (npc.characterType == NPCCharacter.StoryCharacterType.CuBay) isRescued = TutorialManager.Instance.cuBayRescued;
                     else if (npc.characterType == NPCCharacter.StoryCharacterType.BeTi) isRescued = TutorialManager.Instance.beTiRescued;
 
+                    bool playerOnBoat = SownInStone.Interactions.Coracle.Instance != null &&
+                                        SownInStone.Interactions.Coracle.Instance.IsPlayerOnBoard;
+
                     if (!isRescued)
                     {
-                        currentOptions.Add(new ProximityOption 
-                        { 
-                            label = "[E] Cứu hộ lên mái nhà", 
-                            action = () => TriggerNPCRescue(npc) 
-                        });
+                        if (playerOnBoat)
+                        {
+                            currentOptions.Add(new ProximityOption
+                            {
+                                label = "[E] Đưa lên thuyền",
+                                action = () => TriggerNPCRescue(npc)
+                            });
+                        }
+                        else
+                        {
+                            currentOptions.Add(new ProximityOption
+                            {
+                                label = "Cần lên thuyền trước (nhấn E gần thuyền)",
+                                action = null
+                            });
+                        }
                     }
                     else
                     {
-                        currentOptions.Add(new ProximityOption 
-                        { 
-                            label = "Đã sơ tán lên nóc nhà an toàn", 
-                            action = null 
+                        currentOptions.Add(new ProximityOption
+                        {
+                            label = "Đang có trên thuyền — chèo về nhà!",
+                            action = null
                         });
                     }
                 }
@@ -1231,8 +1245,26 @@ namespace SownInStone.UI
         private void TriggerNPCRescue(NPCCharacter npc)
         {
             if (TutorialManager.Instance == null) return;
+
+            var coracle = SownInStone.Interactions.Coracle.Instance;
+            if (coracle == null || !coracle.IsPlayerOnBoard)
+            {
+                SownInStone.UI.SurvivalUIManager.Instance?.ShowHUDToast("⚠️ Bạn cần đang ở trên thuyền thúng để cứu người!");
+                return;
+            }
+
+            // Đưa NPC lên thuyền (ngồi vào slot)
+            bool added = coracle.AddNPCToBoat(npc);
+            if (!added)
+            {
+                SownInStone.UI.SurvivalUIManager.Instance?.ShowHUDToast("⚠️ Thuyền đã đầy chỗ! Hãy đưa những người trên thuyền vào nóc nhà trước.");
+                return;
+            }
+
+            // Đánh dấu trong TutorialManager (cập nhật HUD + toast)
             TutorialManager.Instance.OnNPCRescued(npc.characterType);
             SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_place_object");
+
             targetAlpha = 0f;
             if (activeNPC != null)
             {
