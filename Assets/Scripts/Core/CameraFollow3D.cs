@@ -144,9 +144,8 @@ namespace SownInStone.Core
 
         private void Start()
         {
-            // Luôn đặt mặc định là góc nhìn thứ 3 (ThirdPerson) khi mới bắt đầu chơi
-            currentMode = CameraMode.ThirdPerson;
-            SetCharacterRenderersVisible(true);
+            // Luôn đặt mặc định là góc nhìn thứ nhất (FirstPerson) khi mới bắt đầu chơi
+            currentMode = CameraMode.FirstPerson;
             ResetCameraToTargetImmediate();
         }
 

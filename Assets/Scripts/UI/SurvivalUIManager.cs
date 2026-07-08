@@ -911,6 +911,12 @@ namespace SownInStone.UI
             {
                 TutorialManager.Instance.OnDialogueClosed(speakerNameText.text);
             }
+
+            // Hiện lại HUD nhiệm vụ sau khi thông báo/dialogue được đóng
+            if (TutorialManager.Instance != null)
+            {
+                TutorialManager.Instance.UpdateHUDPanel();
+            }
         }
 
         #endregion

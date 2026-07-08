@@ -27,7 +27,7 @@ namespace SownInStone.Core
         [SerializeField] private int currentDay = 1;
         
         [Tooltip("Giờ hiện tại trong ngày (0 - 23).")]
-        [SerializeField] private float currentHour = 6f; // Bắt đầu lúc 6:00 sáng
+        [SerializeField] private float currentHour = 20f; // Bắt đầu lúc 20:00 tối để bầu trời tối
         
         [Tooltip("Tốc độ trôi thời gian (Số giây ngoài đời thực cho 1 giờ trong game). Cài đặt 12.5f giây tương ứng 1 ngày = 5 phút thực tế.")]
         [SerializeField] private float secondsPerGameHour = 12.5f; 

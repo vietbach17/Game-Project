@@ -248,39 +248,47 @@ namespace SownInStone.Core
             // 1. Tự động di tản lên nóc nhà khi nước ngập cao trong mùa bão lũ
             if (GameManager.Instance.CurrentPhase == GamePhase.MuaBao && WeatherManager.Instance.FloodLevel > 1.5f && !isOnRoof)
             {
-                isOnRoof = true;
-                
-                // Teleport lên nóc nhà
-                if (rb != null)
+                // Trong stage RescuingNPCs: người chơi phải tự cứu đủ 4 người rồi game mới tele lên nóc nhà.
+                // Không được auto-tele trong lúc đang làm nhiệm vụ cứu hộ.
+                bool isRescueMission = TutorialManager.Instance != null &&
+                                       TutorialManager.Instance.isTutorialActive &&
+                                       TutorialManager.Instance.currentStage == TutorialManager.TutorialStage.RescuingNPCs;
+                if (!isRescueMission)
                 {
-                    rb.linearVelocity = Vector3.zero;
-                }
-                
-                GameObject houseObj = GameObject.Find("Thanh_House");
-                Vector3 roofPos = houseObj != null ? houseObj.transform.position + new Vector3(0f, 3.4f, 0f) : new Vector3(10.66f, 3.4f, -10.0f);
-                
-                transform.position = roofPos;
-                if (rb != null)
-                {
-                    rb.position = roofPos;
-                }
-                
-                // Khởi tạo các đối tượng sinh tồn trên nóc nhà
-                SetupRoofSurvivalObjects();
-                
-                // Phát mì tôm cứu trợ
-                if (StorageManager.Instance != null && noodlesItem != null)
-                {
-                    StorageManager.Instance.AddItem(noodlesItem, 5);
-                }
-                
-                // Hiển thị thông báo cứu trợ
-                if (SownInStone.UI.SurvivalUIManager.Instance != null)
-                {
-                    SownInStone.UI.SurvivalUIManager.Instance.ShowDialogue(
-                        "Thông báo thiên tai", 
-                        "Nước lũ dâng cao ngập lút ruộng vườn! Bạn đã phải di tản lên nóc nhà lánh nạn. Hãy cố gắng sưởi ấm và ăn mì cứu trợ để sinh tồn qua đợt thiên tai!"
-                    );
+                    isOnRoof = true;
+
+                    // Teleport lên nóc nhà
+                    if (rb != null)
+                    {
+                        rb.linearVelocity = Vector3.zero;
+                    }
+
+                    GameObject houseObj = GameObject.Find("Thanh_House");
+                    Vector3 roofPos = houseObj != null ? houseObj.transform.position + new Vector3(0f, 3.4f, 0f) : new Vector3(10.66f, 3.4f, -10.0f);
+
+                    transform.position = roofPos;
+                    if (rb != null)
+                    {
+                        rb.position = roofPos;
+                    }
+
+                    // Khởi tạo các đối tượng sinh tồn trên nóc nhà
+                    SetupRoofSurvivalObjects();
+
+                    // Phát mì tôm cứu trợ
+                    if (StorageManager.Instance != null && noodlesItem != null)
+                    {
+                        StorageManager.Instance.AddItem(noodlesItem, 5);
+                    }
+
+                    // Hiển thị thông báo cứu trợ
+                    if (SownInStone.UI.SurvivalUIManager.Instance != null)
+                    {
+                        SownInStone.UI.SurvivalUIManager.Instance.ShowDialogue(
+                            "Thông báo thiên tai",
+                            "Nước lũ dâng cao ngập lút ruộng vườn! Bạn đã phải di tản lên nóc nhà lánh nạn. Hãy cố gắng sưởi ấm và ăn mì cứu trợ để sinh tồn qua đợt thiên tai!"
+                        );
+                    }
                 }
             }
             // 2. Trở lại đất liền khi nước rút hoặc chuyển phase mới
@@ -2773,6 +2781,19 @@ namespace SownInStone.Core
         private System.Collections.IEnumerator PerformSleepSequence()
         {
             isPerformingAction = true;
+
+            // Nếu đang ở giai đoạn chờ ngủ trước bão → phát video ngay, không cần fade/skip thời gian
+            if (TutorialManager.Instance != null &&
+                TutorialManager.Instance.isTutorialActive &&
+                TutorialManager.Instance.currentStage == TutorialManager.TutorialStage.WaitForSleep)
+            {
+                // Phát video ngulucbao.mp4 ngay lập tức (OnPlayerSlept xử lý video + chuyển Phase 3)
+                isPerformingAction = false; // OnPlayerSlept sẽ set IsPerformingAction lại
+                TutorialManager.Instance.OnPlayerSlept();
+                yield break;
+            }
+
+            // --- Flow ngủ bình thường (các stage khác) ---
             if (SownInStone.UI.SurvivalUIManager.Instance != null)
             {
                 SownInStone.UI.SurvivalUIManager.Instance.FadeToBlack(1.5f);

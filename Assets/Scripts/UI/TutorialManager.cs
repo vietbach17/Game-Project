@@ -28,8 +28,9 @@ namespace SownInStone
             PrepareForStorm,      // Stage 7: Help O Thắm and Bác Năm prepare for storm
             PrepareOwnHouse,      // Stage 8: Prepare own house
             ProtectFarmland,      // Stage 8.5: Protect farmland with plastic mulch
-            TalkToCuBayWorship,   // Stage 9: Talk to Cụ Bảy about ancestral worship
-            WorshipAltar,         // Stage 10: Burn incense at ancestral altar
+            WaitForSleep,         // Stage 8.6: Wait for player to sleep before storm arrives
+            TalkToCuBayWorship,   // Stage 9: Talk to Cụ Bảy about ancestral worship (skipped in new flow)
+            WorshipAltar,         // Stage 10: Burn incense at ancestral altar (skipped in new flow)
             RescuingNPCs,         // Stage 11: Rescue 4 NPCs from flood
             RoofSurvivalSharing,  // Stage 12: Share remaining food on the roof
             PostStormCleanup,     // Stage 13: Clean up and replant crops after flood (PhuSa)
@@ -64,7 +65,8 @@ namespace SownInStone
 
         [Header("--- SINH TỒN & CỨU HỘ ---")]
         public int rescuedNPCsCount = 0;
-        public float rescueTimeRemaining = 120f;
+        public float rescueTimeRemaining = 60f;
+        public bool allNPCsRescued = false; // Flag: đã cứu đủ 4 người, chờ hết timer mới tele lên nóc nhà
         public bool oThamRescued = false;
         public bool bacNamRescued = false;
         public bool cuBayRescued = false;
@@ -804,17 +806,53 @@ namespace SownInStone
             {
                 farmlandProtected = true;
                 UpdateHUDPanel();
-                if (SurvivalUIManager.Instance != null)
-                {
-                    SurvivalUIManager.Instance.ShowDialogue(
-                        "Đất ruộng an toàn", 
-                        "\"Tốt lắm! Toàn bộ ruộng đất hoa màu đã được phủ màng nilon chống ngập úng. Hãy đi gặp Cụ Bảy để tiếp tục chuẩn bị!\""
-                    );
-                }
-                StartTalkToCuBayWorshipStage();
+                StartWaitForSleepStage();
             }
         }
 
+        public void StartWaitForSleepStage()
+        {
+            currentStage = TutorialStage.WaitForSleep;
+            UpdateHUDPanel();
+
+            // Thông báo gió lạnh, trời tối, nhắc ngủ
+            if (SurvivalUIManager.Instance != null)
+            {
+                SurvivalUIManager.Instance.ShowDialogue(
+                    "GIÓ LẠNH ĐÊMTỐI",
+                    "\"Gió lạnh bắt đầu thổi mạnh... Bầu trời tối đen như mực, cơn bão lớn đang đến gần! Bạn không thể làm gì hơn lúc này — hãy về nhà đi ngủ để lấy lại sức trước khi bão đổ bộ vào sáng mai!\""
+                );
+            }
+        }
+
+        /// <summary>Gọi khi người chơi ngủ trong giường — nếu đang chờ ngủ thì phát video rồi chuyển Phase 3.</summary>
+        public void OnPlayerSlept()
+        {
+            if (!isTutorialActive || currentStage != TutorialStage.WaitForSleep) return;
+
+            // Khoá input người chơi trong lúc phát video
+            if (PlayerController.Instance != null)
+            {
+                PlayerController.Instance.IsPerformingAction = true;
+            }
+
+            // Phát video ngulucbao.mp4, sau khi xong mới chuyển Phase 3
+            var cutscenePlayer = gameObject.AddComponent<SownInStone.UI.IntroVideoPlayer>();
+            cutscenePlayer.PlayVideoClip("UI/ngulucbao", () =>
+            {
+                // Mở khoá input
+                if (PlayerController.Instance != null)
+                {
+                    PlayerController.Instance.IsPerformingAction = false;
+                }
+
+                // Chuyển sang Phase 3: Mùa Bão — khởi động cứu hộ
+                StoreNPCHomePositions();
+                StartRescuingNPCsStage();
+            });
+        }
+
+        // Kept for legacy callers
         public void StartTalkToCuBayWorshipStage()
         {
             currentStage = TutorialStage.TalkToCuBayWorship;
@@ -988,32 +1026,16 @@ namespace SownInStone
             // Store NPC positions first to ensure reset works correctly
             StoreNPCHomePositions();
 
-            // Khóa di chuyển của người chơi khi đang xem video cutscene chuyển phase
-            if (PlayerController.Instance != null)
-            {
-                PlayerController.Instance.IsPerformingAction = true;
-            }
-
-            // Tạo và kích hoạt đối tượng phát video cutscene bão lũ
-            var cutscenePlayer = gameObject.AddComponent<SownInStone.UI.IntroVideoPlayer>();
-            cutscenePlayer.PlayVideoClip("UI/storm_cutscene", () =>
-            {
-                // Giải phóng di chuyển sau khi xem xong hoặc bỏ qua video
-                if (PlayerController.Instance != null)
-                {
-                    PlayerController.Instance.IsPerformingAction = false;
-                }
-
-                // Tiến hành chuyển giai đoạn bão lũ
-                StartRescuingNPCsStage();
-            });
+            // Tiến hành chuyển giai đoạn bão lũ
+            StartRescuingNPCsStage();
         }
 
         public void StartRescuingNPCsStage()
         {
             currentStage = TutorialStage.RescuingNPCs;
             rescuedNPCsCount = 0;
-            rescueTimeRemaining = 120f;
+            rescueTimeRemaining = 60f;
+            allNPCsRescued = false;
             oThamRescued = false;
             bacNamRescued = false;
             cuBayRescued = false;
@@ -1075,7 +1097,11 @@ namespace SownInStone
 
             if (rescuedNPCsCount >= 4)
             {
-                StartRoofSurvivalSharingStage();
+                // Đã cứu đủ 4 người — set flag, chờ hết timer 60 giây rồi mới tele người chơi lên nóc nhà.
+                // StartRoofSurvivalSharingStage() sẽ được gọi trong Update() khi rescueTimeRemaining <= 0.
+                allNPCsRescued = true;
+                SurvivalUIManager.Instance?.ShowHUDToast("🏠 Đã cứu đủ 4 người! Hãy chờ hết giờ rồi cùng lên nóc nhà lánh nạn!");
+                UpdateHUDPanel();
             }
             else
             {
@@ -1158,7 +1184,8 @@ namespace SownInStone
             ResetNPCsToHomePositions();
 
             rescuedNPCsCount = 0;
-            rescueTimeRemaining = 120f;
+            rescueTimeRemaining = 60f;
+            allNPCsRescued = false;
             oThamRescued = false;
             bacNamRescued = false;
             cuBayRescued = false;
@@ -1661,6 +1688,15 @@ namespace SownInStone
         public void UpdateHUDPanel()
         {
             if (hudPanel == null) return;
+
+            // Nếu dialogue thông báo đang mở (vd: BÁO ĐỘNG LŨ LỤT), ẩn HUD nhiệm vụ để tránh chồng nhau.
+            // HUD sẽ tự hiện lại khi CloseDialogue() gọi UpdateHUDPanel().
+            if (SurvivalUIManager.Instance != null && SurvivalUIManager.Instance.IsDialogueActive)
+            {
+                hudPanel.SetActive(false);
+                return;
+            }
+
             EnsureOwnHouseGhostsExist();
             UpdateOThamChestVisibility();
 
@@ -1853,29 +1889,27 @@ namespace SownInStone
                 if (hudTaskCText != null) hudTaskCText.gameObject.SetActive(false);
                 if (hudTaskDText != null) hudTaskDText.gameObject.SetActive(false);
             }
-            else if (currentStage == TutorialStage.TalkToCuBayWorship)
+            else if (currentStage == TutorialStage.WaitForSleep)
             {
                 hudPanel.SetActive(true);
-                hudTitleText.text = "THỜ CÚNG QUÊ NHÀ";
+                hudTitleText.text = "⛺ TRƯỚC CƠN BÃO";
 
-                hudTaskAText.text = " <color=#E74C3C>☐</color> Gặp Cụ Bảy";
+                hudTaskAText.text = " <color=#9B59B6>🛏</color> Về nhà vào giường ngủ lấy sức";
                 hudTaskAText.color = Color.white;
 
                 if (hudTaskBText != null) hudTaskBText.gameObject.SetActive(false);
                 if (hudTaskCText != null) hudTaskCText.gameObject.SetActive(false);
                 if (hudTaskDText != null) hudTaskDText.gameObject.SetActive(false);
             }
+            else if (currentStage == TutorialStage.TalkToCuBayWorship)
+            {
+                // Stage cũ — giữ lại nhưng không dùng trong flow mới
+                hudPanel.SetActive(false);
+            }
             else if (currentStage == TutorialStage.WorshipAltar)
             {
-                hudPanel.SetActive(true);
-                hudTitleText.text = "THẮP NHANG GIA TIÊN";
-
-                hudTaskAText.text = " <color=#E74C3C>☐</color> Thắp nhang bàn thờ gia tiên";
-                hudTaskAText.color = Color.white;
-
-                if (hudTaskBText != null) hudTaskBText.gameObject.SetActive(false);
-                if (hudTaskCText != null) hudTaskCText.gameObject.SetActive(false);
-                if (hudTaskDText != null) hudTaskDText.gameObject.SetActive(false);
+                // Stage cũ — giữ lại nhưng không dùng trong flow mới
+                hudPanel.SetActive(false);
             }
             else if (currentStage == TutorialStage.RescuingNPCs)
             {
@@ -2041,7 +2075,15 @@ namespace SownInStone
                 UpdateHUDPanel();
                 if (rescueTimeRemaining <= 0f)
                 {
-                    ResetRescueStage();
+                    // Hết giờ: nếu đã cứu đủ 4 người thì tele lên nóc nhà, ngược lại reset
+                    if (allNPCsRescued)
+                    {
+                        StartRoofSurvivalSharingStage();
+                    }
+                    else
+                    {
+                        ResetRescueStage();
+                    }
                 }
             }
 

@@ -29,6 +29,11 @@ namespace SownInStone
         [SerializeField] private ItemData testPlasticMulch;
         [SerializeField] private AncestralAltar testAltar;
 
+        // Item picker state
+        private Vector2 itemPickerScroll = Vector2.zero;
+        private int itemPickerQty = 1;
+        private ItemData[] allKnownItems = null;
+
         private string alertMessage = "Hệ thống hoạt động bình thường.";
         private float alertTimer = 0f;
 
@@ -1003,6 +1008,130 @@ namespace SownInStone
                 GUILayout.Label("Hướng dẫn chưa kích hoạt hoặc đã hoàn thành.");
             }
             GUILayout.EndArea();
+
+            // 10. NHẬN ITEM DEBUG PANEL (Column 3 - right side)
+            DrawItemPickerPanel();
+        }
+
+        private void LoadAllKnownItems()
+        {
+#if UNITY_EDITOR
+            // Quét toàn bộ file .asset trong thư mục Assets/Data/ để tìm ItemData
+            string[] guids = UnityEditor.AssetDatabase.FindAssets("t:ItemData", new[] { "Assets/Data" });
+            var list = new System.Collections.Generic.List<ItemData>();
+            foreach (string guid in guids)
+            {
+                string path = UnityEditor.AssetDatabase.GUIDToAssetPath(guid);
+                ItemData item = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>(path);
+                if (item != null) list.Add(item);
+            }
+            // Sắp xếp theo loại rồi theo tên
+            list.Sort((a, b) => {
+                int typeCmp = a.type.CompareTo(b.type);
+                return typeCmp != 0 ? typeCmp : string.Compare(a.ItemName, b.ItemName, System.StringComparison.Ordinal);
+            });
+            allKnownItems = list.ToArray();
+#else
+            // Trong build: sử dụng các item đã được khai báo sẵn
+            allKnownItems = new ItemData[]
+            {
+                testFreshCrop, testPreservedCrop, testIncense,
+                testSeedItem, testNonLa, testSandbag, testFloodBoard, testPlasticMulch
+            };
+#endif
+        }
+
+        private void DrawItemPickerPanel()
+        {
+            if (allKnownItems == null || allKnownItems.Length == 0)
+            {
+                LoadAllKnownItems();
+            }
+
+            // Panel nằm ở cột 3 (bên phải Tutorial Quest Cheats)
+            Rect panelRect = new Rect(800, 45, 280, 470);
+            GUI.Box(panelRect, "<b>🎒 NHẬN ITEM VÀO TÚI ĐỒ</b>");
+            GUILayout.BeginArea(new Rect(panelRect.x + 8, panelRect.y + 22, panelRect.width - 16, panelRect.height - 30));
+
+            // Dòng số lượng
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("Số lượng:", GUILayout.Width(72));
+            GUI.SetNextControlName("qtyField");
+            string qtyStr = GUILayout.TextField(itemPickerQty.ToString(), GUILayout.Width(45));
+            if (int.TryParse(qtyStr, out int parsed) && parsed >= 1) itemPickerQty = Mathf.Clamp(parsed, 1, 99);
+            if (GUILayout.Button("-", GUILayout.Width(24))) itemPickerQty = Mathf.Max(1, itemPickerQty - 1);
+            if (GUILayout.Button("+", GUILayout.Width(24))) itemPickerQty = Mathf.Min(99, itemPickerQty + 1);
+            if (GUILayout.Button("Reload", GUILayout.Width(54))) { allKnownItems = null; LoadAllKnownItems(); }
+            GUILayout.EndHorizontal();
+
+            GUILayout.Space(4);
+
+            // Nút refresh và hướng dẫn
+            GUI.color = new Color(0.85f, 0.85f, 0.6f);
+            GUILayout.Label("Nhấn nút item để nhận vào kho đồ:");
+            GUI.color = Color.white;
+
+            GUILayout.Space(2);
+
+            // Scrollable list
+            itemPickerScroll = GUILayout.BeginScrollView(itemPickerScroll, GUILayout.Height(panelRect.height - 100));
+
+            if (allKnownItems != null)
+            {
+                string currentTypeLabel = "";
+                foreach (ItemData item in allKnownItems)
+                {
+                    if (item == null) continue;
+
+                    // Header theo loại item
+                    string typeLabel = GetItemTypeVietnamese(item.type);
+                    if (typeLabel != currentTypeLabel)
+                    {
+                        currentTypeLabel = typeLabel;
+                        GUILayout.Space(4);
+                        GUI.color = new Color(0.6f, 0.9f, 1f);
+                        GUILayout.Label($"── {typeLabel} ──");
+                        GUI.color = Color.white;
+                    }
+
+                    GUILayout.BeginHorizontal();
+                    if (GUILayout.Button($"+{itemPickerQty} {item.ItemName}", GUILayout.Height(22)))
+                    {
+                        if (StorageManager.Instance != null)
+                        {
+                            StorageManager.Instance.AddItem(item, itemPickerQty);
+                            ShowAlert($"✅ Đã nhận {itemPickerQty}x [{item.ItemName}] vào kho đồ!");
+                        }
+                        else
+                        {
+                            ShowAlert("⚠️ StorageManager chưa khởi tạo!");
+                        }
+                    }
+                    GUILayout.Label($"<color=grey>{item.ItemID}</color>", GUILayout.Width(95));
+                    GUILayout.EndHorizontal();
+                }
+            }
+            else
+            {
+                GUILayout.Label("Không tìm thấy Item nào trong Assets/Data/");
+            }
+
+            GUILayout.EndScrollView();
+            GUILayout.EndArea();
+        }
+
+        private string GetItemTypeVietnamese(ItemType type)
+        {
+            switch (type)
+            {
+                case ItemType.NongSanTuoi: return "Nông Sản Tươi";
+                case ItemType.NongSanKho: return "Nông Sản Khô";
+                case ItemType.NuocNgot: return "Nước Uống";
+                case ItemType.Incense: return "Nhang / Tín Ngưỡng";
+                case ItemType.VatLieu: return "Vật Liệu / Dụng Cụ";
+                case ItemType.HatGiong: return "Hạt Giống";
+                default: return type.ToString();
+            }
         }
 
         private void DrawProgressBar(Color color)

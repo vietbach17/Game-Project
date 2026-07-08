@@ -328,6 +328,9 @@ namespace SownInStone.Weather
             rainParticlesObj = new GameObject("RainParticles", typeof(ParticleSystem));
             rainParticlesObj.transform.SetParent(this.transform);
 
+            // Xoay emitter -90° quanh X để hạt phát thẳng xuống (-Y)
+            rainParticlesObj.transform.rotation = Quaternion.Euler(-90f, 0f, 0f);
+
             rainParticles = rainParticlesObj.GetComponent<ParticleSystem>();
 
             // Stop the system before configuring main module properties to avoid warnings
@@ -337,25 +340,27 @@ namespace SownInStone.Weather
             var main = rainParticles.main;
             main.duration = 1f;
             main.loop = true;
-            main.startLifetime = 1.2f;
-            main.startSpeed = 16f;
-            main.startSize = 0.12f;
-            main.gravityModifier = 1.2f;
+            main.startLifetime = 1.5f;
+            main.startSpeed = 18f;       // Tốc độ rơi xuống
+            main.startSize = 0.06f;
+            main.gravityModifier = 0f;   // Tắt gravity của Unity — tốc độ rơi do startSpeed + hướng -Y điều khiển
             main.simulationSpace = ParticleSystemSimulationSpace.World;
-            main.maxParticles = 800;
+            main.maxParticles = 1000;
 
-            // Hình dáng vùng phát (Shape)
+            // Hình dáng vùng phát: Box rộng ngang, phẳng, hạt bắn theo -Z (tức là xuống đất sau khi xoay emitter)
             var shape = rainParticles.shape;
             shape.enabled = true;
             shape.shapeType = ParticleSystemShapeType.Box;
-            shape.scale = new Vector3(25f, 1f, 1f); 
-            shape.rotation = new Vector3(0f, 0f, 12f); // Bắn hạt nghiêng nhẹ theo chiều gió
+            shape.scale = new Vector3(30f, 30f, 0.1f); // Rộng ngang bao quanh camera
+            shape.rotation = Vector3.zero;              // Không xoay thêm — đã xoay qua transform
 
-            // Cấu hình di chuyển (Velocity over Lifetime) để tạo vệt mưa chéo nghiêng trái
+            // Thêm gió nhẹ ngang để mưa có chút nghiêng tự nhiên
             var velocity = rainParticles.velocityOverLifetime;
             velocity.enabled = true;
             velocity.space = ParticleSystemSimulationSpace.World;
-            velocity.x = -5f; // Gió thổi chéo trái
+            velocity.x = new UnityEngine.ParticleSystem.MinMaxCurve(-1.5f); // Gió nhẹ sang trái
+            velocity.y = new UnityEngine.ParticleSystem.MinMaxCurve(0f);
+            velocity.z = new UnityEngine.ParticleSystem.MinMaxCurve(0f);
 
             // Thiết lập tốc độ sinh hạt mặc định là 0
             var emission = rainParticles.emission;
@@ -368,22 +373,19 @@ namespace SownInStone.Weather
             Gradient grad = new Gradient();
             grad.SetKeys(
                 new GradientColorKey[] { new GradientColorKey(new Color(0.8f, 0.88f, 0.95f), 0f), new GradientColorKey(new Color(0.75f, 0.8f, 0.85f), 1f) },
-                new GradientAlphaKey[] { new GradientAlphaKey(0.35f, 0f), new GradientAlphaKey(0.08f, 1f) }
+                new GradientAlphaKey[] { new GradientAlphaKey(0.45f, 0f), new GradientAlphaKey(0.05f, 1f) }
             );
             colorOverLifetime.color = grad;
 
-            // Thiết lập Renderer để kéo dãn hạt mưa thành sọc dài
+            // Thiết lập Renderer: Stretch theo hướng di chuyển (tạo vệt mưa dài rơi xuống)
             var renderer = rainParticlesObj.GetComponent<ParticleSystemRenderer>();
             renderer.renderMode = ParticleSystemRenderMode.Stretch;
-            renderer.lengthScale = 3f;
-            renderer.velocityScale = 0.1f;
+            renderer.lengthScale = 2.5f;
+            renderer.velocityScale = 0.08f;
+            renderer.cameraVelocityScale = 0f;
             
             // Sử dụng Material Sprites-Default mặc định để hạt mưa sắc nét
-            #if UNITY_2022_1_OR_NEWER
             renderer.material = new Material(Shader.Find("Sprites/Default"));
-            #else
-            renderer.material = new Material(Shader.Find("Sprites/Default"));
-            #endif
 
             // Bắt đầu chạy hệ thống phát
             rainParticles.Play();
@@ -487,6 +489,29 @@ namespace SownInStone.Weather
                         baseFogColor = new Color(0.22f, 0.24f, 0.26f);
                         break;
                 }
+            }
+
+            // Tính toán hệ số tối dần khi về đêm (Từ 18h đến 5h sáng)
+            float nightMultiplier = 1f;
+            if (GameManager.Instance != null && !isInside)
+            {
+                float hour = GameManager.Instance.CurrentHour;
+                if (hour >= 18f && hour < 20f)
+                {
+                    nightMultiplier = Mathf.Lerp(1f, 0.15f, (hour - 18f) / 2f);
+                }
+                else if (hour >= 20f || hour <= 4f)
+                {
+                    nightMultiplier = 0.15f;
+                }
+                else if (hour > 4f && hour <= 6f)
+                {
+                    nightMultiplier = Mathf.Lerp(0.15f, 1f, (hour - 4f) / 2f);
+                }
+                
+                baseLightIntensity *= nightMultiplier;
+                baseAmbientColor *= nightMultiplier;
+                baseFogColor *= (0.5f + nightMultiplier * 0.5f); // Làm sương mù tối hơn vào ban đêm
             }
 
             targetLightIntensity = baseLightIntensity;

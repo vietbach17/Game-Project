@@ -113,6 +113,35 @@ namespace SownInStone.Interactions
                     {
                         SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast("Bạn thắp nhang thành kính cầu nguyện tổ tiên. +10 Tinh thần");
                     }
+                    
+                    if (GameManager.Instance != null && GameManager.Instance.CurrentPhase == GamePhase.LapNghiep)
+                    {
+                        if (PlayerController.Instance != null)
+                        {
+                            PlayerController.Instance.IsPerformingAction = true;
+                        }
+
+                        var cutscenePlayer = gameObject.AddComponent<SownInStone.UI.IntroVideoPlayer>();
+                        cutscenePlayer.PlayVideoClip("UI/storm_cutscene", () =>
+                        {
+                            if (PlayerController.Instance != null)
+                            {
+                                PlayerController.Instance.IsPerformingAction = false;
+                            }
+                            // Chuyển sang Phase 2: Chuẩn bị bão — KHÔNG gọi OnAltarWorshipped()
+                            // vì hàm đó sẽ gọi StartRescuingNPCsStage() → TransitionToPhase(MuaBao) làm nhảy thẳng Phase 3.
+                            GameManager.Instance.TransitionToPhase(GamePhase.ChuanBiBao);
+                            
+                            if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
+                            {
+                                // Khởi động nhiệm vụ chuẩn bị bão Phase 2 cho tutorial
+                                TutorialManager.Instance.currentStage = TutorialManager.TutorialStage.PrepareForStorm;
+                                TutorialManager.Instance.InitPhase2();
+                            }
+                        });
+                        return true;
+                    }
+
                     if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
                     {
                         TutorialManager.Instance.OnAltarWorshipped();
