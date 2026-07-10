@@ -10,7 +10,8 @@ namespace SownInStone.Editor
     /// 1. Tạo hoặc tìm một Root Container tên là "Coracle" với scale (1,1,1)
     /// 2. Đưa ThuyenThung_Model vào làm con của "Coracle" và đưa các component điều khiển (Coracle script, Rigidbody, BoxCollider) lên root "Coracle".
     /// 3. Xoá mọi component Rigidbody, Collider trên model con ThuyenThung_Model để tránh xung đột vật lý.
-    /// 4. Đặt vị trí, gán texture và lưu Scene.
+    /// 4. Gán material chuẩn đã lưu (ThuyenThung_Texture.mat) thay vì tạo material tạm thời.
+    /// 5. Đặt vị trí và lưu Scene.
     /// Menu: Sown In Stone → Setup Coracle (Thuyền Thúng)
     /// </summary>
     public class SetupCoracle
@@ -89,20 +90,21 @@ namespace SownInStone.Editor
                 Undo.DestroyObjectImmediate(c);
             }
 
-            // ── 4. Gán texture URP cho Renderer của model ──────────────────
-            string texPath = "Assets/Prefabs/Coracle/ThuyenThung_Texture.png";
-            Texture2D tex = AssetDatabase.LoadAssetAtPath<Texture2D>(texPath);
-            if (tex != null)
+            // ── 4. Gán material chuẩn của dự án (tránh dùng material tạo động mất tích khi chạy)
+            string matPath = "Assets/Prefabs/Coracle/Materials/ThuyenThung_Texture.mat";
+            Material boatMat = AssetDatabase.LoadAssetAtPath<Material>(matPath);
+            if (boatMat != null)
             {
                 var renderers = modelObj.GetComponentsInChildren<Renderer>(true);
                 foreach (var r in renderers)
                 {
-                    var mat = new Material(r.sharedMaterial != null ? r.sharedMaterial : new Material(Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard")));
-                    if (mat.HasProperty("_BaseMap")) mat.SetTexture("_BaseMap", tex);
-                    if (mat.HasProperty("_MainTex"))  mat.SetTexture("_MainTex",  tex);
-                    r.sharedMaterial = mat;
+                    r.sharedMaterial = boatMat;
                 }
-                Debug.Log($"[SETUP CORACLE] Đã gán texture cho model: {texPath}");
+                Debug.Log($"[SETUP CORACLE] Đã gán material lưu sẵn: {matPath}");
+            }
+            else
+            {
+                Debug.LogWarning($"[SETUP CORACLE] Không tìm thấy material lưu sẵn tại '{matPath}'. Giữ nguyên material hiện tại.");
             }
 
             // ── 5. Thêm/Cấu hình các component lên root "Coracle" (Scale 1,1,1)
@@ -120,7 +122,6 @@ namespace SownInStone.Editor
             BoxCollider col = rootObj.GetComponent<BoxCollider>();
             if (col == null) col = Undo.AddComponent<BoxCollider>(rootObj);
             col.isTrigger = false;
-            // Ở scale (1,1,1) kích thước BoxCollider khớp chuẩn xác với kích thước thuyền (2.2m)
             col.center    = new Vector3(0f, 0.25f, 0f);
             col.size      = new Vector3(2.2f, 0.6f, 2.2f);
 
@@ -156,21 +157,12 @@ namespace SownInStone.Editor
                 ? "✅ Setup Coracle hoàn tất!\n\n" +
                   "• Đã tạo root container 'Coracle' với scale (1, 1, 1)\n" +
                   "• ThuyenThung_Model đã được đưa vào trong làm con\n" +
-                  "• Gắn đầy đủ script điều khiển lên root container\n" +
+                  "• Gán material chuẩn: ThuyenThung_Texture.mat\n" +
                   "• Trạng thái: Inactive (sẽ kích hoạt khi lũ lên ở Phase 3)\n" +
                   "• Scene đã lưu thành công!"
                 : "⚠️ Setup hoàn tất nhưng lưu scene thất bại. Hãy bấm Ctrl+S.";
 
             EditorUtility.DisplayDialog("Setup Coracle", msg, "OK");
-        }
-    }
-
-    internal static class SerializedPropertyExtensions
-    {
-        public static void SetAsFloat(this SerializedProperty prop, float val)
-        {
-            if (prop == null) return;
-            prop.floatValue = val;
         }
     }
 }
