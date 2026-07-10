@@ -1096,7 +1096,7 @@ namespace SownInStone
                 existingCoracle.gameObject.SetActive(true);
                 existingCoracle.transform.position = new Vector3(5f, 1.15f, -12f);
                 existingCoracle.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
-                
+
                 Rigidbody rb = existingCoracle.GetComponent<Rigidbody>();
                 if (rb != null)
                 {
@@ -1104,13 +1104,16 @@ namespace SownInStone
                     rb.rotation = existingCoracle.transform.rotation;
                     rb.linearVelocity = Vector3.zero;
                 }
+
+                // Đảm bảo Coracle đã có visual model — nếu không thì tạo mới
+                EnsureCoracleVisual(existingCoracle.gameObject);
                 Debug.Log("[RESCUE] Đã tái định vị Thuyền Thúng hiện tại.");
                 return;
             }
 
             // Tạo mới GameObject Thuyền Thúng tại vị trí trước nhà Thành
             GameObject boatObj = new GameObject("Coracle");
-            boatObj.transform.position = new Vector3(5f, 1.15f, -12f); // Cao độ khớp với mức lũ 1.2m (Y = 1.15f)
+            boatObj.transform.position = new Vector3(5f, 1.15f, -12f);
             boatObj.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
 
             // Cấu hình vật lý Rigidbody cho thuyền thúng arcade
@@ -1132,9 +1135,29 @@ namespace SownInStone
             var coracleComp = boatObj.AddComponent<SownInStone.Interactions.Coracle>();
             coracleComp.moveSpeed = 5f;
             coracleComp.rotationSpeed = 80f;
-            coracleComp.playerSeatOffset = new Vector3(0f, 0.3f, 0f);
+            coracleComp.playerSeatOffset = new Vector3(0f, 0.45f, 0f);
 
-            // Nạp và khởi tạo mô hình 3D từ thư mục Resources
+            // Tạo visual model
+            EnsureCoracleVisual(boatObj);
+
+            Debug.Log("[RESCUE] Đã sinh Thuyền Thúng thành công ở bến nước.");
+        }
+
+        /// <summary>
+        /// Đảm bảo boatObj có visual mesh. Thử load FBX từ Resources trước;
+        /// nếu thất bại thì dùng primitive hình thuyền thúng (cylinder dẹt + thành bên).
+        /// </summary>
+        private void EnsureCoracleVisual(GameObject boatObj)
+        {
+            // Nếu đã có VisualModel con thì không cần tạo lại
+            var existing = boatObj.transform.Find("VisualModel");
+            if (existing != null) return;
+
+            // Nếu đã có bất kỳ MeshRenderer con nào thì cũng bỏ qua
+            // (chỉ kiểm tra theo tên để tránh bỏ qua renderer hỏng/vô hình)
+            // Không dùng GetComponentInChildren<MeshRenderer> vì có thể bắt nhầm renderer disabled.
+
+            // ── Thử load FBX từ Resources ──────────────────────────────────
             GameObject modelPrefab = Resources.Load<GameObject>("Prefabs/Coracle/Coracle_Model");
             if (modelPrefab != null)
             {
@@ -1142,25 +1165,71 @@ namespace SownInStone
                 visualObj.name = "VisualModel";
                 visualObj.transform.localPosition = Vector3.zero;
                 visualObj.transform.localRotation = Quaternion.identity;
-                visualObj.transform.localScale = Vector3.one;
+                visualObj.transform.localScale = Vector3.one * 1.5f; // scale up để đủ nhìn thấy
 
-                // Gán chất liệu dệt thúng đặc trưng
                 Material boatMat = Resources.Load<Material>("Prefabs/Coracle/Mat_Coracle");
                 if (boatMat != null)
                 {
-                    var renderers = visualObj.GetComponentsInChildren<Renderer>();
-                    foreach (var r in renderers)
-                    {
+                    foreach (var r in visualObj.GetComponentsInChildren<Renderer>())
                         r.sharedMaterial = boatMat;
-                    }
                 }
-            }
-            else
-            {
-                Debug.LogError("[RESCUE] Không tìm thấy Coracle_Model trong thư mục Resources/Prefabs/Coracle!");
+                Debug.Log("[RESCUE] Đã gán model FBX cho Thuyền Thúng.");
+                return;
             }
 
-            Debug.Log("[RESCUE] Đã sinh Thuyền Thúng thành công ở bến nước.");
+            // ── Fallback: tạo primitive hình thuyền thúng bằng primitive ───
+            Debug.LogWarning("[RESCUE] Không tìm thấy Coracle_Model trong Resources — dùng primitive fallback.");
+
+            // Thân thuyền: cylinder dẹt màu nâu gỗ
+            GameObject body = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            body.name = "VisualModel";
+            body.transform.SetParent(boatObj.transform);
+            body.transform.localPosition = new Vector3(0f, 0.18f, 0f);
+            body.transform.localRotation = Quaternion.identity;
+            body.transform.localScale = new Vector3(2.0f, 0.18f, 2.0f); // đường kính 2m, cao 0.36m
+            UnityEngine.Object.Destroy(body.GetComponent<Collider>()); // Collider đã có ở boatObj
+
+            // Thành trước/sau (4 thanh gỗ xung quanh)
+            Color woodColor = new Color(0.55f, 0.35f, 0.15f);
+            ApplyColor(body, woodColor);
+
+            GameObject rim = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            rim.name = "Rim";
+            rim.transform.SetParent(boatObj.transform);
+            rim.transform.localPosition = new Vector3(0f, 0.32f, 0f);
+            rim.transform.localRotation = Quaternion.identity;
+            rim.transform.localScale = new Vector3(2.05f, 0.06f, 2.05f);
+            UnityEngine.Object.Destroy(rim.GetComponent<Collider>());
+            ApplyColor(rim, new Color(0.45f, 0.28f, 0.10f));
+
+            Debug.Log("[RESCUE] Đã tạo primitive Thuyền Thúng (fallback).");
+        }
+
+        private void ApplyColor(GameObject go, Color color)
+        {
+            var renderer = go.GetComponent<Renderer>();
+            if (renderer == null) return;
+
+            // URP dùng "Universal Render Pipeline/Lit", Built-in dùng "Standard"
+            // Thử theo thứ tự ưu tiên
+            Shader shader = Shader.Find("Universal Render Pipeline/Lit")
+                         ?? Shader.Find("Lit")
+                         ?? Shader.Find("Standard")
+                         ?? Shader.Find("Sprites/Default");
+
+            if (shader == null)
+            {
+                // Cuối cùng dùng material mặc định của renderer nếu không tìm được shader
+                renderer.material.color = color;
+                return;
+            }
+
+            var mat = new Material(shader);
+            mat.color = color;
+            // URP Lit cần set _BaseColor thay vì _Color
+            if (mat.HasProperty("_BaseColor"))
+                mat.SetColor("_BaseColor", color);
+            renderer.material = mat;
         }
 
         /// <summary>
