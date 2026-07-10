@@ -5,9 +5,12 @@ using UnityEditor.SceneManagement;
 namespace SownInStone.Editor
 {
     /// <summary>
-    /// Editor utility: tìm ThuyenThung_Model đã có trong scene,
-    /// gắn Coracle script + BoxCollider + Rigidbody, set inactive,
-    /// và gán texture đúng — rồi lưu scene.
+    /// Editor utility: thiết lập ThuyenThung_Model trong scene.
+    /// Để tránh lỗi lan truyền scale (model gốc scale 100,100,100), tool này sẽ:
+    /// 1. Tạo hoặc tìm một Root Container tên là "Coracle" với scale (1,1,1)
+    /// 2. Đưa ThuyenThung_Model vào làm con của "Coracle" và đưa các component điều khiển (Coracle script, Rigidbody, BoxCollider) lên root "Coracle".
+    /// 3. Xoá mọi component Rigidbody, Collider trên model con ThuyenThung_Model để tránh xung đột vật lý.
+    /// 4. Đặt vị trí, gán texture và lưu Scene.
     /// Menu: Sown In Stone → Setup Coracle (Thuyền Thúng)
     /// </summary>
     public class SetupCoracle
@@ -15,53 +18,96 @@ namespace SownInStone.Editor
         [MenuItem("Sown In Stone/Setup Coracle (Thuyền Thúng)")]
         public static void Setup()
         {
-            // ── 1. Tìm ThuyenThung_Model trong scene ────────────────────
-            GameObject boatObj = GameObject.Find("ThuyenThung_Model");
-
-            // Nếu không tìm thấy theo tên chính xác, thử find theo type Coracle
-            if (boatObj == null)
+            // ── 1. Tìm model ThuyenThung_Model trong scene ──────────────
+            GameObject modelObj = GameObject.Find("ThuyenThung_Model");
+            if (modelObj == null)
             {
-                var existingCoracle = Object.FindAnyObjectByType<SownInStone.Interactions.Coracle>(FindObjectsInactive.Include);
-                if (existingCoracle != null) boatObj = existingCoracle.gameObject;
+                // Thử tìm theo type MeshRenderer nếu tên bị thay đổi
+                var allRenderers = Object.FindObjectsByType<MeshRenderer>(FindObjectsInactive.Include);
+                foreach (var r in allRenderers)
+                {
+                    if (r.name.Contains("ThuyenThung") || r.name.Contains("Coracle"))
+                    {
+                        modelObj = r.gameObject;
+                        break;
+                    }
+                }
             }
 
-            if (boatObj == null)
+            if (modelObj == null)
             {
                 EditorUtility.DisplayDialog(
                     "Setup Coracle",
-                    "Không tìm thấy 'ThuyenThung_Model' trong scene!\n\n" +
-                    "Hãy kéo file ThuyenThung_Model.fbx từ Assets/Prefabs/Coracle vào Hierarchy trước.",
+                    "Không tìm thấy model 'ThuyenThung_Model' trong scene!\n\n" +
+                    "Hãy kéo model ThuyenThung_Model.fbx từ Assets/Prefabs/Coracle vào Hierarchy trước.",
                     "OK"
                 );
                 return;
             }
 
-            Undo.RegisterCompleteObjectUndo(boatObj, "Setup Coracle");
+            // ── 2. Tạo hoặc tìm GameObject cha "Coracle" (Scale 1,1,1) ──────
+            GameObject rootObj = GameObject.Find("Coracle");
+            if (rootObj == null)
+            {
+                var existingCoracleScript = Object.FindAnyObjectByType<SownInStone.Interactions.Coracle>(FindObjectsInactive.Include);
+                if (existingCoracleScript != null)
+                {
+                    rootObj = existingCoracleScript.gameObject;
+                }
+            }
 
-            // ── 2. Gán texture URP cho tất cả Renderer trên model ───────
+            if (rootObj == null)
+            {
+                rootObj = new GameObject("Coracle");
+                Undo.RegisterCreatedObjectUndo(rootObj, "Create Coracle Root");
+            }
+            else
+            {
+                Undo.RegisterCompleteObjectUndo(rootObj, "Setup Coracle Root");
+            }
+
+            // Đảm bảo Root Container "Coracle" luôn có scale (1,1,1) để người chơi/NPC lên thuyền không bị méo/bay lên trời!
+            rootObj.transform.localScale = Vector3.one;
+
+            // Đưa modelObj làm con của rootObj
+            Undo.SetTransformParent(modelObj.transform, rootObj.transform, "Parent Model to Coracle");
+            modelObj.transform.localPosition = Vector3.zero;
+            modelObj.transform.localRotation = Quaternion.identity;
+            // ThuyenThung_Model giữ nguyên scale gốc của nó (ví dụ: 100,100,100) để hiển thị bình thường
+            modelObj.name = "ThuyenThung_Model";
+
+            // ── 3. Dọn dẹp các component cũ trên modelObj để tránh xung đột ─
+            var oldCoracle = modelObj.GetComponent<SownInStone.Interactions.Coracle>();
+            if (oldCoracle != null) Undo.DestroyObjectImmediate(oldCoracle);
+
+            var oldRb = modelObj.GetComponent<Rigidbody>();
+            if (oldRb != null) Undo.DestroyObjectImmediate(oldRb);
+
+            var oldCols = modelObj.GetComponentsInChildren<Collider>(true);
+            foreach (var c in oldCols)
+            {
+                Undo.DestroyObjectImmediate(c);
+            }
+
+            // ── 4. Gán texture URP cho Renderer của model ──────────────────
             string texPath = "Assets/Prefabs/Coracle/ThuyenThung_Texture.png";
             Texture2D tex = AssetDatabase.LoadAssetAtPath<Texture2D>(texPath);
             if (tex != null)
             {
-                var renderers = boatObj.GetComponentsInChildren<Renderer>(true);
+                var renderers = modelObj.GetComponentsInChildren<Renderer>(true);
                 foreach (var r in renderers)
                 {
-                    // Tạo bản sao material để không ảnh hưởng shared material
                     var mat = new Material(r.sharedMaterial != null ? r.sharedMaterial : new Material(Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard")));
                     if (mat.HasProperty("_BaseMap")) mat.SetTexture("_BaseMap", tex);
                     if (mat.HasProperty("_MainTex"))  mat.SetTexture("_MainTex",  tex);
                     r.sharedMaterial = mat;
                 }
-                Debug.Log($"[SETUP CORACLE] Đã gán texture: {texPath}");
-            }
-            else
-            {
-                Debug.LogWarning($"[SETUP CORACLE] Không tìm thấy texture tại '{texPath}' — model sẽ dùng material hiện tại.");
+                Debug.Log($"[SETUP CORACLE] Đã gán texture cho model: {texPath}");
             }
 
-            // ── 3. Thêm / cấu hình Rigidbody ────────────────────────────
-            Rigidbody rb = boatObj.GetComponent<Rigidbody>();
-            if (rb == null) rb = Undo.AddComponent<Rigidbody>(boatObj);
+            // ── 5. Thêm/Cấu hình các component lên root "Coracle" (Scale 1,1,1)
+            Rigidbody rb = rootObj.GetComponent<Rigidbody>();
+            if (rb == null) rb = Undo.AddComponent<Rigidbody>(rootObj);
             rb.mass            = 150f;
             rb.useGravity      = false;
             rb.isKinematic     = false;
@@ -70,80 +116,55 @@ namespace SownInStone.Editor
             rb.constraints     = RigidbodyConstraints.FreezeRotationX
                                | RigidbodyConstraints.FreezeRotationZ
                                | RigidbodyConstraints.FreezePositionY;
-            Debug.Log("[SETUP CORACLE] Đã cấu hình Rigidbody.");
 
-            // ── 4. Thêm / cấu hình BoxCollider ──────────────────────────
-            BoxCollider col = boatObj.GetComponent<BoxCollider>();
-            if (col == null) col = Undo.AddComponent<BoxCollider>(boatObj);
+            BoxCollider col = rootObj.GetComponent<BoxCollider>();
+            if (col == null) col = Undo.AddComponent<BoxCollider>(rootObj);
             col.isTrigger = false;
+            // Ở scale (1,1,1) kích thước BoxCollider khớp chuẩn xác với kích thước thuyền (2.2m)
             col.center    = new Vector3(0f, 0.25f, 0f);
             col.size      = new Vector3(2.2f, 0.6f, 2.2f);
 
-            // Xóa collider trên mesh con để tránh conflict
-            var childCols = boatObj.GetComponentsInChildren<Collider>(true);
-            foreach (var c in childCols)
-            {
-                if (c.gameObject != boatObj)
-                    Undo.DestroyObjectImmediate(c);
-            }
-            Debug.Log("[SETUP CORACLE] Đã cấu hình BoxCollider.");
-
-            // ── 5. Thêm / cấu hình Coracle script ───────────────────────
             var coracleType = System.Type.GetType("SownInStone.Interactions.Coracle, Assembly-CSharp");
-            if (coracleType == null)
+            if (coracleType != null)
             {
-                Debug.LogError("[SETUP CORACLE] Không tìm thấy class 'SownInStone.Interactions.Coracle'. Hãy đảm bảo dự án đã compile thành công.");
-            }
-            else
-            {
-                var coracleComp = boatObj.GetComponent(coracleType);
+                var coracleComp = rootObj.GetComponent(coracleType);
                 if (coracleComp == null)
-                    coracleComp = Undo.AddComponent(boatObj, coracleType);
+                    coracleComp = Undo.AddComponent(rootObj, coracleType);
 
-                // Gán các field qua SerializedObject để Undo hoạt động đúng
                 var so = new SerializedObject(coracleComp);
                 so.FindProperty("moveSpeed")?.SetAsFloat(5f);
                 so.FindProperty("rotationSpeed")?.SetAsFloat(80f);
 
-                // playerSeatOffset
                 var seatProp = so.FindProperty("playerSeatOffset");
                 if (seatProp != null) seatProp.vector3Value = new Vector3(0f, 0.45f, 0f);
 
-                // deliveryRange
                 so.FindProperty("deliveryRange")?.SetAsFloat(6f);
-
                 so.ApplyModifiedProperties();
-                Debug.Log("[SETUP CORACLE] Đã gắn và cấu hình script Coracle.");
             }
 
-            // ── 6. Đặt vị trí thuyền gần nhà Thành (trước sân) ─────────
-            boatObj.transform.position = new Vector3(5f, 1.15f, -12f);
-            boatObj.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
-            Debug.Log("[SETUP CORACLE] Đã đặt vị trí: (5, 1.15, -12).");
+            // ── 6. Đặt vị trí, ẩn và lưu scene ────────────────────────────
+            rootObj.transform.position = new Vector3(5f, 1.15f, -12f);
+            rootObj.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
 
-            // ── 7. Set inactive — sẽ được bật khi Phase 3 bắt đầu ───────
-            boatObj.SetActive(false);
-            Debug.Log("[SETUP CORACLE] Đã set ThuyenThung_Model thành Inactive.");
+            rootObj.SetActive(false);
 
-            // ── 8. Lưu scene ─────────────────────────────────────────────
-            EditorUtility.SetDirty(boatObj);
-            EditorSceneManager.MarkSceneDirty(boatObj.scene);
-            bool saved = EditorSceneManager.SaveScene(boatObj.scene);
+            EditorUtility.SetDirty(rootObj);
+            EditorSceneManager.MarkSceneDirty(rootObj.scene);
+            bool saved = EditorSceneManager.SaveScene(rootObj.scene);
 
             string msg = saved
                 ? "✅ Setup Coracle hoàn tất!\n\n" +
-                  "• Đã gắn: Rigidbody, BoxCollider, Coracle script\n" +
-                  "• Texture: ThuyenThung_Texture.png\n" +
-                  "• Vị trí: (5, 1.15, -12)\n" +
-                  "• Trạng thái: Inactive (sẽ hiện khi Phase 3 bắt đầu)\n" +
-                  "• Scene đã được lưu!"
-                : "⚠️ Setup hoàn tất nhưng lưu scene thất bại.\nVui lòng Ctrl+S để lưu thủ công.";
+                  "• Đã tạo root container 'Coracle' với scale (1, 1, 1)\n" +
+                  "• ThuyenThung_Model đã được đưa vào trong làm con\n" +
+                  "• Gắn đầy đủ script điều khiển lên root container\n" +
+                  "• Trạng thái: Inactive (sẽ kích hoạt khi lũ lên ở Phase 3)\n" +
+                  "• Scene đã lưu thành công!"
+                : "⚠️ Setup hoàn tất nhưng lưu scene thất bại. Hãy bấm Ctrl+S.";
 
             EditorUtility.DisplayDialog("Setup Coracle", msg, "OK");
         }
     }
 
-    /// <summary>Extension để set float value ngắn gọn</summary>
     internal static class SerializedPropertyExtensions
     {
         public static void SetAsFloat(this SerializedProperty prop, float val)
