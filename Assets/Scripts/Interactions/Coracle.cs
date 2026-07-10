@@ -188,18 +188,7 @@ namespace SownInStone.Interactions
 
             // Parent NPC to boat and seat
             npc.transform.SetParent(this.transform);
-            Vector3 parentScale = this.transform.localScale;
-            npc.transform.localScale = new Vector3(
-                parentScale.x > 0.0001f ? 1f / parentScale.x : 1f,
-                parentScale.y > 0.0001f ? 1f / parentScale.y : 1f,
-                parentScale.z > 0.0001f ? 1f / parentScale.z : 1f
-            );
-            Vector3 seatOffset = npcSeatOffsets[slot];
-            npc.transform.localPosition = new Vector3(
-                parentScale.x > 0.0001f ? seatOffset.x / parentScale.x : seatOffset.x,
-                parentScale.y > 0.0001f ? seatOffset.y / parentScale.y : seatOffset.y,
-                parentScale.z > 0.0001f ? seatOffset.z / parentScale.z : seatOffset.z
-            );
+            npc.transform.localPosition = npcSeatOffsets[slot];
             npc.transform.localRotation = Quaternion.identity;
 
             Debug.Log($"[BOAT] {npc.NPCName} đã lên thuyền (slot {slot}).");
@@ -223,7 +212,6 @@ namespace SownInStone.Interactions
                 if (npc == null) continue;
 
                 npc.transform.SetParent(null);
-                npc.transform.localScale = Vector3.one;
                 tm?.OnNPCDeliveredToRoof(npc.characterType);
             }
             rescuedNPCsOnBoard.Clear();
@@ -239,7 +227,6 @@ namespace SownInStone.Interactions
             {
                 if (npc == null) continue;
                 npc.transform.SetParent(null);
-                npc.transform.localScale = Vector3.one;
 
                 var npcRb = npc.GetComponent<Rigidbody>();
                 if (npcRb != null)
@@ -313,20 +300,26 @@ namespace SownInStone.Interactions
             if (playerCol != null) playerCol.enabled = false;
 
             player.transform.SetParent(this.transform);
-            Vector3 playerParentScale = this.transform.localScale;
-            player.transform.localScale = new Vector3(
-                playerParentScale.x > 0.0001f ? 1f / playerParentScale.x : 1f,
-                playerParentScale.y > 0.0001f ? 1f / playerParentScale.y : 1f,
-                playerParentScale.z > 0.0001f ? 1f / playerParentScale.z : 1f
-            );
-            player.transform.localPosition = new Vector3(
-                playerParentScale.x > 0.0001f ? playerSeatOffset.x / playerParentScale.x : playerSeatOffset.x,
-                playerParentScale.y > 0.0001f ? playerSeatOffset.y / playerParentScale.y : playerSeatOffset.y,
-                playerParentScale.z > 0.0001f ? playerSeatOffset.z / playerParentScale.z : playerSeatOffset.z
-            );
+            player.transform.localPosition = playerSeatOffset;
             player.transform.localRotation = Quaternion.identity;
 
             player.enabled = false;
+
+            // --- DEBUG LOG FOR CAMERA AND SCALES ---
+            Debug.Log($"[BOAT-DEBUG] Player entered boat.");
+            Debug.Log($"[BOAT-DEBUG] Boat: pos={transform.position}, rot={transform.rotation.eulerAngles}, scale={transform.localScale}");
+            Debug.Log($"[BOAT-DEBUG] Player: parent={player.transform.parent.name}, worldPos={player.transform.position}, localPos={player.transform.localPosition}, lossyScale={player.transform.lossyScale}");
+            Camera mainCam = Camera.main;
+            if (mainCam != null)
+            {
+                Debug.Log($"[BOAT-DEBUG] Main Camera: parent={(mainCam.transform.parent != null ? mainCam.transform.parent.name : "none")}, worldPos={mainCam.transform.position}, rot={mainCam.transform.rotation.eulerAngles}");
+                var follow = mainCam.GetComponent<CameraFollow3D>();
+                if (follow != null)
+                {
+                    Debug.Log($"[BOAT-DEBUG] CameraFollow3D: mode={follow.CurrentMode}");
+                }
+            }
+            // ----------------------------------------
 
             var playerAnim = player.GetComponentInChildren<Animator>() ?? player.GetComponent<Animator>();
             if (playerAnim != null)
@@ -350,7 +343,6 @@ namespace SownInStone.Interactions
             if (playerCol != null) playerCol.enabled = true;
 
             activePlayer.transform.SetParent(null);
-            activePlayer.transform.localScale = Vector3.one;
 
             Vector3 exitPos = transform.position + transform.TransformDirection(exitOffset);
             exitPos.y = savedPlayerY;
