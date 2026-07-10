@@ -165,4 +165,13 @@ namespace SownInStone.Editor
             EditorUtility.DisplayDialog("Setup Coracle", msg, "OK");
         }
     }
+
+    internal static class SerializedPropertyExtensions
+    {
+        public static void SetAsFloat(this SerializedProperty prop, float val)
+        {
+            if (prop == null) return;
+            prop.floatValue = val;
+        }
+    }
 }
