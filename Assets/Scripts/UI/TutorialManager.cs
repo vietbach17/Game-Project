@@ -1158,9 +1158,9 @@ namespace SownInStone
             var existing = boatObj.transform.Find("VisualModel");
             if (existing != null) return;
 
-            // Nếu đã có bất kỳ MeshRenderer con nào thì cũng bỏ qua
-            // (chỉ kiểm tra theo tên để tránh bỏ qua renderer hỏng/vô hình)
-            // Không dùng GetComponentInChildren<MeshRenderer> vì có thể bắt nhầm renderer disabled.
+            // Nếu boatObj hoặc các con của nó đã có MeshRenderer (ví dụ: ThuyenThung_Model trong scene)
+            // thì không tạo thêm mesh — chỉ đảm bảo Collider + Coracle script đã đúng ở ngoài.
+            if (boatObj.GetComponentInChildren<MeshRenderer>(true) != null) return;
 
             // ── Thử dùng prefab được gán qua Inspector (coracleVisualPrefab) ────
             if (coracleVisualPrefab != null)
