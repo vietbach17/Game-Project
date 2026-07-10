@@ -64,6 +64,10 @@ namespace SownInStone
         public bool shouldTriggerLoudspeakerOnDialogueClose = false;
 
         [Header("--- SINH TỒN & CỨU HỘ ---")]
+        [Tooltip("Kéo model ThuyenThung_Model.fbx từ Assets/Prefabs/Coracle vào đây")]
+        [SerializeField] private GameObject coracleVisualPrefab;
+        [Tooltip("Kéo ThuyenThung_Texture.png vào đây để hiển thị texture đúng")]
+        [SerializeField] private Texture2D coracleTexture;
         public int rescuedNPCsCount = 0;
         public float rescueTimeRemaining = 60f;
         public bool allNPCsRescued = false; // Flag: đã cứu đủ 4 người, chờ hết timer mới tele lên nóc nhà
@@ -1068,17 +1072,18 @@ namespace SownInStone
 
             SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_emergency_alarm");
 
-            // Hiện bảng nhiệm vụ — nhấn Space để tắt (dùng ShowDialogue thông thường)
+            // Hiện bảng nhiệm vụ — nhấn Space để tắt
             if (SurvivalUIManager.Instance != null)
             {
                 SurvivalUIManager.Instance.ShowDialogue(
                     "🚨 NHIỆM VỤ: CỨU TRỢ DÂN LÀNG",
-                    "Nước lũ dâng cao! Bạn hãy:\n" +
-                    "① Lên Thuyền Thúng ở sân nhà (nhấn E khi đứng cạnh thuyền)\n" +
-                    "② Chèo thuyền (WASD) đến từng nhà dân làng\n" +
-                    "③ Nhấn E khi ở trên thuyền để cứu từng người lên thuyền\n" +
-                    "④ Chèo về nhà mình rồi nhấn E để đưa mọi người lên nóc nhà\n" +
-                    "\nNhấn [Space] để bắt đầu!"
+                    "Nước lũ dâng cao! Bạn có một chiếc thuyền thúng để cứu người.\n\n" +
+                    "① Lại gần THUYỀN THÚNG và nhấn [E] để lên thuyền\n" +
+                    "② Dùng [W/A/S/D] để chèo thuyền đến từng ngôi nhà dân làng\n" +
+                    "③ Nhấn [E] khi đang ở trên thuyền để đưa từng người lên thuyền\n" +
+                    "④ Chèo thuyền về gần nhà mình, rồi nhấn [E] để đưa họ lên nóc nhà\n\n" +
+                    "Cần cứu: O Thắm • Bác Năm • Cụ Bảy • Bé Tí\n" +
+                    "\n[Space] để đóng và bắt đầu!"
                 );
             }
 
@@ -1157,7 +1162,34 @@ namespace SownInStone
             // (chỉ kiểm tra theo tên để tránh bỏ qua renderer hỏng/vô hình)
             // Không dùng GetComponentInChildren<MeshRenderer> vì có thể bắt nhầm renderer disabled.
 
-            // ── Thử load FBX từ Resources ──────────────────────────────────
+            // ── Thử dùng prefab được gán qua Inspector (coracleVisualPrefab) ────
+            if (coracleVisualPrefab != null)
+            {
+                GameObject visualObj = UnityEngine.Object.Instantiate(coracleVisualPrefab, boatObj.transform);
+                visualObj.name = "VisualModel";
+                visualObj.transform.localPosition = Vector3.zero;
+                visualObj.transform.localRotation = Quaternion.identity;
+                visualObj.transform.localScale = Vector3.one;
+
+                // Gán texture nếu có
+                if (coracleTexture != null)
+                {
+                    foreach (var r in visualObj.GetComponentsInChildren<Renderer>())
+                    {
+                        var mat = r.material;
+                        if (mat.HasProperty("_BaseMap")) mat.SetTexture("_BaseMap", coracleTexture);
+                        else if (mat.HasProperty("_MainTex")) mat.SetTexture("_MainTex", coracleTexture);
+                    }
+                }
+                // Xóa Collider trên model (collider đã ở boatObj gốc)
+                foreach (var c in visualObj.GetComponentsInChildren<Collider>())
+                    UnityEngine.Object.Destroy(c);
+
+                Debug.Log("[RESCUE] Đã gán model FBX (Inspector ref) cho Thuyền Thúng.");
+                return;
+            }
+
+            // ── Fallback: Resources.Load (nếu model ở trong Assets/Resources) ────
             GameObject modelPrefab = Resources.Load<GameObject>("Prefabs/Coracle/Coracle_Model");
             if (modelPrefab != null)
             {
@@ -1165,20 +1197,13 @@ namespace SownInStone
                 visualObj.name = "VisualModel";
                 visualObj.transform.localPosition = Vector3.zero;
                 visualObj.transform.localRotation = Quaternion.identity;
-                visualObj.transform.localScale = Vector3.one * 1.5f; // scale up để đủ nhìn thấy
-
-                Material boatMat = Resources.Load<Material>("Prefabs/Coracle/Mat_Coracle");
-                if (boatMat != null)
-                {
-                    foreach (var r in visualObj.GetComponentsInChildren<Renderer>())
-                        r.sharedMaterial = boatMat;
-                }
-                Debug.Log("[RESCUE] Đã gán model FBX cho Thuyền Thúng.");
+                visualObj.transform.localScale = Vector3.one * 1.5f;
+                Debug.Log("[RESCUE] Đã gán model FBX (Resources) cho Thuyền Thúng.");
                 return;
             }
 
-            // ── Fallback: tạo primitive hình thuyền thúng bằng primitive ───
-            Debug.LogWarning("[RESCUE] Không tìm thấy Coracle_Model trong Resources — dùng primitive fallback.");
+            // ── Fallback cuối: tạo primitive hình thuyền thúng để luôn hiện thị ────
+            Debug.LogWarning("[RESCUE] coracleVisualPrefab chưa được gán trong Inspector! Dùng primitive fallback.");
 
             // Thân thuyền: cylinder dẹt màu nâu gỗ
             GameObject body = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
@@ -1207,29 +1232,20 @@ namespace SownInStone
 
         private void ApplyColor(GameObject go, Color color)
         {
-            var renderer = go.GetComponent<Renderer>();
-            if (renderer == null) return;
+            var rend = go.GetComponent<Renderer>();
+            if (rend == null) return;
 
-            // URP dùng "Universal Render Pipeline/Lit", Built-in dùng "Standard"
-            // Thử theo thứ tự ưu tiên
-            Shader shader = Shader.Find("Universal Render Pipeline/Lit")
-                         ?? Shader.Find("Lit")
-                         ?? Shader.Find("Standard")
-                         ?? Shader.Find("Sprites/Default");
+            // Clone material mặc định của primitive (Unity tự cấu hình đúng cho pipeline hiện tại)
+            var mat = new Material(rend.sharedMaterial);
 
-            if (shader == null)
-            {
-                // Cuối cùng dùng material mặc định của renderer nếu không tìm được shader
-                renderer.material.color = color;
-                return;
-            }
-
-            var mat = new Material(shader);
-            mat.color = color;
-            // URP Lit cần set _BaseColor thay vì _Color
+            // URP Lit dùng _BaseColor, Built-in Standard dùng _Color
             if (mat.HasProperty("_BaseColor"))
                 mat.SetColor("_BaseColor", color);
-            renderer.material = mat;
+            else if (mat.HasProperty("_Color"))
+                mat.SetColor("_Color", color);
+
+            mat.color = color;
+            rend.material = mat;
         }
 
         /// <summary>
