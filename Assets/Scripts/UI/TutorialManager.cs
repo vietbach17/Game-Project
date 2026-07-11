@@ -1099,8 +1099,9 @@ namespace SownInStone
             if (existingCoracle != null)
             {
                 existingCoracle.gameObject.SetActive(true);
-                existingCoracle.transform.position = new Vector3(5f, 1.15f, -12f);
-                existingCoracle.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
+                Vector3 currentPos = existingCoracle.transform.position;
+                existingCoracle.transform.position = new Vector3(currentPos.x, 1.15f, currentPos.z);
+                existingCoracle.transform.rotation = Quaternion.identity;
 
                 Rigidbody rb = existingCoracle.GetComponent<Rigidbody>();
                 if (rb != null)
@@ -1118,8 +1119,8 @@ namespace SownInStone
 
             // Tạo mới GameObject Thuyền Thúng tại vị trí trước nhà Thành
             GameObject boatObj = new GameObject("Coracle");
-            boatObj.transform.position = new Vector3(5f, 1.15f, -12f);
-            boatObj.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
+            boatObj.transform.position = new Vector3(7.35f, 1.15f, -13.96f);
+            boatObj.transform.rotation = Quaternion.identity;
 
             // Cấu hình vật lý Rigidbody cho thuyền thúng arcade
             Rigidbody rbComp = boatObj.AddComponent<Rigidbody>();
