@@ -103,11 +103,11 @@ namespace SownInStone.Interactions
             bool hasNPCs = rescuedNPCsOnBoard.Count > 0;
 
             // Build prompt string
-            string prompt = $"[{activePlayer.keyInteract}] Xuống thuyền thúng";
+            string prompt = "[F] Xuống thuyền thúng";
             if (nearHouse && hasNPCs)
             {
                 prompt = $"[{activePlayer.keyInteract}] Đưa {rescuedNPCsOnBoard.Count} người lên nóc nhà\n" +
-                         $"[Space] Xuống thuyền thúng";
+                         "[F] Xuống thuyền thúng";
             }
 
             if (SownInStone.UI.SurvivalUIManager.Instance != null)
@@ -123,20 +123,20 @@ namespace SownInStone.Interactions
             if (Keyboard.current != null)
             {
                 bool eKey     = Keyboard.current.eKey.wasPressedThisFrame;
-                bool spaceKey = Keyboard.current.spaceKey.wasPressedThisFrame;
+                bool fKey     = Keyboard.current.fKey.wasPressedThisFrame;
 
                 if (nearHouse && hasNPCs && eKey)
                     deliverPressed = true;
-                else if (spaceKey || (!hasNPCs && eKey))
+                else if (fKey)
                     exitPressed = true;
             }
 #else
             bool eDown     = Input.GetKeyDown(activePlayer.keyInteract) || Input.GetKeyDown(KeyCode.E);
-            bool spaceDown = Input.GetKeyDown(KeyCode.Space);
+            bool fDown     = Input.GetKeyDown(KeyCode.F);
 
             if (nearHouse && hasNPCs && eDown)
                 deliverPressed = true;
-            else if (spaceDown || (!hasNPCs && eDown))
+            else if (fDown)
                 exitPressed = true;
 #endif
 
@@ -194,6 +194,13 @@ namespace SownInStone.Interactions
             npc.transform.localPosition = npcSeatOffsets[slot];
             npc.transform.localRotation = Quaternion.identity;
 
+            // Disable NPC animator root motion to prevent drift/clipping
+            var npcAnim = npc.GetComponentInChildren<Animator>() ?? npc.GetComponent<Animator>();
+            if (npcAnim != null)
+            {
+                npcAnim.applyRootMotion = false;
+            }
+
             Debug.Log($"[BOAT] {npc.NPCName} đã lên thuyền (slot {slot}).");
             return true;
         }
@@ -215,6 +222,14 @@ namespace SownInStone.Interactions
                 if (npc == null) continue;
 
                 npc.transform.SetParent(null);
+
+                // Restore animator root motion
+                var npcAnim = npc.GetComponentInChildren<Animator>() ?? npc.GetComponent<Animator>();
+                if (npcAnim != null)
+                {
+                    npcAnim.applyRootMotion = true;
+                }
+
                 tm?.OnNPCDeliveredToRoof(npc.characterType);
             }
             rescuedNPCsOnBoard.Clear();
@@ -236,6 +251,13 @@ namespace SownInStone.Interactions
                 {
                     npcRb.isKinematic = false;
                     npcRb.useGravity  = true;
+                }
+
+                // Restore animator root motion
+                var npcAnim = npc.GetComponentInChildren<Animator>() ?? npc.GetComponent<Animator>();
+                if (npcAnim != null)
+                {
+                    npcAnim.applyRootMotion = true;
                 }
             }
             rescuedNPCsOnBoard.Clear();
@@ -368,7 +390,7 @@ namespace SownInStone.Interactions
             Debug.Log("[BOAT] Player lên thuyền thúng.");
         }
 
-        private void ExitBoat()
+        public void ExitBoat()
         {
             if (activePlayer == null) return;
 
