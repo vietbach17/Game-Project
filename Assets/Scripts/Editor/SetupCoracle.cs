@@ -74,6 +74,7 @@ namespace SownInStone.Editor
             Undo.SetTransformParent(modelObj.transform, rootObj.transform, "Parent Model to Coracle");
             modelObj.transform.localPosition = Vector3.zero;
             modelObj.transform.localRotation = Quaternion.identity;
+            modelObj.SetActive(true); // Đảm bảo model con luôn Active để hiện lên khi cha Active!
             // ThuyenThung_Model giữ nguyên scale gốc của nó (ví dụ: 100,100,100) để hiển thị bình thường
             modelObj.name = "ThuyenThung_Model";
 
