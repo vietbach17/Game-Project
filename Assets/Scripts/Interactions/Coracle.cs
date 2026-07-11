@@ -262,13 +262,31 @@ namespace SownInStone.Interactions
             turnVal = Input.GetAxis("Horizontal");
 #endif
 
-            Vector3 moveDir = transform.forward * moveVal * moveSpeed;
-            rb.linearVelocity = new Vector3(moveDir.x, 0f, moveDir.z);
-
-            if (Mathf.Abs(moveVal) > 0.05f || Mathf.Abs(turnVal) > 0.05f)
+            // Lấy hướng di chuyển dựa trên hướng nhìn của Camera (giống như đi dưới đất)
+            Vector3 camForward = Vector3.forward;
+            Vector3 camRight = Vector3.right;
+            Camera mainCam = Camera.main;
+            if (mainCam != null)
             {
-                float rotSign = moveVal >= 0f ? 1f : -1f;
-                transform.Rotate(0f, turnVal * rotationSpeed * rotSign * Time.deltaTime, 0f);
+                camForward = mainCam.transform.forward;
+                camRight = mainCam.transform.right;
+                camForward.y = 0f;
+                camRight.y = 0f;
+                camForward.Normalize();
+                camRight.Normalize();
+            }
+
+            Vector3 targetMoveDir = camForward * moveVal + camRight * turnVal;
+            if (targetMoveDir.sqrMagnitude > 0.01f)
+            {
+                targetMoveDir.Normalize();
+                Vector3 moveDir = targetMoveDir * moveSpeed;
+                rb.linearVelocity = new Vector3(moveDir.x, 0f, moveDir.z);
+
+                // Xoay thuyền hướng theo hướng di chuyển của camera-relative
+                float targetYaw = Mathf.Atan2(targetMoveDir.x, targetMoveDir.z) * Mathf.Rad2Deg;
+                Quaternion targetRot = Quaternion.Euler(0f, targetYaw, 0f);
+                transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, Time.deltaTime * 5f);
             }
             else
             {
