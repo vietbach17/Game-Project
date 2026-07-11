@@ -145,10 +145,11 @@ namespace SownInStone.Editor
             }
 
             // ── 6. Đặt vị trí, ẩn và lưu scene ────────────────────────────
-            rootObj.transform.position = new Vector3(5f, 1.15f, -12f);
+            // Đặt thuyền ngồi trên mặt đất (Y=0.3) trước khi lũ lên
+            rootObj.transform.position = new Vector3(5f, 0.3f, -12f);
             rootObj.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
 
-            rootObj.SetActive(false);
+            rootObj.SetActive(true);
 
             EditorUtility.SetDirty(rootObj);
             EditorSceneManager.MarkSceneDirty(rootObj.scene);
