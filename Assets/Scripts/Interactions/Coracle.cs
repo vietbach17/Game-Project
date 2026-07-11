@@ -278,6 +278,14 @@ namespace SownInStone.Interactions
         public void Interact(PlayerController player)
         {
             if (isOccupied) return;
+
+            // Kiểm tra xem đã đến giai đoạn cứu hộ (Phase 3) chưa
+            if (TutorialManager.Instance != null && TutorialManager.Instance.currentStage < TutorialManager.TutorialStage.RescuingNPCs)
+            {
+                SownInStone.UI.SurvivalUIManager.Instance?.ShowHUDToast("⚠️ Thuyền thúng hiện tại chưa sử dụng được. Hãy tập trung chuẩn bị trước bão lũ!");
+                return;
+            }
+
             EnterBoat(player);
         }
 
