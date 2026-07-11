@@ -276,6 +276,23 @@ namespace SownInStone.Interactions
             }
         }
 
+        private void FixedUpdate()
+        {
+            if (!isOccupied || activePlayer == null) return;
+
+            // Kéo nhân vật theo thuyền mỗi frame vật lý — KHÔNG dùng SetParent.
+            // Tính vị trí ghế ngồi trong không gian thế giới từ tọa độ cục bộ của thuyền.
+            Vector3 seatWorldPos = transform.TransformPoint(playerSeatOffset);
+            activePlayer.transform.position = seatWorldPos;
+
+            // Đồng bộ Rigidbody với vị trí thực tế
+            var playerRb = activePlayer.GetComponent<Rigidbody>();
+            if (playerRb != null)
+            {
+                playerRb.position = seatWorldPos;
+            }
+        }
+
         // ─── Enter / Exit ─────────────────────────────────────────────────────
 
         public void Interact(PlayerController player)
@@ -296,47 +313,30 @@ namespace SownInStone.Interactions
 
         private void EnterBoat(PlayerController player)
         {
-            activePlayer  = player;
-            isOccupied    = true;
-            savedPlayerY  = player.transform.position.y;
+            activePlayer = player;
+            isOccupied   = true;
+            savedPlayerY = player.transform.position.y;
+
+            // Tắt hoàn toàn mọi hệ thống vật lý và di chuyển của nhân vật
+            player.enabled = false;
 
             var playerRb = player.GetComponent<Rigidbody>();
             if (playerRb != null)
             {
-                playerRb.isKinematic   = true;
+                playerRb.isKinematic    = true;
                 playerRb.linearVelocity = Vector3.zero;
+                playerRb.angularVelocity = Vector3.zero;
             }
-
-            var playerCol = player.GetComponent<Collider>();
-            if (playerCol != null) playerCol.enabled = false;
 
             var cc = player.GetComponent<CharacterController>();
             if (cc != null) cc.enabled = false;
 
-            // Đồng bộ hóa vật lý để giải phóng cache của CharacterController
+            var playerCol = player.GetComponent<Collider>();
+            if (playerCol != null) playerCol.enabled = false;
+
+            // KHÔNG dùng SetParent — thay vào đó FixedUpdate sẽ kéo nhân vật theo thuyền
+            // bằng cách cập nhật vị trí thế giới (world position) mỗi frame vật lý.
             Physics.SyncTransforms();
-
-            player.transform.SetParent(this.transform);
-            player.transform.localPosition = playerSeatOffset;
-            player.transform.localRotation = Quaternion.identity;
-
-            player.enabled = false;
-
-            // --- DEBUG LOG FOR CAMERA AND SCALES ---
-            Debug.Log($"[BOAT-DEBUG] Player entered boat.");
-            Debug.Log($"[BOAT-DEBUG] Boat: pos={transform.position}, rot={transform.rotation.eulerAngles}, scale={transform.localScale}");
-            Debug.Log($"[BOAT-DEBUG] Player: parent={player.transform.parent.name}, worldPos={player.transform.position}, localPos={player.transform.localPosition}, lossyScale={player.transform.lossyScale}");
-            Camera mainCam = Camera.main;
-            if (mainCam != null)
-            {
-                Debug.Log($"[BOAT-DEBUG] Main Camera: parent={(mainCam.transform.parent != null ? mainCam.transform.parent.name : "none")}, worldPos={mainCam.transform.position}, rot={mainCam.transform.rotation.eulerAngles}");
-                var follow = mainCam.GetComponent<CameraFollow3D>();
-                if (follow != null)
-                {
-                    Debug.Log($"[BOAT-DEBUG] CameraFollow3D: mode={follow.CurrentMode}");
-                }
-            }
-            // ----------------------------------------
 
             var playerAnim = player.GetComponentInChildren<Animator>() ?? player.GetComponent<Animator>();
             if (playerAnim != null)
@@ -354,32 +354,32 @@ namespace SownInStone.Interactions
         {
             if (activePlayer == null) return;
 
-            activePlayer.enabled = true;
+            // Tính vị trí thoát ra ngoài thuyền
+            Vector3 exitPos = transform.position + transform.TransformDirection(exitOffset);
+            exitPos.y = savedPlayerY;
 
-            var playerCol = activePlayer.GetComponent<Collider>();
-            if (playerCol != null) playerCol.enabled = true;
+            // Đặt vị trí nhân vật trước khi bật lại các hệ thống
+            activePlayer.transform.position = exitPos;
+            activePlayer.transform.rotation = Quaternion.Euler(0f, transform.rotation.eulerAngles.y, 0f);
 
             var cc = activePlayer.GetComponent<CharacterController>();
             if (cc != null) cc.enabled = true;
 
-            activePlayer.transform.SetParent(null);
-
-            Vector3 exitPos = transform.position + transform.TransformDirection(exitOffset);
-            exitPos.y = savedPlayerY;
-            activePlayer.transform.position = exitPos;
-            activePlayer.transform.rotation = transform.rotation;
-
-            // Đồng bộ hóa vật lý để CharacterController nhận diện vị trí mới ngay lập tức
-            Physics.SyncTransforms();
+            var playerCol = activePlayer.GetComponent<Collider>();
+            if (playerCol != null) playerCol.enabled = true;
 
             var playerRb = activePlayer.GetComponent<Rigidbody>();
             if (playerRb != null)
             {
                 playerRb.isKinematic    = false;
                 playerRb.position       = exitPos;
-                playerRb.rotation       = transform.rotation;
                 playerRb.linearVelocity = Vector3.zero;
+                playerRb.angularVelocity = Vector3.zero;
             }
+
+            Physics.SyncTransforms();
+
+            activePlayer.enabled = true;
 
             if (SownInStone.UI.SurvivalUIManager.Instance != null)
                 SownInStone.UI.SurvivalUIManager.Instance.SetInteractionPrompt("");
