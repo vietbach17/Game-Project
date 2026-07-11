@@ -80,6 +80,8 @@ namespace SownInStone
         public bool bacNamFed = false;
         public bool cuBayFed = false;
         public bool beTiFed = false;
+        public bool hasCollectedSupplyCrate = false;
+        public bool isExhaustedAndReadyToSleep = false;
 
         public bool oThamHouseCleaned = false;
         public bool bacNamHouseCleaned = false;
@@ -1051,6 +1053,8 @@ namespace SownInStone
             bacNamFed = false;
             cuBayFed = false;
             beTiFed = false;
+            hasCollectedSupplyCrate = false;
+            isExhaustedAndReadyToSleep = false;
 
             oThamHouseCleaned = false;
             bacNamHouseCleaned = false;
@@ -1486,28 +1490,22 @@ namespace SownInStone
                 }
             }
 
-            // Phát mì tôm cứu trợ giống như thiết lập cũ
-            if (StorageManager.Instance != null && PlayerController.Instance != null && PlayerController.Instance.seedItem != null)
-            {
-                // Cho thêm mì gói và khoai gieo nếu người chơi không có đủ khoai chia sẻ
-                ItemData noodles = StorageManager.Instance.GetItemDataByID("item_mi_tom");
-#if UNITY_EDITOR
-                if (noodles == null) noodles = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Noodles.asset");
-#endif
-                if (noodles != null) StorageManager.Instance.AddItem(noodles, 4);
+            // Khởi tạo các cờ nhiệm vụ vớt hòm tiếp tế và kiệt sức
+            hasCollectedSupplyCrate = false;
+            isExhaustedAndReadyToSleep = false;
 
-                ItemData preserved = StorageManager.Instance.GetItemDataByID("item_khoai_gieo");
-#if UNITY_EDITOR
-                if (preserved == null) preserved = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_PreservedCrop.asset");
-#endif
-                if (preserved != null) StorageManager.Instance.AddItem(preserved, 2);
+            // Sinh hòm tiếp tế trôi dạt để người chơi vớt
+            if (PlayerController.Instance != null)
+            {
+                PlayerController.Instance.SpawnSupplyCrate();
             }
 
             if (SurvivalUIManager.Instance != null)
             {
                 SurvivalUIManager.Instance.ShowDialogue(
                     "CẮM TRẠI NÓC NHÀ",
-                    "Cả xóm đã sơ tán lên nóc nhà Thành an toàn! Bên ngoài nước lũ đang ngập úng mênh mông cô lập. Hãy tương tác với lò sưởi ấm, xô nước mưa để sinh tồn, và quan trọng nhất: Hãy chia sẻ khoai gieo dự trữ cho 4 dân làng trên nóc nhà cùng sống qua ngày!"
+                    "Cả xóm đã sơ tán lên nóc nhà Thành an toàn! Bên ngoài nước lũ đang ngập úng mênh mông cô lập.\n\n" +
+                    "Hiện tại mọi người đang đói lả. Hãy nhìn xuống mặt nước và nhấn [E] ở mép mái nhà để vớt hòm gỗ tiếp tế trôi dạt, sau đó mở hòm lấy thực phẩm để chia sẻ cho mọi người!"
                 );
             }
 
@@ -1532,12 +1530,59 @@ namespace SownInStone
 
             if (fedCount >= 4)
             {
-                StartPostStormCleanupStage();
+                isExhaustedAndReadyToSleep = true;
+                if (SurvivalUIManager.Instance != null)
+                {
+                    SurvivalUIManager.Instance.ShowDialogue(
+                        "MỆT LẢ SAU CỨU HỘ",
+                        "Cảm ơn Thành! Mọi người đã được chia sẻ lương thực tiếp tế đầy đủ ấm lòng.\n\n" +
+                        "Nhưng lúc này bạn đã kiệt sức sau chuỗi ngày chèo thuyền cứu hộ liên tục. Hãy di chuyển đến chiếc đệm hơi màu xanh lá cây trên mái nhà và nhấn [E] để ngủ nghỉ chờ nước lũ rút."
+                    );
+                }
+
+                // Spawn đệm hơi nằm ngủ trên mái nhà
+                if (PlayerController.Instance != null)
+                {
+                    PlayerController.Instance.SpawnRoofSleepingPlace();
+                }
+
+                UpdateHUDPanel();
             }
             else
             {
                 UpdateHUDPanel();
             }
+        }
+
+        public void TrySleepOnRoof()
+        {
+            if (currentStage != TutorialStage.RoofSurvivalSharing) return;
+            if (!hasCollectedSupplyCrate)
+            {
+                if (SurvivalUIManager.Instance != null)
+                {
+                    SurvivalUIManager.Instance.ShowDialogue("CÒN NHIỆM VỤ", "Bạn đang quá đó đói và kiệt sức, hãy vớt hòm tiếp tế trôi dạt ở mép mái nhà và cùng ăn với mọi người trước đã!");
+                }
+                return;
+            }
+            if (!isExhaustedAndReadyToSleep)
+            {
+                if (SurvivalUIManager.Instance != null)
+                {
+                    SurvivalUIManager.Instance.ShowDialogue("CÒN NHIỆM VỤ", "Hãy chia sẻ đầy đủ lương thực tiếp tế cho cả 4 dân làng trên mái nhà trước khi đi ngủ!");
+                }
+                return;
+            }
+
+            // Đã đủ điều kiện ngủ
+            if (SurvivalUIManager.Instance != null)
+            {
+                SurvivalUIManager.Instance.ShowDialogue(
+                    "GIẤC NGỦ TRÊN MÁI NHÀ",
+                    "Bạn chìm vào giấc ngủ sâu trên mái nhà giữa tiếng sóng vỗ rì rào của nước lũ. Sáng hôm sau, khi ánh nắng rạng rỡ chiếu xuống, nước lũ đã rút hết..."
+                );
+            }
+            StartPostStormCleanupStage();
         }
 
         public void StartPostStormCleanupStage()
@@ -2150,22 +2195,45 @@ namespace SownInStone
             else if (currentStage == TutorialStage.RoofSurvivalSharing)
             {
                 hudPanel.SetActive(true);
-                hudTitleText.text = "CHIA SẺ KHOAI GIEO NÓC NHÀ";
+                if (!hasCollectedSupplyCrate)
+                {
+                    hudTitleText.text = "VỚT HÒM TIẾP TẾ LŨ LỤT";
+                    hudTaskAText.text = " <color=#E74C3C>☐</color> Vớt hòm tiếp tế ở mép mái nhà";
+                    hudTaskAText.color = Color.white;
 
-                hudTaskAText.text = (oThamFed ? " <color=#2ECC71>✓</color> " : " <color=#E74C3C>☐</color> ") + "O Thắm (Đã no)";
-                hudTaskAText.color = oThamFed ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
+                    hudTaskBText.gameObject.SetActive(false);
+                    hudTaskCText.gameObject.SetActive(false);
+                    hudTaskDText.gameObject.SetActive(false);
+                }
+                else if (!isExhaustedAndReadyToSleep)
+                {
+                    hudTitleText.text = "CHIA SẺ LƯƠNG THỰC CỨU TRỢ";
+                    
+                    hudTaskAText.text = (oThamFed ? " <color=#2ECC71>✓</color> " : " <color=#E74C3C>☐</color> ") + "O Thắm (Chia sẻ đồ ăn)";
+                    hudTaskAText.color = oThamFed ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
 
-                hudTaskBText.text = (bacNamFed ? " <color=#2ECC71>✓</color> " : " <color=#E74C3C>☐</color> ") + "Bác Năm (Đã no)";
-                hudTaskBText.color = bacNamFed ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
-                hudTaskBText.gameObject.SetActive(true);
+                    hudTaskBText.text = (bacNamFed ? " <color=#2ECC71>✓</color> " : " <color=#E74C3C>☐</color> ") + "Bác Năm (Chia sẻ đồ ăn)";
+                    hudTaskBText.color = bacNamFed ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
+                    hudTaskBText.gameObject.SetActive(true);
 
-                hudTaskCText.text = (cuBayFed ? " <color=#2ECC71>✓</color> " : " <color=#E74C3C>☐</color> ") + "Cụ Bảy (Đã no)";
-                hudTaskCText.color = cuBayFed ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
-                hudTaskCText.gameObject.SetActive(true);
+                    hudTaskCText.text = (cuBayFed ? " <color=#2ECC71>✓</color> " : " <color=#E74C3C>☐</color> ") + "Cụ Bảy (Chia sẻ đồ ăn)";
+                    hudTaskCText.color = cuBayFed ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
+                    hudTaskCText.gameObject.SetActive(true);
 
-                hudTaskDText.text = (beTiFed ? " <color=#2ECC71>✓</color> " : " <color=#E74C3C>☐</color> ") + "Bé Tí (Đã no)";
-                hudTaskDText.color = beTiFed ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
-                hudTaskDText.gameObject.SetActive(true);
+                    hudTaskDText.text = (beTiFed ? " <color=#2ECC71>✓</color> " : " <color=#E74C3C>☐</color> ") + "Bé Tí (Chia sẻ đồ ăn)";
+                    hudTaskDText.color = beTiFed ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
+                    hudTaskDText.gameObject.SetActive(true);
+                }
+                else
+                {
+                    hudTitleText.text = "NẰM NGHỈ CHỜ NƯỚC RÚT";
+                    hudTaskAText.text = " <color=#E74C3C>☐</color> Tìm đệm hơi / lều trên mái để ngủ";
+                    hudTaskAText.color = Color.white;
+
+                    hudTaskBText.gameObject.SetActive(false);
+                    hudTaskCText.gameObject.SetActive(false);
+                    hudTaskDText.gameObject.SetActive(false);
+                }
             }
             else if (currentStage == TutorialStage.PostStormCleanup)
             {

@@ -613,6 +613,12 @@ namespace SownInStone.Core
                             SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
                             SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast("🍜 HỒM TIẾP TẾ: Nhận được 4 gói Mì tôm và 4 củ Khoai gieo khô!");
                             
+                            if (TutorialManager.Instance != null)
+                            {
+                                TutorialManager.Instance.hasCollectedSupplyCrate = true;
+                                TutorialManager.Instance.UpdateHUDPanel();
+                            }
+
                             Destroy(roofChest);
                             roofPlacedChestInstance = null;
                         }
@@ -627,11 +633,9 @@ namespace SownInStone.Core
                     prompt = "[E] Đi ngủ trên mái nhà (Chuyển sang Ngày mới)";
                     if (Input.GetKeyDown(KeyCode.E))
                     {
-                        Destroy(sleepingPlace);
-                        roofSleepingPlaceInstance = null;
                         if (TutorialManager.Instance != null)
                         {
-                            TutorialManager.Instance.StartPostStormCleanupStage();
+                            TutorialManager.Instance.TrySleepOnRoof();
                         }
                         return;
                     }
