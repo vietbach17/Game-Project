@@ -313,6 +313,9 @@ namespace SownInStone.Interactions
             var cc = player.GetComponent<CharacterController>();
             if (cc != null) cc.enabled = false;
 
+            // Đồng bộ hóa vật lý để giải phóng cache của CharacterController
+            Physics.SyncTransforms();
+
             player.transform.SetParent(this.transform);
             player.transform.localPosition = playerSeatOffset;
             player.transform.localRotation = Quaternion.identity;
@@ -365,6 +368,9 @@ namespace SownInStone.Interactions
             exitPos.y = savedPlayerY;
             activePlayer.transform.position = exitPos;
             activePlayer.transform.rotation = transform.rotation;
+
+            // Đồng bộ hóa vật lý để CharacterController nhận diện vị trí mới ngay lập tức
+            Physics.SyncTransforms();
 
             var playerRb = activePlayer.GetComponent<Rigidbody>();
             if (playerRb != null)
