@@ -67,14 +67,27 @@ namespace SownInStone.Editor
                 Undo.RegisterCompleteObjectUndo(rootObj, "Setup Coracle Root");
             }
 
-            // Đảm bảo Root Container "Coracle" luôn có scale (1,1,1) để người chơi/NPC lên thuyền không bị méo/bay lên trời!
+            // Ghi nhận vị trí, xoay và tỷ lệ hiện tại của model trong scene để bảo toàn thiết lập của bạn
+            Vector3 originalWorldPos = modelObj.transform.position;
+            Quaternion originalWorldRot = modelObj.transform.rotation;
+            Vector3 originalLocalScale = modelObj.transform.localScale;
+
+            // Nếu scale đang quá nhỏ (ví dụ 1,1,1) thì ép về 100,100,100 để không bị vô hình
+            if (originalLocalScale.x < 10f)
+            {
+                originalLocalScale = new Vector3(100f, 100f, 100f);
+            }
+
+            // Đặt cha Coracle tại vị trí của model
+            rootObj.transform.position = originalWorldPos;
+            rootObj.transform.rotation = Quaternion.identity; // Giữ hướng di chuyển thẳng chuẩn thế giới
             rootObj.transform.localScale = Vector3.one;
 
             // Đưa modelObj làm con của rootObj
             Undo.SetTransformParent(modelObj.transform, rootObj.transform, "Parent Model to Coracle");
             modelObj.transform.localPosition = Vector3.zero;
-            modelObj.transform.localRotation = Quaternion.identity;
-            modelObj.transform.localScale = new Vector3(100f, 100f, 100f); // Ép scale 100,100,100 để hiển thị chuẩn kích thước thực tế (2 mét)
+            modelObj.transform.localRotation = originalWorldRot; // Giữ nguyên góc xoay gốc (ví dụ: X=180) để thuyền ngửa lên
+            modelObj.transform.localScale = originalLocalScale;
             modelObj.SetActive(true); // Đảm bảo model con luôn Active để hiện lên khi cha Active!
             modelObj.name = "ThuyenThung_Model";
 
@@ -145,10 +158,6 @@ namespace SownInStone.Editor
             }
 
             // ── 6. Đặt vị trí, ẩn và lưu scene ────────────────────────────
-            // Đặt thuyền ngồi trên mặt đất (Y=0.3) trước khi lũ lên
-            rootObj.transform.position = new Vector3(5f, 0.3f, -12f);
-            rootObj.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
-
             rootObj.SetActive(true);
 
             EditorUtility.SetDirty(rootObj);
