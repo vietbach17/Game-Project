@@ -86,7 +86,7 @@ namespace SownInStone.Editor
             // Đưa modelObj làm con của rootObj
             Undo.SetTransformParent(modelObj.transform, rootObj.transform, "Parent Model to Coracle");
             modelObj.transform.localPosition = Vector3.zero;
-            modelObj.transform.localRotation = originalWorldRot; // Giữ nguyên góc xoay gốc (ví dụ: X=180) để thuyền ngửa lên
+            modelObj.transform.localRotation = Quaternion.Euler(0f, 180f, 0f); // Ép xoay chuẩn (0, 180, 0) để thuyền luôn ngửa lên trên
             modelObj.transform.localScale = originalLocalScale;
             modelObj.SetActive(true); // Đảm bảo model con luôn Active để hiện lên khi cha Active!
             modelObj.name = "ThuyenThung_Model";
