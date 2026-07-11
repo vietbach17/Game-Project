@@ -1662,7 +1662,14 @@ namespace SownInStone.Core
                                     Coracle boat = closestCollider.GetComponent<Coracle>();
                                     if (boat != null)
                                     {
-                                        prompt = $"[{keyInteract}] Lên thuyền thúng";
+                                        if (TutorialManager.Instance != null && TutorialManager.Instance.currentStage < TutorialManager.TutorialStage.RescuingNPCs)
+                                        {
+                                            prompt = "Thuyền thúng (Chưa sử dụng được)";
+                                        }
+                                        else
+                                        {
+                                            prompt = $"[{keyInteract}] Lên thuyền thúng";
+                                        }
                                     }
                                     else
                                     {
