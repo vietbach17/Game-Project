@@ -44,6 +44,7 @@ namespace SownInStone.Interactions
         private PlayerController activePlayer;
         private bool isOccupied;
         private Vector3 exitOffset = new Vector3(0f, 0f, -1.8f);
+        private float initialY = 0.51f; // Tọa độ Y mặc định của thuyền khi chưa có lũ
 
         // Rescued NPCs currently on the boat
         private readonly List<NPCCharacter> rescuedNPCsOnBoard = new List<NPCCharacter>();
@@ -68,12 +69,14 @@ namespace SownInStone.Interactions
             rb.isKinematic = false;
             rb.mass = 150f;
             rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ | RigidbodyConstraints.FreezePositionY;
+
+            initialY = transform.position.y;
         }
 
         private void Update()
         {
-            // Float boat to water surface
-            float targetY = 0f;
+            // Float boat to water surface if flood is active, else stay at initial position
+            float targetY = initialY;
             if (WeatherManager.Instance != null && WeatherManager.Instance.FloodLevel > 0.01f)
             {
                 targetY = -0.05f + WeatherManager.Instance.FloodLevel;
@@ -307,6 +310,9 @@ namespace SownInStone.Interactions
             var playerCol = player.GetComponent<Collider>();
             if (playerCol != null) playerCol.enabled = false;
 
+            var cc = player.GetComponent<CharacterController>();
+            if (cc != null) cc.enabled = false;
+
             player.transform.SetParent(this.transform);
             player.transform.localPosition = playerSeatOffset;
             player.transform.localRotation = Quaternion.identity;
@@ -349,6 +355,9 @@ namespace SownInStone.Interactions
 
             var playerCol = activePlayer.GetComponent<Collider>();
             if (playerCol != null) playerCol.enabled = true;
+
+            var cc = activePlayer.GetComponent<CharacterController>();
+            if (cc != null) cc.enabled = true;
 
             activePlayer.transform.SetParent(null);
 
