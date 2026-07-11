@@ -152,8 +152,12 @@ namespace SownInStone.UI
                 }
             }
 
-            // Khoảng cách kích hoạt hiển thị proximity UI (1.7 mét)
-            if (closestNPC != null && minDistance <= 1.7f)
+            // Khoảng cách kích hoạt hiển thị proximity UI (1.7 mét hoặc 3.5 mét khi trên thuyền)
+            bool playerOnBoat = SownInStone.Interactions.Coracle.Instance != null &&
+                                SownInStone.Interactions.Coracle.Instance.IsPlayerOnBoard;
+            float maxInteractionDistance = playerOnBoat ? 3.5f : 1.7f;
+
+            if (closestNPC != null && minDistance <= maxInteractionDistance)
             {
                 if (activeNPC != closestNPC)
                 {
