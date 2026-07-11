@@ -509,8 +509,14 @@ namespace SownInStone.Core
             GameObject houseObj = GameObject.Find("Thanh_House");
             Vector3 center = houseObj != null ? houseObj.transform.position : transform.position;
             
-            // Cho hòm tiếp tế xuất hiện xa xa phía trước (Z = +10.0m so với ngôi nhà)
-            Vector3 spawnPos = center + new Vector3(UnityEngine.Random.Range(-2f, 2f), 1f, 10f);
+            float waterY = 2.0f;
+            if (SownInStone.Weather.WeatherManager.Instance != null)
+            {
+                waterY = SownInStone.Weather.WeatherManager.Instance.floodLevel;
+            }
+
+            // Sinh hòm tiếp tế nổi trên mặt nước và gần mép mái nhà hơn (Z = +5.5m so với tâm ngôi nhà)
+            Vector3 spawnPos = center + new Vector3(UnityEngine.Random.Range(-1.5f, 1.5f), waterY + 0.4f, 5.5f);
             GameObject crate = GameObject.CreatePrimitive(PrimitiveType.Cube);
             crate.name = "SupplyCrate_Floated";
             crate.transform.position = spawnPos;
@@ -523,6 +529,7 @@ namespace SownInStone.Core
             }
             
             spawnedCrates.Add(crate);
+            Physics.SyncTransforms();
         }
 
         private void UpdateRoofInteractionPrompts()
