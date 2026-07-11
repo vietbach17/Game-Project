@@ -875,7 +875,7 @@ namespace SownInStone
                 if (colGo == null)
                 {
                     colGo = new GameObject("TempRoofCollider");
-                    colGo.transform.position = houseObj.transform.position + new Vector3(0f, 4.9f, 0f);
+                    colGo.transform.position = houseObj.transform.position + new Vector3(0f, 4.5f, 0f);
                     colGo.transform.rotation = houseObj.transform.rotation;
                     
                     var boxCol = colGo.AddComponent<BoxCollider>();
@@ -1326,7 +1326,7 @@ namespace SownInStone
                         break;
                 }
 
-                Vector3 roofSpot = center + new Vector3(xOffset, 5.2f, zOffset);
+                Vector3 roofSpot = center + new Vector3(xOffset, 5.51f, zOffset);
                 npc.transform.position = roofSpot;
                 
                 var rbNPC = npc.GetComponent<Rigidbody>();
@@ -1448,7 +1448,7 @@ namespace SownInStone
                 }
 
                 GameObject houseObj = FindThanhHouse();
-                Vector3 roofPos = houseObj != null ? houseObj.transform.position + new Vector3(0f, 6.2f, 0f) : new Vector3(10.66f, 6.2f, -10.0f);
+                Vector3 roofPos = houseObj != null ? houseObj.transform.position + new Vector3(0f, 5.7f, 0f) : new Vector3(10.66f, 5.7f, -10.0f);
                 SafeTeleportPlayer(roofPos);
                 var rb = PlayerController.Instance.GetComponent<Rigidbody>();
                 if (rb != null)
