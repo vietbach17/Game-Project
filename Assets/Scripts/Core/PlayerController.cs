@@ -512,7 +512,7 @@ namespace SownInStone.Core
             float waterY = 2.0f;
             if (SownInStone.Weather.WeatherManager.Instance != null)
             {
-                waterY = SownInStone.Weather.WeatherManager.Instance.floodLevel;
+                waterY = SownInStone.Weather.WeatherManager.Instance.FloodLevel;
             }
 
             // Sinh hòm tiếp tế nổi trên mặt nước và gần mép mái nhà hơn (Z = +5.5m so với tâm ngôi nhà)
