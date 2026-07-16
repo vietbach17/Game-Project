@@ -82,6 +82,8 @@ namespace SownInStone.Core
         private GameObject roofCampfireInstance;
         private GameObject roofWaterCollectorInstance;
         private GameObject roofStoveInstance;
+        private GameObject roofPlacedChestInstance;
+        private GameObject roofSleepingPlaceInstance;
         private float campfireBurnTime = 45f;
         private float collectedRainwater = 0f;
         private float playerBodyTemp = 37f;
@@ -89,6 +91,10 @@ namespace SownInStone.Core
         private System.Collections.Generic.List<GameObject> spawnedCrates = new System.Collections.Generic.List<GameObject>();
 
         public bool IsOnRoof => isOnRoof;
+        public void SetOnRoof(bool value)
+        {
+            isOnRoof = value;
+        }
         public bool IsInsideHouse => isInsideHouse;
 
         [Header("--- HỆ THỐNG CHẮN LŨ (TASK 2) ---")]
@@ -321,23 +327,9 @@ namespace SownInStone.Core
                     );
                 }
             }
-
-            // 3. Xử lý tác động khi người chơi trượt chân rơi xuống nước lũ trong bão
-            if (isOnRoof && transform.position.y < 2.0f)
-            {
-                if (PlayerStats.Instance != null)
-                {
-                    PlayerStats.Instance.ApplyColdStress(15f * Time.deltaTime);
-                    PlayerStats.Instance.ModifyHealth(-5f * Time.deltaTime);
-                }
-                if (UnityEngine.Random.value < 0.005f)
-                {
-                    SownInStone.UI.SurvivalUIManager.Instance?.ShowHUDToast("⚠️ BẠN ĐÃ BỊ RƠI XUỐNG NƯỚC LŨ! Hãy đi đến cửa nhà bấm [E] để leo trở lại lên nóc nhà!");
-                }
-            }
         }
 
-        private void SetupRoofSurvivalObjects()
+        public void SetupRoofSurvivalObjects()
         {
             CleanupRoofSurvivalObjects();
 
@@ -347,38 +339,11 @@ namespace SownInStone.Core
             // 1. Nền đứng nóc nhà (invisible platform) để người chơi đứng vững
             roofPlatformInstance = GameObject.CreatePrimitive(PrimitiveType.Plane);
             roofPlatformInstance.name = "RoofSurvivalPlatform";
-            roofPlatformInstance.transform.position = center + new Vector3(0f, 2.7f, 0f);
-            roofPlatformInstance.transform.localScale = new Vector3(0.5f, 1f, 0.5f); // 5m x 5m platform
+            roofPlatformInstance.transform.position = center + new Vector3(0f, 5.0f, 0f);
+            roofPlatformInstance.transform.localScale = new Vector3(0.8f, 1f, 0.8f); // 8m x 8m platform to match TempRoofCollider
             
             var rendPlatform = roofPlatformInstance.GetComponent<Renderer>();
             if (rendPlatform != null) rendPlatform.enabled = false;
-
-            // 2. Lò Sưởi Ấm (Campfire)
-            roofCampfireInstance = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            roofCampfireInstance.name = "RoofCampfire";
-            roofCampfireInstance.transform.position = center + new Vector3(-1.2f, 2.85f, 1.2f);
-            roofCampfireInstance.transform.localScale = new Vector3(0.4f, 0.15f, 0.4f);
-            Destroy(roofCampfireInstance.GetComponent<Collider>());
-            var rendCamp = roofCampfireInstance.GetComponent<Renderer>();
-            if (rendCamp != null) rendCamp.material.color = Color.red;
-
-            // 3. Xô nước mưa (Rainwater Collector)
-            roofWaterCollectorInstance = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            roofWaterCollectorInstance.name = "RoofWaterCollector";
-            roofWaterCollectorInstance.transform.position = center + new Vector3(1.2f, 2.9f, 1.2f);
-            roofWaterCollectorInstance.transform.localScale = new Vector3(0.3f, 0.25f, 0.3f);
-            Destroy(roofWaterCollectorInstance.GetComponent<Collider>());
-            var rendWater = roofWaterCollectorInstance.GetComponent<Renderer>();
-            if (rendWater != null) rendWater.material.color = Color.grey;
-
-            // 4. Bếp gas mini (Mini Stove)
-            roofStoveInstance = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            roofStoveInstance.name = "RoofMiniStove";
-            roofStoveInstance.transform.position = center + new Vector3(1.2f, 2.85f, -1.2f);
-            roofStoveInstance.transform.localScale = new Vector3(0.4f, 0.15f, 0.4f);
-            Destroy(roofStoveInstance.GetComponent<Collider>());
-            var rendStove = roofStoveInstance.GetComponent<Renderer>();
-            if (rendStove != null) rendStove.material.color = Color.grey;
 
             campfireBurnTime = 45f;
             collectedRainwater = 0f;
@@ -389,13 +354,17 @@ namespace SownInStone.Core
         private void CleanupRoofSurvivalObjects()
         {
             if (roofPlatformInstance != null) { Destroy(roofPlatformInstance); roofPlatformInstance = null; }
-            if (roofCampfireInstance != null) { Destroy(roofCampfireInstance); roofCampfireInstance = null; }
-            if (roofWaterCollectorInstance != null) { Destroy(roofWaterCollectorInstance); roofWaterCollectorInstance = null; }
-            if (roofStoveInstance != null) { Destroy(roofStoveInstance); roofStoveInstance = null; }
+        }
 
-            foreach (var crate in spawnedCrates)
+        public void CleanupRoofSurvivalObjectsAndMattress()
+        {
+            CleanupRoofSurvivalObjects();
+            if (roofPlacedChestInstance != null) { Destroy(roofPlacedChestInstance); roofPlacedChestInstance = null; }
+            if (roofSleepingPlaceInstance != null) { Destroy(roofSleepingPlaceInstance); roofSleepingPlaceInstance = null; }
+            
+            for (int i = spawnedCrates.Count - 1; i >= 0; i--)
             {
-                if (crate != null) Destroy(crate);
+                if (spawnedCrates[i] != null) Destroy(spawnedCrates[i]);
             }
             spawnedCrates.Clear();
         }
@@ -406,67 +375,12 @@ namespace SownInStone.Core
 
             if (GameManager.Instance == null || WeatherManager.Instance == null) return;
 
-            // 1. Cập nhật lò sưởi
-            if (roofCampfireInstance != null)
-            {
-                campfireBurnTime = Mathf.Max(0f, campfireBurnTime - Time.deltaTime);
-                var rend = roofCampfireInstance.GetComponent<Renderer>();
-                if (rend != null)
-                {
-                    rend.material.color = campfireBurnTime > 0f ? new Color(1.0f, 0.3f, 0f) : Color.black;
-                }
-            }
-
-            // 2. Hứng nước mưa sạch
-            if (roofWaterCollectorInstance != null && WeatherManager.Instance.RainIntensity > 0.1f)
-            {
-                collectedRainwater = Mathf.Min(5.0f, collectedRainwater + WeatherManager.Instance.RainIntensity * 0.05f * Time.deltaTime);
-                var rend = roofWaterCollectorInstance.GetComponent<Renderer>();
-                if (rend != null)
-                {
-                    rend.material.color = Color.Lerp(Color.grey, new Color(0f, 0.5f, 1.0f), collectedRainwater / 5.0f);
-                }
-            }
-
-            // 3. Lạnh buốt & Thân nhiệt
-            if (PlayerStats.Instance != null)
-            {
-                bool isNearFire = roofCampfireInstance != null && campfireBurnTime > 0f && Vector3.Distance(transform.position, roofCampfireInstance.transform.position) <= 2.2f && transform.position.y >= 2.0f;
-                if (isNearFire)
-                {
-                    playerBodyTemp = Mathf.Min(37.0f, playerBodyTemp + 0.4f * Time.deltaTime);
-                    PlayerStats.Instance.ApplyColdStress(-6.0f * Time.deltaTime);
-                }
-                else
-                {
-                    // Lạnh hơn nếu dầm nước ở dưới nhà
-                    float tempLoss = transform.position.y < 2.0f ? 0.25f : 0.04f;
-                    playerBodyTemp = Mathf.Max(32.0f, playerBodyTemp - tempLoss * Time.deltaTime);
-                    
-                    float coldIncrease = transform.position.y < 2.0f ? 15.0f : 2.5f;
-                    PlayerStats.Instance.ApplyColdStress(coldIncrease * Time.deltaTime);
-                }
-
-                if (playerBodyTemp < 35.0f)
-                {
-                    PlayerStats.Instance.ModifyHealth(-1.8f * Time.deltaTime);
-                    PlayerStats.Instance.ModifyMorale(-1.2f * Time.deltaTime);
-                    if (UnityEngine.Random.value < 0.002f)
-                    {
-                        PlayerStats.Instance.TriggerAlert("⚠️ THÂN NHIỆT HẠ THẤP! Hãy di chuyển lại gần lò sưởi ấm hoặc ăn uống!");
-                    }
-                }
-            }
-
-            // 4. Sinh hòm tiếp tế
-            if (Time.time - lastCrateSpawnTime > 22.0f)
-            {
-                lastCrateSpawnTime = Time.time;
-                SpawnSupplyCrate();
-            }
-
-            // 5. Di chuyển hòm tiếp tế trôi nổi
+            // 5. Di chuyển hòm tiếp tế trôi nổi (Nổi hẳn trên mặt nước lũ)
             float waterY = WeatherManager.Instance.FloodLevel > 0.5f ? WeatherManager.Instance.FloodLevel : 0.5f;
+            GameObject houseObjForCrate = GameObject.Find("Thanh_House");
+            float houseZ = houseObjForCrate != null ? houseObjForCrate.transform.position.z : transform.position.z;
+            float targetZ = houseZ + 4.2f; // Dừng lại ở khoảng cách Z = +4.2m bên ngoài rìa mái nhà để không bị chìm/khuất dưới mái nhà
+
             for (int i = spawnedCrates.Count - 1; i >= 0; i--)
             {
                 var crate = spawnedCrates[i];
@@ -476,28 +390,73 @@ namespace SownInStone.Core
                     continue;
                 }
 
-                crate.transform.position += new Vector3(0f, 0f, -1.0f) * Time.deltaTime;
-                Vector3 pos = crate.transform.position;
-                pos.y = waterY + 0.1f;
-                crate.transform.position = pos;
-
-                if (crate.transform.position.z < transform.position.z - 8.0f)
+                // Hòm tiếp tế trôi về phía nóc nhà Thành và dừng lại
+                if (crate.transform.position.z > targetZ)
                 {
-                    Destroy(crate);
-                    spawnedCrates.RemoveAt(i);
+                    crate.transform.position += new Vector3(0f, 0f, -1.2f) * Time.deltaTime;
                 }
+                else if (crate.transform.position.z < targetZ - 0.1f)
+                {
+                    Vector3 temp = crate.transform.position;
+                    temp.z = targetZ;
+                    crate.transform.position = temp;
+                }
+
+                Vector3 pos = crate.transform.position;
+                pos.y = waterY + 0.4f; // Nổi cao hơn mặt nước để nhìn thấy rõ ràng
+                crate.transform.position = pos;
             }
 
             // 6. Tương tác HUD
             UpdateRoofInteractionPrompts();
         }
 
-        private void SpawnSupplyCrate()
+        private Material GetURPCompatibleMaterial()
+        {
+            // Tìm Renderer trong nhà Thanh_House để copy URP Material thực tế
+            GameObject houseObj = GameObject.Find("Thanh_House");
+            if (houseObj != null)
+            {
+                var rends = houseObj.GetComponentsInChildren<Renderer>();
+                foreach (var r in rends)
+                {
+                    if (r != null && r.sharedMaterial != null)
+                    {
+                        Material mat = new Material(r.sharedMaterial);
+                        mat.mainTexture = null; // Bỏ texture để hiện màu trơn
+                        return mat;
+                    }
+                }
+            }
+
+            // Fallback 1: URP Simple Lit
+            Shader urpSimpleLit = Shader.Find("Universal Render Pipeline/Simple Lit");
+            if (urpSimpleLit != null) return new Material(urpSimpleLit);
+
+            // Fallback 2: URP Lit
+            Shader urpLit = Shader.Find("Universal Render Pipeline/Lit");
+            if (urpLit != null) return new Material(urpLit);
+
+            // Fallback 3: Sprites/Default
+            Shader spritesDefault = Shader.Find("Sprites/Default");
+            if (spritesDefault != null) return new Material(spritesDefault);
+
+            return new Material(Shader.Find("Standard"));
+        }
+
+        public void SpawnSupplyCrate()
         {
             GameObject houseObj = GameObject.Find("Thanh_House");
             Vector3 center = houseObj != null ? houseObj.transform.position : transform.position;
             
-            Vector3 spawnPos = center + new Vector3(UnityEngine.Random.Range(-5f, 5f), 1f, 10f);
+            float waterY = 2.0f;
+            if (SownInStone.Weather.WeatherManager.Instance != null)
+            {
+                waterY = SownInStone.Weather.WeatherManager.Instance.FloodLevel;
+            }
+
+            // Sinh hòm tiếp tế nổi trên mặt nước và gần mép mái nhà hơn (Z = +5.5m so với tâm ngôi nhà)
+            Vector3 spawnPos = center + new Vector3(UnityEngine.Random.Range(-1.5f, 1.5f), waterY + 0.4f, 5.5f);
             GameObject crate = GameObject.CreatePrimitive(PrimitiveType.Cube);
             crate.name = "SupplyCrate_Floated";
             crate.transform.position = spawnPos;
@@ -506,10 +465,12 @@ namespace SownInStone.Core
             var rend = crate.GetComponent<Renderer>();
             if (rend != null)
             {
+                rend.material = GetURPCompatibleMaterial();
                 rend.material.color = new Color(0.6f, 0.4f, 0.2f);
             }
             
             spawnedCrates.Add(crate);
+            Physics.SyncTransforms();
         }
 
         private void UpdateRoofInteractionPrompts()
@@ -542,13 +503,16 @@ namespace SownInStone.Core
             }
             else
             {
-                // Kiểm tra hòm tiếp tế
+                // 1. Kiểm tra hòm tiếp tế trôi dạt (khoảng cách 2D trên mặt phẳng XZ)
                 GameObject nearestCrate = null;
-                float bestDist = 3.5f;
+                float bestDist = 4.0f; // tăng khoảng cách một chút để vớt dễ từ mép mái
                 foreach (var crate in spawnedCrates)
                 {
                     if (crate == null) continue;
-                    float dist = Vector3.Distance(transform.position, crate.transform.position);
+                    // Lấy vị trí XZ bỏ qua Y
+                    Vector3 playerXZ = new Vector3(transform.position.x, 0f, transform.position.z);
+                    Vector3 crateXZ = new Vector3(crate.transform.position.x, 0f, crate.transform.position.z);
+                    float dist = Vector3.Distance(playerXZ, crateXZ);
                     if (dist < bestDist)
                     {
                         bestDist = dist;
@@ -558,48 +522,75 @@ namespace SownInStone.Core
 
                 if (nearestCrate != null)
                 {
-                    prompt = "[E] Vớt hòm gỗ tiếp tế trôi dạt";
-                    if (Input.GetKeyDown(KeyCode.E))
+                    prompt = "[R] Vớt hòm gỗ tiếp tế trôi dạt";
+                    if (Input.GetKeyDown(KeyCode.R))
                     {
                         spawnedCrates.Remove(nearestCrate);
                         Destroy(nearestCrate);
                         
                         SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_place_object");
                         
-                        int rand = UnityEngine.Random.Range(0, 3);
-                        if (rand == 0 && StorageManager.Instance != null && noodlesItem != null)
+                        // Sinh hòm gỗ thực tế trên mái nhà
+                        SpawnPlacedChestOnRoof();
+                        
+                        SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast("📦 Đã vớt hòm tiếp tế đặt lên mái nhà! Hãy mở hòm ra để lấy thực phẩm.");
+                        return;
+                    }
+                }
+                
+                // 2. Kiểm tra hòm tiếp tế thực tế trên mái nhà
+                GameObject roofChest = GameObject.Find("Roof_Supply_Chest");
+                if (roofChest != null && Vector3.Distance(transform.position, roofChest.transform.position) <= 2.2f)
+                {
+                    prompt = "[R] Mở hòm tiếp tế để lấy thực phẩm";
+                    if (Input.GetKeyDown(KeyCode.R))
+                    {
+                        if (StorageManager.Instance != null)
                         {
-                            StorageManager.Instance.AddItem(noodlesItem, 2);
-                            SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast("📦 VỚT TIẾP TẾ: Nhận được 2 gói Mì Tôm Cứu Trợ!");
-                        }
-                        else if (rand == 1 && StorageManager.Instance != null)
-                        {
-                            ItemData board = StorageManager.Instance.GetItemDataByID("item_flood_board");
+                            ItemData noodles = StorageManager.Instance.GetItemDataByID("item_mi_tom");
 #if UNITY_EDITOR
-                            if (board == null) board = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_flood_board.asset");
+                            if (noodles == null) noodles = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Noodles.asset");
 #endif
-                            if (board != null)
-                            {
-                                StorageManager.Instance.AddItem(board, 1);
-                            }
-                            SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast("📦 VỚT TIẾP TẾ: Nhận được 1 Tấm vách gỗ để làm củi đốt!");
-                        }
-                        else if (StorageManager.Instance != null)
-                        {
                             ItemData preserved = StorageManager.Instance.GetItemDataByID("item_khoai_gieo");
 #if UNITY_EDITOR
                             if (preserved == null) preserved = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_PreservedCrop.asset");
 #endif
-                            if (preserved != null)
+                            if (noodles != null) StorageManager.Instance.AddItem(noodles, 4);
+                            if (preserved != null) StorageManager.Instance.AddItem(preserved, 4);
+
+                            SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
+                            SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast("🍜 HỒM TIẾP TẾ: Nhận được 4 gói Mì tôm và 4 củ Khoai gieo khô!");
+                            
+                            if (TutorialManager.Instance != null)
                             {
-                                StorageManager.Instance.AddItem(preserved, 2);
+                                TutorialManager.Instance.hasCollectedSupplyCrate = true;
+                                TutorialManager.Instance.UpdateHUDPanel();
                             }
-                            SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast("📦 VỚT TIẾP TẾ: Nhận được 2 củ Khoai Gieo sấy khô củi lửa!");
+
+                            Destroy(roofChest);
+                            roofPlacedChestInstance = null;
                         }
                         return;
                     }
                 }
-                else
+
+                // 3. Kiểm tra chiếu nằm ngủ
+                GameObject sleepingPlace = GameObject.Find("Roof_Sleeping_Place");
+                if (sleepingPlace != null && Vector3.Distance(transform.position, sleepingPlace.transform.position) <= 2.2f)
+                {
+                    prompt = "[E] Đi ngủ trên mái nhà (Chuyển sang Ngày mới)";
+                    if (Input.GetKeyDown(KeyCode.E))
+                    {
+                        if (TutorialManager.Instance != null)
+                        {
+                            TutorialManager.Instance.TrySleepOnRoof();
+                        }
+                        return;
+                    }
+                }
+
+                // 4. Các vật dụng sinh tồn khác (Campfire, Stove, Rainwater Collector)
+                if (true) // fallback sang lò sưởi / vật dụng tiếp theo nếu không tương tác hòm
                 {
                     // Lò sưởi
                     if (roofCampfireInstance != null && Vector3.Distance(transform.position, roofCampfireInstance.transform.position) <= 2.2f)
@@ -705,6 +696,54 @@ namespace SownInStone.Core
             }
 
             SownInStone.UI.SurvivalUIManager.Instance.SetInteractionPrompt(prompt);
+        }
+
+        public void SpawnPlacedChestOnRoof()
+        {
+            if (roofPlacedChestInstance != null) Destroy(roofPlacedChestInstance);
+
+            GameObject houseObj = GameObject.Find("Thanh_House");
+            Vector3 center = houseObj != null ? houseObj.transform.position : transform.position;
+
+            Vector3 chestPos = center + new Vector3(0f, 5.15f, 2.2f);
+            
+            roofPlacedChestInstance = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            roofPlacedChestInstance.name = "Roof_Supply_Chest";
+            roofPlacedChestInstance.transform.position = chestPos;
+            roofPlacedChestInstance.transform.localScale = new Vector3(0.9f, 0.6f, 0.6f);
+            
+            var rend = roofPlacedChestInstance.GetComponent<Renderer>();
+            if (rend != null)
+            {
+                rend.material = GetURPCompatibleMaterial();
+                rend.material.color = new Color(0.5f, 0.3f, 0.1f);
+            }
+            
+            Physics.SyncTransforms();
+        }
+
+        public void SpawnRoofSleepingPlace()
+        {
+            if (roofSleepingPlaceInstance != null) Destroy(roofSleepingPlaceInstance);
+
+            GameObject houseObj = GameObject.Find("Thanh_House");
+            Vector3 center = houseObj != null ? houseObj.transform.position : transform.position;
+
+            Vector3 sleepPos = center + new Vector3(-1.2f, 5.025f, -1.2f);
+            
+            roofSleepingPlaceInstance = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            roofSleepingPlaceInstance.name = "Roof_Sleeping_Place";
+            roofSleepingPlaceInstance.transform.position = sleepPos;
+            roofSleepingPlaceInstance.transform.localScale = new Vector3(1.5f, 0.05f, 1.0f);
+            
+            var rend = roofSleepingPlaceInstance.GetComponent<Renderer>();
+            if (rend != null)
+            {
+                rend.material = GetURPCompatibleMaterial();
+                rend.material.color = new Color(0.1f, 0.5f, 0.1f);
+            }
+
+            Physics.SyncTransforms();
         }
 
         private void Update()
@@ -1590,7 +1629,6 @@ namespace SownInStone.Core
                     currentTargetSoil.SetHighlight(false);
                     currentTargetSoil = null;
                 }
-                SownInStone.UI.SurvivalUIManager.Instance.SetInteractionPrompt("[E] Nghỉ ngơi trên nóc nhà");
                 return;
             }
 
@@ -1662,7 +1700,14 @@ namespace SownInStone.Core
                                     Coracle boat = closestCollider.GetComponent<Coracle>();
                                     if (boat != null)
                                     {
-                                        prompt = $"[{keyInteract}] Lên thuyền thúng";
+                                        if (TutorialManager.Instance != null && TutorialManager.Instance.currentStage < TutorialManager.TutorialStage.RescuingNPCs)
+                                        {
+                                            prompt = "Thuyền thúng (Chưa sử dụng được)";
+                                        }
+                                        else
+                                        {
+                                            prompt = $"[{keyInteract}] Lên thuyền thúng";
+                                        }
                                     }
                                     else
                                     {
@@ -2226,12 +2271,11 @@ namespace SownInStone.Core
 
             if (StorageManager.Instance != null && !StorageManager.Instance.HasItem(itemData, 1))
             {
-                // Tự động cấp 5 vật phẩm vào kho đồ nếu chưa có để kiểm thử thuận tiện
-                StorageManager.Instance.AddItem(itemData, 5);
                 if (SownInStone.UI.SurvivalUIManager.Instance != null)
                 {
-                    SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast($"Đã tự động cấp 5x {itemName} vào kho để test!");
+                    SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast($"Bạn không có đủ {itemName} trong kho đồ!");
                 }
+                return;
             }
 
             StartPlacementPreview(itemData, barrierPrefab, itemName);
@@ -2360,6 +2404,56 @@ namespace SownInStone.Core
                     groundY = bestY;
                 }
                 targetPos.y = groundY;
+            }
+
+            // --- Snap vào ghost hướng dẫn gần nhất (nếu đang trong tutorial) ---
+            if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
+            {
+                GameObject closestGhost = null;
+                float closestDist = 2.5f; // bán kính snap
+                var stage = TutorialManager.Instance.currentStage;
+
+                if (stage == TutorialManager.TutorialStage.PrepareForStorm && previewItemData != null)
+                {
+                    if (previewItemData.ItemID == "item_sandbag")
+                    {
+                        for (int gi = 0; gi < Mathf.Min(TutorialManager.Instance.ghostSandbags.Count, 4); gi++)
+                        {
+                            if (TutorialManager.Instance.bacNamTargetsPlaced != null && gi < TutorialManager.Instance.bacNamTargetsPlaced.Length && TutorialManager.Instance.bacNamTargetsPlaced[gi]) continue;
+                            var g = TutorialManager.Instance.ghostSandbags[gi];
+                            if (g == null) continue;
+                            float d = Vector3.Distance(targetPos, g.transform.position);
+                            if (d < closestDist) { closestDist = d; closestGhost = g; }
+                        }
+                    }
+                    else if (previewItemData.ItemID == "item_flood_board")
+                    {
+                        for (int gi = 0; gi < Mathf.Min(TutorialManager.Instance.ghostFloodboards.Count, 2); gi++)
+                        {
+                            if (TutorialManager.Instance.oThamTargetsPlaced != null && gi < TutorialManager.Instance.oThamTargetsPlaced.Length && TutorialManager.Instance.oThamTargetsPlaced[gi]) continue;
+                            var g = TutorialManager.Instance.ghostFloodboards[gi];
+                            if (g == null) continue;
+                            float d = Vector3.Distance(targetPos, g.transform.position);
+                            if (d < closestDist) { closestDist = d; closestGhost = g; }
+                        }
+                    }
+                }
+                else if (stage == TutorialManager.TutorialStage.PrepareOwnHouse && previewItemData != null && previewItemData.ItemID == "item_flood_board")
+                {
+                    for (int gi = 0; gi < Mathf.Min(TutorialManager.Instance.ownHouseGhostFloodboards.Count, 4); gi++)
+                    {
+                        if (TutorialManager.Instance.ownHouseFloodboardsPlaced != null && gi < TutorialManager.Instance.ownHouseFloodboardsPlaced.Length && TutorialManager.Instance.ownHouseFloodboardsPlaced[gi]) continue;
+                        var g = TutorialManager.Instance.ownHouseGhostFloodboards[gi];
+                        if (g == null) continue;
+                        float d = Vector3.Distance(targetPos, g.transform.position);
+                        if (d < closestDist) { closestDist = d; closestGhost = g; }
+                    }
+                }
+
+                if (closestGhost != null)
+                {
+                    targetPos = closestGhost.transform.position;
+                }
             }
 
             activeGhostObject.transform.position = targetPos;

@@ -30,6 +30,7 @@ namespace SownInStone.Audio
 
         private AudioSource musicSource;
         private AudioSource ambientSource;
+        private AudioSource voiceSource;
         private List<AudioSource> sfxSources = new List<AudioSource>();
 
         private Dictionary<string, AudioClip> audioClips = new Dictionary<string, AudioClip>();
@@ -91,6 +92,11 @@ namespace SownInStone.Audio
             ambientSource = gameObject.AddComponent<AudioSource>();
             ambientSource.loop = true;
             ambientSource.playOnAwake = false;
+
+            // Thiết lập kênh giọng nói nhân vật (Voice)
+            voiceSource = gameObject.AddComponent<AudioSource>();
+            voiceSource.loop = false;
+            voiceSource.playOnAwake = false;
         }
 
         /// <summary>
@@ -177,6 +183,24 @@ namespace SownInStone.Audio
                 clip = GetAudioClip("sfx_coins");
             }
 
+            // Fallback cho sfx_place_object (khi đặt bao cát/ván gỗ) -> sfx_plant
+            if (clip == null && clipName == "sfx_place_object")
+            {
+                clip = GetAudioClip("sfx_plant");
+            }
+
+            // Fallback cho sfx_emergency_alarm (còi hú khẩn cấp bão lũ) -> sfx_warning
+            if (clip == null && clipName == "sfx_emergency_alarm")
+            {
+                clip = GetAudioClip("sfx_warning");
+            }
+
+            // Fallback cho sfx_wood_hit (khi dọn gỗ sập sau bão) -> sfx_organic_wood
+            if (clip == null && clipName == "sfx_wood_hit")
+            {
+                clip = GetAudioClip("sfx_organic_wood");
+            }
+
             if (clip == null) return;
 
             // Tìm AudioSource đang rảnh trong pool
@@ -231,6 +255,51 @@ namespace SownInStone.Audio
                 }
             }
             return clip;
+        }
+
+        /// <summary>
+        /// Phát giọng nói của nhân vật (Voice).
+        /// Tự động ngắt giọng nói trước đó nếu đang phát dở.
+        /// </summary>
+        public void PlayVoice(string clipName)
+        {
+            if (voiceSource == null)
+            {
+                voiceSource = gameObject.AddComponent<AudioSource>();
+                voiceSource.loop = false;
+                voiceSource.playOnAwake = false;
+            }
+
+            // Dừng giọng nói cũ đang phát dở
+            if (voiceSource.isPlaying)
+            {
+                voiceSource.Stop();
+            }
+
+            AudioClip clip = Resources.Load<AudioClip>($"Audio/Voice/{clipName}");
+            if (clip != null)
+            {
+                voiceSource.clip = clip;
+                voiceSource.volume = sfxVolume; // Sử dụng âm lượng SFX làm cột mốc
+                voiceSource.Play();
+                Debug.Log($"[VOICE] Đang phát giọng nói nhân vật: '{clipName}'");
+            }
+            else
+            {
+                // In ra tên file mong muốn để đội ngũ lồng tiếng biết và lưu file đúng tên
+                Debug.LogWarning($"[VOICE] Thiếu file lồng tiếng. Vui lòng ghi âm và lưu vào: 'Assets/Resources/Audio/Voice/{clipName}.mp3' hoặc '.wav'");
+            }
+        }
+
+        /// <summary>
+        /// Dừng phát giọng thoại hiện tại.
+        /// </summary>
+        public void StopVoice()
+        {
+            if (voiceSource != null && voiceSource.isPlaying)
+            {
+                voiceSource.Stop();
+            }
         }
     }
 }

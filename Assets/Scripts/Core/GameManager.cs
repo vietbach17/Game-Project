@@ -143,9 +143,6 @@ namespace SownInStone.Core
             }
         }
 
-        /// <summary>
-        /// Kích hoạt chuyển đổi giai đoạn game thủ công hoặc tự động.
-        /// </summary>
         public void TransitionToPhase(GamePhase newPhase)
         {
             currentPhase = newPhase;
@@ -158,6 +155,12 @@ namespace SownInStone.Core
 
             OnDayChanged?.Invoke(currentDay);
             OnPhaseChanged?.Invoke(currentPhase);
+
+            // Kích hoạt chuỗi sự kiện Vần Công hỗ trợ chống bão khi bước vào mùa mưa bão
+            if (newPhase == GamePhase.MuaBao)
+            {
+                SownInStone.Community.CommunityManager.Instance?.TriggerStormHelpSequence();
+            }
 
             // Tự động phủ phù sa cho toàn bộ ruộng đất khi chuyển sang GĐ Phù Sa
             if (newPhase == GamePhase.PhuSa)
