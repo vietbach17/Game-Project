@@ -479,19 +479,32 @@ namespace SownInStone.UI
                     else if (npc.characterType == NPCCharacter.StoryCharacterType.CuBay) isFed = TutorialManager.Instance.cuBayFed;
                     else if (npc.characterType == NPCCharacter.StoryCharacterType.BeTi) isFed = TutorialManager.Instance.beTiFed;
 
+                    bool hasChestOpened = TutorialManager.Instance != null && TutorialManager.Instance.hasCollectedSupplyCrate;
+
                     if (!isFed)
                     {
-                        currentOptions.Add(new ProximityOption 
-                        { 
-                            label = "[E] Chia sẻ lương thực cứu trợ", 
-                            action = () => TriggerNPCRoofFoodShare(npc) 
-                        });
+                        if (hasChestOpened)
+                        {
+                            currentOptions.Add(new ProximityOption 
+                            { 
+                                label = "[E] Chia sẻ lương thực cứu trợ", 
+                                action = () => TriggerNPCRoofFoodShare(npc) 
+                            });
+                        }
+                        else
+                        {
+                            currentOptions.Add(new ProximityOption 
+                            { 
+                                label = "Hãy vớt & mở hòm tiếp tế trước", 
+                                action = null 
+                            });
+                        }
                     }
                     else
                     {
                         currentOptions.Add(new ProximityOption 
                         { 
-                            label = "Đã ăn no ấm bụng", 
+                            label = "Đang ăn no ấm bụng", 
                             action = null 
                         });
                     }
@@ -1281,19 +1294,65 @@ namespace SownInStone.UI
         {
             if (StorageManager.Instance == null || PlayerStats.Instance == null) return;
 
-            // Tìm khoai gieo khô
-            var slotKhoaiGieo = StorageManager.Instance.GetStorageSlots().Find(s => s.item != null && s.item.ItemID == "item_khoai_gieo");
-            // Tìm mì tôm
-            var slotMiTom = StorageManager.Instance.GetStorageSlots().Find(s => s.item != null && s.item.ItemID == "item_mi_tom");
+            // Nếu đang ở giai đoạn chia sẻ trên mái nhà Phase 3, bỏ qua kiểm tra balo thực tế
+            if (TutorialManager.Instance != null && TutorialManager.Instance.currentStage == TutorialManager.TutorialStage.RoofSurvivalSharing)
+            {
+                // Tìm kiếm vật phẩm để hiển thị tên cho sinh động, nếu không có thì mặc định hiển thị "Mì tôm cứu trợ"
+                var slotKhoaiGieo = StorageManager.Instance.GetStorageSlots().Find(s => s.item != null && s.item.ItemID == "item_khoai_gieo");
+                var slotMiTom = StorageManager.Instance.GetStorageSlots().Find(s => s.item != null && s.item.ItemID == "item_mi_tom");
+                
+                string foodName = "Mì tôm cứu trợ";
+                if (slotKhoaiGieo != null && slotKhoaiGieo.quantity > 0)
+                {
+                    foodName = slotKhoaiGieo.item.ItemName;
+                    StorageManager.Instance.RemoveItem(slotKhoaiGieo.item, 1);
+                }
+                else if (slotMiTom != null && slotMiTom.quantity > 0)
+                {
+                    foodName = slotMiTom.item.ItemName;
+                    StorageManager.Instance.RemoveItem(slotMiTom.item, 1);
+                }
+
+                CommunityManager.Instance?.ModifyGlobalKarma(15);
+                npc.ModifyAffection(15);
+
+                TutorialManager.Instance.FeedNPC(npc.characterType);
+
+                SurvivalUIManager.Instance?.ShowHUDToast($"🧡 Đã chia sẻ {foodName} cho {npc.NPCName}! (+15 Nghĩa Tình)");
+
+                string dialogue = "";
+                if (npc.characterType == NPCCharacter.StoryCharacterType.OTham)
+                    dialogue = $"\"Cảm ơn con nghe Thành! Ăn {foodName} ấm lòng hẳn. O Thắm sẽ không quên ơn cứu mạng này!\"";
+                else if (npc.characterType == NPCCharacter.StoryCharacterType.BacNam)
+                    dialogue = $"\"Nghĩa tình xóm giềng hoạn nạn có nhau quý lắm con. Bác Năm cảm ơn con nhiều!\"";
+                else if (npc.characterType == NPCCharacter.StoryCharacterType.CuBay)
+                    dialogue = $"\"Tấm lòng của con bồi đắp nghĩa tình làng xóm. Cầu mong gia tiên phù hộ con tai qua nạn khỏi.\"";
+                else if (npc.characterType == NPCCharacter.StoryCharacterType.BeTi)
+                    dialogue = $"\"Ngon quá chú Thành ơi! Con hết đói bụng rồi. Con cảm ơn chú Thành nhiều chú nha!\"";
+
+                SurvivalUIManager.Instance?.ShowDialogue(npc.NPCName, dialogue);
+
+                targetAlpha = 0f;
+                if (activeNPC != null)
+                {
+                    activeNPC.ReturnToDefaultRotation();
+                    activeNPC = null;
+                }
+                return;
+            }
+
+            // Fallback logic gốc (nếu có gọi từ nơi khác)
+            var slotKhoaiGieoFallback = StorageManager.Instance.GetStorageSlots().Find(s => s.item != null && s.item.ItemID == "item_khoai_gieo");
+            var slotMiTomFallback = StorageManager.Instance.GetStorageSlots().Find(s => s.item != null && s.item.ItemID == "item_mi_tom");
 
             InventorySlot slotToUse = null;
-            if (slotKhoaiGieo != null && slotKhoaiGieo.quantity > 0)
+            if (slotKhoaiGieoFallback != null && slotKhoaiGieoFallback.quantity > 0)
             {
-                slotToUse = slotKhoaiGieo;
+                slotToUse = slotKhoaiGieoFallback;
             }
-            else if (slotMiTom != null && slotMiTom.quantity > 0)
+            else if (slotMiTomFallback != null && slotMiTomFallback.quantity > 0)
             {
-                slotToUse = slotMiTom;
+                slotToUse = slotMiTomFallback;
             }
 
             if (slotToUse != null)

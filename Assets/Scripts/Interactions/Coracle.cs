@@ -79,7 +79,7 @@ namespace SownInStone.Interactions
             float targetY = initialY;
             if (WeatherManager.Instance != null && WeatherManager.Instance.FloodLevel > 0.01f)
             {
-                targetY = -0.05f + WeatherManager.Instance.FloodLevel;
+                targetY = 0.2f + WeatherManager.Instance.FloodLevel;
             }
 
             Vector3 currentPos = transform.position;
@@ -101,13 +101,22 @@ namespace SownInStone.Interactions
             // Check if Thanh_House is nearby and we have NPCs to deliver
             bool nearHouse = IsNearThanhHouse();
             bool hasNPCs = rescuedNPCsOnBoard.Count > 0;
+            bool allRescued = TutorialManager.Instance != null && TutorialManager.Instance.allNPCsRescued;
 
             // Build prompt string
             string prompt = "[F] Xuống thuyền thúng";
-            if (nearHouse && hasNPCs)
+            if (nearHouse)
             {
-                prompt = $"[{activePlayer.keyInteract}] Đưa {rescuedNPCsOnBoard.Count} người lên nóc nhà\n" +
-                         "[F] Xuống thuyền thúng";
+                if (hasNPCs)
+                {
+                    prompt = $"[{activePlayer.keyInteract}] Đưa {rescuedNPCsOnBoard.Count} người lên nóc nhà\n" +
+                             "[F] Xuống thuyền thúng";
+                }
+                else if (allRescued)
+                {
+                    prompt = $"[{activePlayer.keyInteract}] Leo lên mái nhà\n" +
+                             "[F] Xuống thuyền thúng";
+                }
             }
 
             if (SownInStone.UI.SurvivalUIManager.Instance != null)
@@ -118,6 +127,7 @@ namespace SownInStone.Interactions
             // Read inputs
             bool deliverPressed = false;
             bool exitPressed    = false;
+            bool climbPressed   = false;
 
 #if ENABLE_INPUT_SYSTEM
             if (Keyboard.current != null)
@@ -127,6 +137,8 @@ namespace SownInStone.Interactions
 
                 if (nearHouse && hasNPCs && eKey)
                     deliverPressed = true;
+                else if (nearHouse && allRescued && eKey)
+                    climbPressed = true;
                 else if (fKey)
                     exitPressed = true;
             }
@@ -136,6 +148,8 @@ namespace SownInStone.Interactions
 
             if (nearHouse && hasNPCs && eDown)
                 deliverPressed = true;
+            else if (nearHouse && allRescued && eDown)
+                climbPressed = true;
             else if (fDown)
                 exitPressed = true;
 #endif
@@ -143,6 +157,12 @@ namespace SownInStone.Interactions
             if (deliverPressed)
             {
                 DeliverNPCsToRoof();
+                return;
+            }
+
+            if (climbPressed)
+            {
+                TutorialManager.Instance.ClimbToRoof();
                 return;
             }
 
