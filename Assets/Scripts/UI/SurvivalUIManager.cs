@@ -758,6 +758,63 @@ namespace SownInStone.UI
 
         #region PHÂN HỆ HỘI THOẠI CHẠY CHỮ (TYPEWRITER)
 
+        private void ClearAllTalkingStates()
+        {
+            if (PlayerController.Instance != null)
+            {
+                Animator playerAnim = PlayerController.Instance.GetComponent<Animator>();
+                if (playerAnim == null) playerAnim = PlayerController.Instance.GetComponentInChildren<Animator>();
+                if (playerAnim != null)
+                {
+                    playerAnim.SetBool("isTalking", false);
+                }
+            }
+#if UNITY_2023_1_OR_NEWER
+            var npcs = FindObjectsByType<SownInStone.Community.NPCCharacter>();
+#else
+            var npcs = FindObjectsOfType<SownInStone.Community.NPCCharacter>();
+#endif
+            foreach (var npc in npcs)
+            {
+                if (npc != null)
+                {
+                    npc.SetTalking(false);
+                }
+            }
+        }
+
+        private void SetCharacterTalkingState(string speaker, bool talking)
+        {
+            if (speaker == "Thành" || speaker == "Player" || speaker == "Người chơi")
+            {
+                if (PlayerController.Instance != null)
+                {
+                    Animator playerAnim = PlayerController.Instance.GetComponent<Animator>();
+                    if (playerAnim == null) playerAnim = PlayerController.Instance.GetComponentInChildren<Animator>();
+                    if (playerAnim != null)
+                    {
+                        playerAnim.SetBool("isTalking", talking);
+                    }
+                }
+            }
+            else
+            {
+#if UNITY_2023_1_OR_NEWER
+                var npcs = FindObjectsByType<SownInStone.Community.NPCCharacter>();
+#else
+                var npcs = FindObjectsOfType<SownInStone.Community.NPCCharacter>();
+#endif
+                foreach (var npc in npcs)
+                {
+                    if (npc != null && npc.NPCName == speaker)
+                    {
+                        npc.SetTalking(talking);
+                        break;
+                    }
+                }
+            }
+        }
+
         public void ShowDialogue(string speaker, string content)
         {
             if (dialoguePanel == null) return;
@@ -797,6 +854,9 @@ namespace SownInStone.UI
             {
                 StopCoroutine(dialogueCoroutine);
             }
+
+            ClearAllTalkingStates();
+            SetCharacterTalkingState(speaker, true);
 
             dialogueCoroutine = StartCoroutine(TypeDialogueCoroutine(content));
         }
@@ -843,6 +903,9 @@ namespace SownInStone.UI
             {
                 StopCoroutine(dialogueCoroutine);
             }
+
+            ClearAllTalkingStates();
+            SetCharacterTalkingState(speaker, true);
 
             dialogueCoroutine = StartCoroutine(TypeDialogueCoroutine(content));
 
@@ -917,6 +980,8 @@ namespace SownInStone.UI
             {
                 TutorialManager.Instance.UpdateHUDPanel();
             }
+
+            ClearAllTalkingStates();
         }
 
         #endregion

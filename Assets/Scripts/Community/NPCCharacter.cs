@@ -523,6 +523,32 @@ namespace SownInStone.Community
         }
 
         /// <summary>
+        /// Thiết lập trạng thái hoạt họa nói chuyện cho NPC.
+        /// </summary>
+        public void SetTalking(bool talking)
+        {
+            Animator anim = GetComponent<Animator>();
+            if (anim == null) anim = GetComponentInChildren<Animator>();
+            if (anim != null)
+            {
+                anim.SetBool("isTalking", talking);
+            }
+        }
+
+        /// <summary>
+        /// Thiết lập trạng thái hoạt họa run lạnh cho NPC.
+        /// </summary>
+        public void SetShivering(bool shivering)
+        {
+            Animator anim = GetComponent<Animator>();
+            if (anim == null) anim = GetComponentInChildren<Animator>();
+            if (anim != null)
+            {
+                anim.SetBool("isShivering", shivering);
+            }
+        }
+
+        /// <summary>
         /// Tìm tất cả các renderers con và căn chỉnh chúng về trục local (0, Y, 0)
         /// giúp mô hình visual quay tại chỗ hoàn hảo mà không bị lệch tâm (xoay càn quét vòng tròn).
         /// </summary>

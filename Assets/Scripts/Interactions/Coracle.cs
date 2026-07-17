@@ -177,6 +177,7 @@ namespace SownInStone.Interactions
                 playerAnim.SetFloat("Speed", 0f);
                 playerAnim.SetFloat("Horizontal", 0f);
                 playerAnim.SetFloat("Vertical", 0f);
+                playerAnim.SetBool("isPaddling", true);
             }
 
             SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
@@ -186,6 +187,14 @@ namespace SownInStone.Interactions
         private void ExitBoat()
         {
             if (activePlayer == null) return;
+
+            // Restore player paddling state
+            Animator playerAnim = activePlayer.GetComponentInChildren<Animator>();
+            if (playerAnim == null) playerAnim = activePlayer.GetComponent<Animator>();
+            if (playerAnim != null)
+            {
+                playerAnim.SetBool("isPaddling", false);
+            }
 
             // 1. Enable player controller component
             activePlayer.enabled = true;

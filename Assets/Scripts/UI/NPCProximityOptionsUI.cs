@@ -241,7 +241,6 @@ namespace SownInStone.UI
                     stage == TutorialManager.TutorialStage.FarmingTutorial ||
                     stage == TutorialManager.TutorialStage.CraftPreservedCrops ||
                     stage == TutorialManager.TutorialStage.PrepareOwnHouse ||
-                    stage == TutorialManager.TutorialStage.ProtectFarmland ||
                     stage == TutorialManager.TutorialStage.WorshipAltar)
                 {
                     currentOptions.Add(new ProximityOption 

@@ -2645,10 +2645,7 @@ namespace SownInStone.Core
             }
             Debug.Log($"[PLASTIC MULCH] Đã phủ thành công Màng nilon bảo vệ {count} ô ruộng!");
 
-            if (TutorialManager.Instance != null)
-            {
-                TutorialManager.Instance.OnPlasticMulchApplied();
-            }
+
         }
 
         /// <summary>

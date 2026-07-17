@@ -92,6 +92,9 @@ namespace SownInStone.Weather
 
             // Tìm Directional Light
             FindDirectionalLight();
+
+            // Đồng bộ trạng thái run lạnh ban đầu theo thời tiết hiện tại
+            SetAllCharactersShivering(currentVisualWeather == WeatherType.BaoLu);
         }
 
         private void OnDestroy()
@@ -183,6 +186,7 @@ namespace SownInStone.Weather
                     targetRainIntensity = 0f;
                     targetFloodLevel = 0f;
                     if (!isMenuOpen) SownInStone.Audio.AudioManager.Instance?.PlayAmbient("ambient_rural", 0.4f);
+                    SetAllCharactersShivering(false);
                     break;
 
 
@@ -191,6 +195,7 @@ namespace SownInStone.Weather
                     targetRainIntensity = 0.3f;
                     targetFloodLevel = 0f;
                     if (!isMenuOpen) SownInStone.Audio.AudioManager.Instance?.PlayAmbient("ambient_storm", 0.5f);
+                    SetAllCharactersShivering(false);
                     break;
 
                 case GamePhase.MuaBao:
@@ -201,12 +206,14 @@ namespace SownInStone.Weather
                     {
                         SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast("⚠️ CẢNH BÁO BẢO LŨ! Hãy bọc Màng Nilon phủ ruộng, xếp Bao Cát & Tấm Chắn đê cứu xóm làng!");
                     }
+                    SetAllCharactersShivering(true);
                     break;
 
                 case GamePhase.PhuSa:
                     currentVisualWeather = WeatherType.OnDinh;
                     targetRainIntensity = 0.05f;
                     if (!isMenuOpen) SownInStone.Audio.AudioManager.Instance?.PlayAmbient("ambient_rural", 0.4f);
+                    SetAllCharactersShivering(false);
                     break;
             }
             Debug.Log($"[WEATHER MANAGER] Đồng bộ thời tiết sang: {currentVisualWeather.ToString()}");
@@ -541,6 +548,35 @@ namespace SownInStone.Weather
                 if (isInside) targetClip = 150f; 
                 Camera.main.farClipPlane = Mathf.Lerp(Camera.main.farClipPlane, targetClip, Time.deltaTime * 2.0f);
             }
+        }
+
+        private void SetAllCharactersShivering(bool shivering)
+        {
+            // Thiết lập trạng thái run lạnh cho Player
+            if (PlayerController.Instance != null)
+            {
+                Animator playerAnim = PlayerController.Instance.GetComponent<Animator>();
+                if (playerAnim == null) playerAnim = PlayerController.Instance.GetComponentInChildren<Animator>();
+                if (playerAnim != null)
+                {
+                    playerAnim.SetBool("isShivering", shivering);
+                }
+            }
+
+            // Thiết lập trạng thái run lạnh cho tất cả các NPC trong Scene
+#if UNITY_2023_1_OR_NEWER
+            var npcs = FindObjectsByType<SownInStone.Community.NPCCharacter>();
+#else
+            var npcs = FindObjectsOfType<SownInStone.Community.NPCCharacter>();
+#endif
+            foreach (var npc in npcs)
+            {
+                if (npc != null)
+                {
+                    npc.SetShivering(shivering);
+                }
+            }
+            Debug.Log($"[WEATHER] SetAllCharactersShivering: {shivering}");
         }
     }
 }

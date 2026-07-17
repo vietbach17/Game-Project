@@ -32,3 +32,6 @@
 # OS generated files
 .DS_Store
 Thumbs.db
+
+# Local Artist Plan
+/docs/3D_Character_Artist_Animator_Plan.md

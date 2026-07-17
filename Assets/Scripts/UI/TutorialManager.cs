@@ -283,10 +283,6 @@ namespace SownInStone
                 {
                     shouldTriggerLoudspeakerOnDialogueClose = false;
                     currentStage = TutorialStage.PrepareForStorm;
-                    if (GameManager.Instance != null)
-                    {
-                        GameManager.Instance.TransitionToPhase(GamePhase.ChuanBiBao);
-                    }
                     TriggerLoudspeakerAnnouncement();
                     UpdateHUDPanel();
                     npcsInScene = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Exclude);
@@ -781,10 +777,10 @@ namespace SownInStone
                 {
                     SurvivalUIManager.Instance.ShowDialogue(
                         "Nhà của bạn", 
-                        "\"Bạn đã lắp đủ 4 tấm chắn gia cố trước cửa nhà. Giờ hãy phủ màng bọc nilon bảo vệ ruộng đất!\""
+                        "\"Bạn đã lắp đủ 4 tấm chắn gia cố trước cửa nhà. Giờ hãy đi gặp Cụ Bảy để tiếp tục chuẩn bị!\""
                     );
                 }
-                StartProtectFarmlandStage();
+                StartTalkToCuBayWorshipStage();
             }
             else
             {
@@ -1056,7 +1052,7 @@ namespace SownInStone
 
             if (GameManager.Instance != null)
             {
-                GameManager.Instance.TransitionToPhase(GamePhase.MuaBao);
+                GameManager.Instance.TransitionToPhase(GamePhase.ChuanBiBao); // Chuyển sang Phase 2 (Chuẩn Bị Bão) sau khi thắp nhang
             }
 
             if (WeatherManager.Instance != null)
@@ -1207,10 +1203,15 @@ namespace SownInStone
             UpdateHUDPanel();
         }
 
-        private void StartRoofSurvivalSharingStage()
+        public void StartRoofSurvivalSharingStage()
         {
             currentStage = TutorialStage.RoofSurvivalSharing;
             
+            if (GameManager.Instance != null)
+            {
+                GameManager.Instance.TransitionToPhase(GamePhase.MuaBao); // Chuyển sang Phase 3 (Mưa Bão) khi lên nóc nhà sinh tồn
+            }
+
             // Dâng mực nước lụt cao hẳn che hết vườn tược
             if (WeatherManager.Instance != null)
             {
@@ -1877,6 +1878,7 @@ namespace SownInStone
                 if (hudTaskCText != null) hudTaskCText.gameObject.SetActive(false);
                 if (hudTaskDText != null) hudTaskDText.gameObject.SetActive(false);
             }
+
             else if (currentStage == TutorialStage.ProtectFarmland)
             {
                 hudPanel.SetActive(true);
@@ -2053,21 +2055,7 @@ namespace SownInStone
                 }
             }
 
-            if (currentStage == TutorialStage.ProtectFarmland)
-            {
-                if (AreAllFieldsCoveredByMulch())
-                {
-                    farmlandProtected = true;
-                    if (SurvivalUIManager.Instance != null)
-                    {
-                        SurvivalUIManager.Instance.ShowDialogue(
-                            "Đất ruộng an toàn", 
-                            "\"Tốt lắm! Toàn bộ ruộng đất hoa màu đã được phủ màng nilon chống ngập úng. Hãy đi gặp Cụ Bảy để tiếp tục chuẩn bị!\""
-                        );
-                    }
-                    StartTalkToCuBayWorshipStage();
-                }
-            }
+
 
             if (currentStage == TutorialStage.RescuingNPCs)
             {
