@@ -38,6 +38,9 @@ namespace SownInStone.Community
         [SerializeField] private int vanCongCredits = 0;
 
         private bool hasTalkedThisSession = false;
+        private bool isShivering = false;
+        private Transform hipsTransform = null;
+        private float defaultHipsLocalY = 0f;
 
         public bool CanReceiveTalkReward()
         {
@@ -79,6 +82,21 @@ namespace SownInStone.Community
 
             // Tự động kiểm tra và sửa hiển thị visual ở Runtime
             EnsureVisualModel();
+
+            // Tìm xương hông mixamorig:Hips
+            hipsTransform = transform.Find("mixamorig:Hips");
+            if (hipsTransform == null) hipsTransform = transform.Find("Bac_Nam@Neutral Idle/mixamorig:Hips");
+            if (hipsTransform == null) hipsTransform = transform.Find("O_Tham@Idle/mixamorig:Hips");
+            if (hipsTransform == null) hipsTransform = transform.Find("Visual/mixamorig:Hips");
+            if (hipsTransform == null)
+            {
+                var anim = GetComponentInChildren<Animator>();
+                if (anim != null) hipsTransform = anim.transform.Find("mixamorig:Hips");
+            }
+            if (hipsTransform != null)
+            {
+                defaultHipsLocalY = hipsTransform.localPosition.y;
+            }
 
             // Tự động căn chỉnh gốc (parent root) theo mô hình mesh thực tế nếu bị lệch xa
             Renderer childRenderer = GetComponentInChildren<Renderer>();
@@ -540,11 +558,28 @@ namespace SownInStone.Community
         /// </summary>
         public void SetShivering(bool shivering)
         {
+            this.isShivering = shivering;
+
             Animator anim = GetComponent<Animator>();
             if (anim == null) anim = GetComponentInChildren<Animator>();
             if (anim != null)
             {
                 anim.SetBool("isShivering", shivering);
+            }
+        }
+
+        private void LateUpdate()
+        {
+            if (hipsTransform != null)
+            {
+                if (isShivering)
+                {
+                    hipsTransform.localPosition = new Vector3(hipsTransform.localPosition.x, defaultHipsLocalY - 0.15f, hipsTransform.localPosition.z);
+                }
+                else
+                {
+                    defaultHipsLocalY = hipsTransform.localPosition.y;
+                }
             }
         }
 

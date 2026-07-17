@@ -1435,7 +1435,7 @@ namespace SownInStone
             StartRoofSurvivalSharingStage();
         }
 
-        private void StartRoofSurvivalSharingStage()
+        public void StartRoofSurvivalSharingStage()
         {
             currentStage = TutorialStage.RoofSurvivalSharing;
             
