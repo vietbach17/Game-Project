@@ -1,0 +1,255 @@
+=== DIAGNOSTIC COLLIDER LOG ===
+Current Stage: RoofSurvivalSharing
+Player Position: (2.62, 5.20, -17.84)
+Found 31 colliders within 15m radius of player:
+- Name: Ground_Physics_Bridge
+  Path: /Environment/Ground_Physics_Bridge
+  Position: (0.00, -0.30, 0.00)
+  Rotation: (0.00, 0.00, 0.00)
+  Enabled: True
+  IsTrigger: False
+  Type: MeshCollider
+  Layer: 0 (Default)
+- Name: TempRoofCollider
+  Path: /TempRoofCollider
+  Position: (2.62, 4.00, -17.84)
+  Rotation: (0.00, 0.00, 0.00)
+  Enabled: True
+  IsTrigger: False
+  Type: BoxCollider
+  Layer: 0 (Default)
+- Name: RoofSurvivalPlatform
+  Path: /RoofSurvivalPlatform
+  Position: (2.62, 5.00, -17.84)
+  Rotation: (0.00, 0.00, 0.00)
+  Enabled: True
+  IsTrigger: False
+  Type: MeshCollider
+  Layer: 0 (Default)
+- Name: Roof_Sleeping_Place
+  Path: /Roof_Sleeping_Place
+  Position: (1.42, 5.03, -19.04)
+  Rotation: (0.00, 0.00, 0.00)
+  Enabled: True
+  IsTrigger: False
+  Type: BoxCollider
+  Layer: 0 (Default)
+- Name: SoilCell_Grid_1_2
+  Path: /Environment/_Environment/RuongDat/FarmingArea/SoilCell_Grid_1_2
+  Position: (-7.66, 0.22, -16.72)
+  Rotation: (0.00, 90.27, 180.00)
+  Enabled: True
+  IsTrigger: True
+  Type: BoxCollider
+  Layer: 0 (Default)
+- Name: FenceSegment (1)
+  Path: /Environment/_Environment/RuongDat/Fences/FenceSegment (1)
+  Position: (-4.56, 0.21, -18.74)
+  Rotation: (270.00, 90.27, 0.00)
+  Enabled: True
+  IsTrigger: False
+  Type: BoxCollider
+  Layer: 0 (Default)
+- Name: SoilCell_Grid_1_1
+  Path: /Environment/_Environment/RuongDat/FarmingArea/SoilCell_Grid_1_1
+  Position: (-7.67, 0.22, -18.72)
+  Rotation: (0.00, 90.27, 180.00)
+  Enabled: True
+  IsTrigger: True
+  Type: BoxCollider
+  Layer: 0 (Default)
+- Name: SoilCell_Grid_1_0
+  Path: /Environment/_Environment/RuongDat/FarmingArea/SoilCell_Grid_1_0
+  Position: (-7.67, 0.22, -20.72)
+  Rotation: (0.00, 90.27, 180.00)
+  Enabled: True
+  IsTrigger: True
+  Type: BoxCollider
+  Layer: 0 (Default)
+- Name: SoilCell_Grid_2_2
+  Path: /Environment/_Environment/RuongDat/FarmingArea/SoilCell_Grid_2_2
+  Position: (-9.66, 0.22, -16.71)
+  Rotation: (0.00, 90.27, 180.00)
+  Enabled: True
+  IsTrigger: True
+  Type: BoxCollider
+  Layer: 0 (Default)
+- Name: SoilCell_Grid_2_1
+  Path: /Environment/_Environment/RuongDat/FarmingArea/SoilCell_Grid_2_1
+  Position: (-9.66, 0.22, -18.71)
+  Rotation: (0.00, 90.27, 180.00)
+  Enabled: True
+  IsTrigger: True
+  Type: BoxCollider
+  Layer: 0 (Default)
+- Name: FenceSegment
+  Path: /Environment/_Environment/RuongDat/Fences/FenceSegment
+  Position: (-8.63, 0.21, -21.83)
+  Rotation: (270.00, 0.27, 0.00)
+  Enabled: True
+  IsTrigger: False
+  Type: BoxCollider
+  Layer: 0 (Default)
+- Name: SoilCell_Grid_2_0
+  Path: /Environment/_Environment/RuongDat/FarmingArea/SoilCell_Grid_2_0
+  Position: (-9.67, 0.22, -20.71)
+  Rotation: (0.00, 90.27, 180.00)
+  Enabled: True
+  IsTrigger: True
+  Type: BoxCollider
+  Layer: 0 (Default)
+- Name: SoilCell_Grid_3_0
+  Path: /Environment/_Environment/RuongDat/FarmingArea/SoilCell_Grid_3_0
+  Position: (-11.67, 0.22, -20.70)
+  Rotation: (0.00, 90.27, 180.00)
+  Enabled: True
+  IsTrigger: True
+  Type: BoxCollider
+  Layer: 0 (Default)
+- Name: Shrine
+  Path: /InteractionZones/Shrine
+  Position: (10.74, 0.52, -18.56)
+  Rotation: (0.00, 181.96, 0.00)
+  Enabled: True
+  IsTrigger: True
+  Type: BoxCollider
+  Layer: 0 (Default)
+- Name: NPC_CuBay (Cụ Bảy)
+  Path: /NPC_CuBay (Cụ Bảy)
+  Position: (1.42, 5.01, -16.84)
+  Rotation: (0.00, 5.46, 0.00)
+  Enabled: True
+  IsTrigger: True
+  Type: BoxCollider
+  Layer: 0 (Default)
+- Name: SoilCell_Grid_3_1
+  Path: /Environment/_Environment/RuongDat/FarmingArea/SoilCell_Grid_3_1
+  Position: (-11.66, 0.22, -18.70)
+  Rotation: (0.00, 90.27, 180.00)
+  Enabled: True
+  IsTrigger: True
+  Type: BoxCollider
+  Layer: 0 (Default)
+- Name: SoilCell_Grid_0_1
+  Path: /Environment/_Environment/RuongDat/FarmingArea/SoilCell_Grid_0_1
+  Position: (-5.67, 0.22, -18.73)
+  Rotation: (0.00, 90.27, 180.00)
+  Enabled: True
+  IsTrigger: True
+  Type: BoxCollider
+  Layer: 0 (Default)
+- Name: SoilCell_Grid_0_2
+  Path: /Environment/_Environment/RuongDat/FarmingArea/SoilCell_Grid_0_2
+  Position: (-5.66, 0.22, -16.73)
+  Rotation: (0.00, 90.27, 180.00)
+  Enabled: True
+  IsTrigger: True
+  Type: BoxCollider
+  Layer: 0 (Default)
+- Name: Ground_Main
+  Path: /Environment/Ground_Main
+  Position: (-45.70, 0.07, -39.20)
+  Rotation: (0.00, 0.00, 0.00)
+  Enabled: True
+  IsTrigger: False
+  Type: TerrainCollider
+  Layer: 0 (Default)
+- Name: SoilCell_Grid_3_2
+  Path: /Environment/_Environment/RuongDat/FarmingArea/SoilCell_Grid_3_2
+  Position: (-11.66, 0.22, -16.70)
+  Rotation: (0.00, 90.27, 180.00)
+  Enabled: True
+  IsTrigger: True
+  Type: BoxCollider
+  Layer: 0 (Default)
+- Name: NPC_BeTi (Bé Tí)
+  Path: /NPC_BeTi (Bé Tí)
+  Position: (3.90, 4.99, -16.79)
+  Rotation: (0.00, 162.97, 0.00)
+  Enabled: True
+  IsTrigger: True
+  Type: BoxCollider
+  Layer: 0 (Default)
+- Name: NPC_OTham (O Thắm)
+  Path: /NPC_OTham (O Thắm)
+  Position: (1.42, 5.52, -18.84)
+  Rotation: (0.00, 174.29, 0.00)
+  Enabled: True
+  IsTrigger: True
+  Type: BoxCollider
+  Layer: 0 (Default)
+- Name: SoilCell_Grid_0_0
+  Path: /Environment/_Environment/RuongDat/FarmingArea/SoilCell_Grid_0_0
+  Position: (-5.67, 0.22, -20.73)
+  Rotation: (0.00, 90.27, 180.00)
+  Enabled: True
+  IsTrigger: True
+  Type: BoxCollider
+  Layer: 0 (Default)
+- Name: NPC_BacNam (Bác Năm)
+  Path: /NPC_BacNam (Bác Năm)
+  Position: (3.82, 5.51, -18.84)
+  Rotation: (0.00, 174.60, 0.00)
+  Enabled: True
+  IsTrigger: True
+  Type: BoxCollider
+  Layer: 0 (Default)
+- Name: SupplyCrate_Floated
+  Path: /SupplyCrate_Floated
+  Position: (2.38, 2.40, -13.64)
+  Rotation: (0.00, 0.00, 0.00)
+  Enabled: True
+  IsTrigger: False
+  Type: BoxCollider
+  Layer: 0 (Default)
+- Name: SupplyCrate_Floated
+  Path: /SupplyCrate_Floated
+  Position: (3.18, 2.40, -12.34)
+  Rotation: (0.00, 0.00, 0.00)
+  Enabled: True
+  IsTrigger: False
+  Type: BoxCollider
+  Layer: 0 (Default)
+- Name: Roof_Sleeping_Place
+  Path: /Roof_Sleeping_Place
+  Position: (1.42, 5.03, -19.04)
+  Rotation: (0.00, 0.00, 0.00)
+  Enabled: True
+  IsTrigger: False
+  Type: BoxCollider
+  Layer: 0 (Default)
+- Name: RoofSurvivalPlatform
+  Path: /RoofSurvivalPlatform
+  Position: (2.62, 5.00, -17.84)
+  Rotation: (0.00, 0.00, 0.00)
+  Enabled: True
+  IsTrigger: False
+  Type: MeshCollider
+  Layer: 0 (Default)
+- Name: Coracle
+  Path: /Coracle
+  Position: (2.65, 2.22, -12.49)
+  Rotation: (0.00, 216.40, 0.00)
+  Enabled: True
+  IsTrigger: False
+  Type: BoxCollider
+  Layer: 0 (Default)
+  Has Rigidbody: Coracle (isKinematic=False, useGravity=False)
+- Name: Player
+  Path: /Player
+  Position: (2.62, 5.20, -17.84)
+  Rotation: (0.00, 216.40, 0.00)
+  Enabled: True
+  IsTrigger: True
+  Type: BoxCollider
+  Layer: 0 (Default)
+  Has Rigidbody: Player (isKinematic=False, useGravity=False)
+- Name: Player
+  Path: /Player
+  Position: (2.62, 5.20, -17.84)
+  Rotation: (0.00, 216.40, 0.00)
+  Enabled: True
+  IsTrigger: False
+  Type: CharacterController
+  Layer: 0 (Default)
+  Has Rigidbody: Player (isKinematic=False, useGravity=False)

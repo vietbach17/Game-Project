@@ -137,6 +137,7 @@ namespace SownInStone.UI
         public bool IsInventoryOpen => isInventoryOpen;
         public bool IsCommunityOpen => isCommunityOpen;
         public bool IsWeatherDetailsOpen => isWeatherDetailsOpen;
+        public bool IsPhase3QuestPanelActive => phase3QuestPanelObj != null && phase3QuestPanelObj.activeSelf;
         public bool IsQuantityPopupOpen => isQuantityPopupOpen;
         public TextMeshProUGUI SpeakerNameText => speakerNameText;
         public ItemData IncenseItem => incenseItem;
@@ -293,6 +294,15 @@ namespace SownInStone.UI
 #if ENABLE_INPUT_SYSTEM
             if (Keyboard.current != null)
             {
+                // Tắt bảng nhiệm vụ Phase 3 bằng Space / Escape
+                if (phase3QuestPanelObj != null && phase3QuestPanelObj.activeSelf)
+                {
+                    if (Keyboard.current.spaceKey.wasPressedThisFrame || Keyboard.current.escapeKey.wasPressedThisFrame)
+                    {
+                        phase3QuestPanelObj.SetActive(false);
+                    }
+                }
+
                 // Toggle Inventory (I / Tab)
                 if (Keyboard.current.tabKey.wasPressedThisFrame || Keyboard.current.iKey.wasPressedThisFrame)
                 {
@@ -339,6 +349,15 @@ namespace SownInStone.UI
                 }
             }
 #else
+            // Tắt bảng nhiệm vụ Phase 3 bằng Space / Escape
+            if (phase3QuestPanelObj != null && phase3QuestPanelObj.activeSelf)
+            {
+                if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Escape))
+                {
+                    phase3QuestPanelObj.SetActive(false);
+                }
+            }
+
             // Toggle Inventory (I / Tab)
             if (Input.GetKeyDown(KeyCode.Tab) || Input.GetKeyDown(KeyCode.I))
             {
@@ -815,6 +834,34 @@ namespace SownInStone.UI
             }
         }
 
+        private string GetVoiceClipName(string speaker, string content)
+        {
+            if (string.IsNullOrEmpty(speaker) || string.IsNullOrEmpty(content)) return "";
+
+            // Chuyển speaker về ký tự không dấu và viết thường làm tên file-safe
+            string cleanSpeaker = speaker.ToLower().Trim();
+            string[] rawAccents = { "àáạảãâầấậẩẫăằắặẳẵ", "èéẹẻẽêềếệểễ", "ìíịỉĩ", "òóọỏõôồốộổỗơờớợởỡ", "ùúụủũưừứựửữ", "ỳýỵỷỹ", "đ" };
+            string[] cleanAccents = { "a", "e", "i", "o", "u", "y", "d" };
+            
+            for (int i = 0; i < rawAccents.Length; i++)
+            {
+                foreach (char c in rawAccents[i])
+                {
+                    cleanSpeaker = cleanSpeaker.Replace(c.ToString(), cleanAccents[i]);
+                }
+            }
+            cleanSpeaker = cleanSpeaker.Replace(" ", "_");
+
+            // Tạo mã băm duy nhất từ văn bản hội thoại
+            uint hash = 0;
+            foreach (char c in content)
+            {
+                hash = hash * 31 + c;
+            }
+
+            return $"voice_{cleanSpeaker}_{hash}";
+        }
+
         public void ShowDialogue(string speaker, string content)
         {
             if (dialoguePanel == null) return;
@@ -857,6 +904,13 @@ namespace SownInStone.UI
 
             ClearAllTalkingStates();
             SetCharacterTalkingState(speaker, true);
+
+            // Phát giọng thoại lồng tiếng tương ứng
+            string voiceClip = GetVoiceClipName(speaker, content);
+            if (!string.IsNullOrEmpty(voiceClip))
+            {
+                SownInStone.Audio.AudioManager.Instance?.PlayVoice(voiceClip);
+            }
 
             dialogueCoroutine = StartCoroutine(TypeDialogueCoroutine(content));
         }
@@ -907,6 +961,13 @@ namespace SownInStone.UI
             ClearAllTalkingStates();
             SetCharacterTalkingState(speaker, true);
 
+            // Phát giọng thoại lồng tiếng tương ứng
+            string voiceClip = GetVoiceClipName(speaker, content);
+            if (!string.IsNullOrEmpty(voiceClip))
+            {
+                SownInStone.Audio.AudioManager.Instance?.PlayVoice(voiceClip);
+            }
+
             dialogueCoroutine = StartCoroutine(TypeDialogueCoroutine(content));
 
             // Kích hoạt hiển thị nút lựa chọn
@@ -953,6 +1014,9 @@ namespace SownInStone.UI
 
         public void CloseDialogue()
         {
+            // Tự động ngắt phát giọng lồng tiếng khi đóng bảng hội thoại
+            SownInStone.Audio.AudioManager.Instance?.StopVoice();
+
             if (dialoguePanel != null)
             {
                 dialoguePanel.SetActive(false);

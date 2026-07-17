@@ -1,5 +1,7 @@
 using UnityEngine;
+using System.Collections.Generic;
 using SownInStone.Core;
+using SownInStone.Community;
 using SownInStone.Weather;
 
 #if ENABLE_INPUT_SYSTEM
@@ -11,6 +13,7 @@ namespace SownInStone.Interactions
     /// <summary>
     /// Thuyền thúng (Coracle) interaction and movement controller.
     /// Allows the player to enter, steer the boat during flood, and exit safely.
+    /// Supports carrying multiple rescued NPCs and delivering them to Thanh_House roof.
     /// </summary>
     [RequireComponent(typeof(Rigidbody))]
     [RequireComponent(typeof(BoxCollider))]
@@ -20,79 +23,267 @@ namespace SownInStone.Interactions
         public float moveSpeed = 4f;
         public float rotationSpeed = 60f;
 
-        [Header("Seat Position")]
+        [Header("Seat Positions")]
         [Tooltip("Offset position where the player will stand/sit inside the boat.")]
         public Vector3 playerSeatOffset = new Vector3(0f, 0.2f, 0f);
+
+        // NPC seat offsets (4 seats arranged around the player)
+        private static readonly Vector3[] npcSeatOffsets = new Vector3[]
+        {
+            new Vector3(-0.55f, 0.35f,  0.5f),  // Slot 0
+            new Vector3( 0.55f, 0.35f,  0.5f),  // Slot 1
+            new Vector3(-0.55f, 0.35f, -0.4f),  // Slot 2
+            new Vector3( 0.55f, 0.35f, -0.4f),  // Slot 3
+        };
+
+        // NPC delivery range from Thanh_House
+        [SerializeField] private float deliveryRange = 6f;
 
         private Rigidbody rb;
         private BoxCollider boxCollider;
         private PlayerController activePlayer;
         private bool isOccupied;
-        private Vector3 exitOffset = new Vector3(0f, 0f, -1.8f); // Offset to place player when exiting
+        private Vector3 exitOffset = new Vector3(0f, 0f, -1.8f);
+        private float initialY = 0.51f; // Tọa độ Y mặc định của thuyền khi chưa có lũ
+
+        // Rescued NPCs currently on the boat
+        private readonly List<NPCCharacter> rescuedNPCsOnBoard = new List<NPCCharacter>();
+
+        // Singleton-like reference so TutorialManager can find it
+        public static Coracle Instance { get; private set; }
+
+        /// <summary>True when player is currently on board.</summary>
+        public bool IsPlayerOnBoard => isOccupied && activePlayer != null;
+
+        private void Awake()
+        {
+            Instance = this;
+        }
 
         private void Start()
         {
             rb = GetComponent<Rigidbody>();
             boxCollider = GetComponent<BoxCollider>();
-            
-            // Set up rigidbody for arcade boat physics
-            rb.useGravity = false; // Disable gravity to prevent drifting
+
+            rb.useGravity = false;
             rb.isKinematic = false;
             rb.mass = 150f;
-            // Freeze X, Y, Z rotations and Y position to lock the vertical/tilt movement
             rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ | RigidbodyConstraints.FreezePositionY;
+
+            initialY = transform.position.y;
         }
 
         private void Update()
         {
-            // Snap boat Y position to water plane if flood is active, otherwise stay flat on ground (Y = 0)
-            float targetY = 0f;
+            // Float boat to water surface if flood is active, else stay at initial position
+            float targetY = initialY;
             if (WeatherManager.Instance != null && WeatherManager.Instance.FloodLevel > 0.01f)
             {
-                // Align with the 3D water plane Y calculation: -0.05f + FloodLevel
-                targetY = -0.05f + WeatherManager.Instance.FloodLevel;
+                targetY = 0.2f + WeatherManager.Instance.FloodLevel;
             }
 
             Vector3 currentPos = transform.position;
-            // If flood level is high, float the boat
             if (currentPos.y < targetY - 0.05f || currentPos.y > targetY + 0.05f)
             {
                 currentPos.y = Mathf.Lerp(currentPos.y, targetY, Time.deltaTime * 5f);
                 transform.position = currentPos;
-                rb.position = currentPos; // Sync Rigidbody position
+                rb.position = currentPos;
             }
 
             if (isOccupied && activePlayer != null)
             {
-                // Update interaction prompt for exiting
-                if (SownInStone.UI.SurvivalUIManager.Instance != null)
-                {
-                    SownInStone.UI.SurvivalUIManager.Instance.SetInteractionPrompt($"[{activePlayer.keyInteract}] Xuống thuyền thúng");
-                }
-
-                // Check for Exit input
-                bool exitPressed = false;
-#if ENABLE_INPUT_SYSTEM
-                if (Keyboard.current != null && (Keyboard.current.eKey.wasPressedThisFrame || Keyboard.current.spaceKey.wasPressedThisFrame))
-                {
-                    exitPressed = true;
-                }
-#else
-                if (Input.GetKeyDown(activePlayer.keyInteract) || Input.GetKeyDown(KeyCode.E) || Input.GetKeyDown(KeyCode.Space))
-                {
-                    exitPressed = true;
-                }
-#endif
-
-                if (exitPressed)
-                {
-                    ExitBoat();
-                    return;
-                }
-
-                HandleRowingInput();
+                HandleOccupiedUpdate();
             }
         }
+
+        private void HandleOccupiedUpdate()
+        {
+            // Check if Thanh_House is nearby and we have NPCs to deliver
+            bool nearHouse = IsNearThanhHouse();
+            bool hasNPCs = rescuedNPCsOnBoard.Count > 0;
+            bool allRescued = TutorialManager.Instance != null && TutorialManager.Instance.allNPCsRescued;
+
+            // Build prompt string
+            string prompt = "[F] Xuống thuyền thúng";
+            if (nearHouse)
+            {
+                if (hasNPCs)
+                {
+                    prompt = $"[{activePlayer.keyInteract}] Đưa {rescuedNPCsOnBoard.Count} người lên nóc nhà\n" +
+                             "[F] Xuống thuyền thúng";
+                }
+                else if (allRescued)
+                {
+                    prompt = $"[{activePlayer.keyInteract}] Leo lên mái nhà\n" +
+                             "[F] Xuống thuyền thúng";
+                }
+            }
+
+            if (SownInStone.UI.SurvivalUIManager.Instance != null)
+            {
+                SownInStone.UI.SurvivalUIManager.Instance.SetInteractionPrompt(prompt);
+            }
+
+            // Read inputs
+            bool deliverPressed = false;
+            bool exitPressed    = false;
+            bool climbPressed   = false;
+
+#if ENABLE_INPUT_SYSTEM
+            if (Keyboard.current != null)
+            {
+                bool eKey     = Keyboard.current.eKey.wasPressedThisFrame;
+                bool fKey     = Keyboard.current.fKey.wasPressedThisFrame;
+
+                if (nearHouse && hasNPCs && eKey)
+                    deliverPressed = true;
+                else if (nearHouse && allRescued && eKey)
+                    climbPressed = true;
+                else if (fKey)
+                    exitPressed = true;
+            }
+#else
+            bool eDown     = Input.GetKeyDown(activePlayer.keyInteract) || Input.GetKeyDown(KeyCode.E);
+            bool fDown     = Input.GetKeyDown(KeyCode.F);
+
+            if (nearHouse && hasNPCs && eDown)
+                deliverPressed = true;
+            else if (nearHouse && allRescued && eDown)
+                climbPressed = true;
+            else if (fDown)
+                exitPressed = true;
+#endif
+
+            if (deliverPressed)
+            {
+                DeliverNPCsToRoof();
+                return;
+            }
+
+            if (climbPressed)
+            {
+                TutorialManager.Instance.ClimbToRoof();
+                return;
+            }
+
+            if (exitPressed)
+            {
+                ExitBoat();
+                return;
+            }
+
+            HandleRowingInput();
+        }
+
+        private bool IsNearThanhHouse()
+        {
+            GameObject house = GameObject.Find("Thanh_House");
+            if (house == null) return false;
+            return Vector3.Distance(transform.position, house.transform.position) <= deliveryRange;
+        }
+
+        // ─── NPC Boarding ────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Add a rescued NPC onto the boat. Called by NPCProximityOptionsUI during RescuingNPCs stage.
+        /// </summary>
+        public bool AddNPCToBoat(NPCCharacter npc)
+        {
+            if (npc == null) return false;
+            if (rescuedNPCsOnBoard.Contains(npc)) return false;
+            if (rescuedNPCsOnBoard.Count >= npcSeatOffsets.Length) return false;
+
+            int slot = rescuedNPCsOnBoard.Count;
+            rescuedNPCsOnBoard.Add(npc);
+
+            // Disable NPC physics so they ride the boat
+            var npcRb = npc.GetComponent<Rigidbody>();
+            if (npcRb != null)
+            {
+                npcRb.isKinematic = true;
+                npcRb.useGravity  = false;
+                npcRb.linearVelocity = Vector3.zero;
+            }
+
+            // Disable NPC colliders (avoid physics conflicts)
+            foreach (var col in npc.GetComponentsInChildren<Collider>())
+                if (col != null) col.isTrigger = true;
+
+            // Parent NPC to boat and seat
+            npc.transform.SetParent(this.transform);
+            npc.transform.localPosition = npcSeatOffsets[slot];
+            npc.transform.localRotation = Quaternion.identity;
+
+            // Disable NPC animator root motion to prevent drift/clipping
+            var npcAnim = npc.GetComponentInChildren<Animator>() ?? npc.GetComponent<Animator>();
+            if (npcAnim != null)
+            {
+                npcAnim.applyRootMotion = false;
+            }
+
+            Debug.Log($"[BOAT] {npc.NPCName} đã lên thuyền (slot {slot}).");
+            return true;
+        }
+
+        /// <summary>
+        /// Remove all NPCs from the boat and deliver them to Thanh_House roof.
+        /// Also teleports the player to the roof and starts RoofSurvivalSharing stage.
+        /// </summary>
+        public void DeliverNPCsToRoof()
+        {
+            if (rescuedNPCsOnBoard.Count == 0) return;
+
+            var tm = TutorialManager.Instance;
+
+            // Unparent and teleport each NPC to roof
+            for (int i = rescuedNPCsOnBoard.Count - 1; i >= 0; i--)
+            {
+                var npc = rescuedNPCsOnBoard[i];
+                if (npc == null) continue;
+
+                npc.transform.SetParent(null);
+
+                // Restore animator root motion
+                var npcAnim = npc.GetComponentInChildren<Animator>() ?? npc.GetComponent<Animator>();
+                if (npcAnim != null)
+                {
+                    npcAnim.applyRootMotion = true;
+                }
+
+                tm?.OnNPCDeliveredToRoof(npc.characterType);
+            }
+            rescuedNPCsOnBoard.Clear();
+
+            SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
+            Debug.Log("[BOAT] Đã đưa tất cả NPC lên nóc nhà.");
+        }
+
+        /// <summary>Unparent all NPCs (used during reset, no delivery).</summary>
+        public void ReleaseAllNPCs()
+        {
+            foreach (var npc in rescuedNPCsOnBoard)
+            {
+                if (npc == null) continue;
+                npc.transform.SetParent(null);
+
+                var npcRb = npc.GetComponent<Rigidbody>();
+                if (npcRb != null)
+                {
+                    npcRb.isKinematic = false;
+                    npcRb.useGravity  = true;
+                }
+
+                // Restore animator root motion
+                var npcAnim = npc.GetComponentInChildren<Animator>() ?? npc.GetComponent<Animator>();
+                if (npcAnim != null)
+                {
+                    npcAnim.applyRootMotion = true;
+                }
+            }
+            rescuedNPCsOnBoard.Clear();
+        }
+
+        // ─── Rowing ──────────────────────────────────────────────────────────
 
         private void HandleRowingInput()
         {
@@ -102,10 +293,10 @@ namespace SownInStone.Interactions
 #if ENABLE_INPUT_SYSTEM
             if (Keyboard.current != null)
             {
-                if (Keyboard.current.wKey.isPressed || Keyboard.current.upArrowKey.isPressed) moveVal = 1f;
+                if (Keyboard.current.wKey.isPressed || Keyboard.current.upArrowKey.isPressed)    moveVal =  1f;
                 else if (Keyboard.current.sKey.isPressed || Keyboard.current.downArrowKey.isPressed) moveVal = -1f;
 
-                if (Keyboard.current.dKey.isPressed || Keyboard.current.rightArrowKey.isPressed) turnVal = 1f;
+                if (Keyboard.current.dKey.isPressed || Keyboard.current.rightArrowKey.isPressed) turnVal =  1f;
                 else if (Keyboard.current.aKey.isPressed || Keyboard.current.leftArrowKey.isPressed) turnVal = -1f;
             }
 #else
@@ -113,27 +304,67 @@ namespace SownInStone.Interactions
             turnVal = Input.GetAxis("Horizontal");
 #endif
 
-            // Apply movement on XZ plane
-            Vector3 moveDir = transform.forward * moveVal * moveSpeed;
-            rb.linearVelocity = new Vector3(moveDir.x, 0f, moveDir.z); // Freeze Y velocity to 0
-
-            // Apply rotation around Y axis
-            if (Mathf.Abs(moveVal) > 0.05f || Mathf.Abs(turnVal) > 0.05f)
+            // Lấy hướng di chuyển dựa trên hướng nhìn của Camera (giống như đi dưới đất)
+            Vector3 camForward = Vector3.forward;
+            Vector3 camRight = Vector3.right;
+            Camera mainCam = Camera.main;
+            if (mainCam != null)
             {
-                // Steer boat
-                float rotationSign = moveVal >= 0f ? 1f : -1f;
-                transform.Rotate(0f, turnVal * rotationSpeed * rotationSign * Time.deltaTime, 0f);
+                camForward = mainCam.transform.forward;
+                camRight = mainCam.transform.right;
+                camForward.y = 0f;
+                camRight.y = 0f;
+                camForward.Normalize();
+                camRight.Normalize();
+            }
+
+            Vector3 targetMoveDir = camForward * moveVal + camRight * turnVal;
+            if (targetMoveDir.sqrMagnitude > 0.01f)
+            {
+                targetMoveDir.Normalize();
+                Vector3 moveDir = targetMoveDir * moveSpeed;
+                rb.linearVelocity = new Vector3(moveDir.x, 0f, moveDir.z);
+
+                // Xoay thuyền hướng theo hướng di chuyển của camera-relative
+                float targetYaw = Mathf.Atan2(targetMoveDir.x, targetMoveDir.z) * Mathf.Rad2Deg;
+                Quaternion targetRot = Quaternion.Euler(0f, targetYaw, 0f);
+                transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, Time.deltaTime * 5f);
             }
             else
             {
-                // Stop boat velocity when no input
-                rb.linearVelocity = new Vector3(0f, 0f, 0f); // Freeze Y velocity to 0
+                rb.linearVelocity = Vector3.zero;
             }
         }
+
+        private void FixedUpdate()
+        {
+            if (!isOccupied || activePlayer == null) return;
+
+            // Kéo nhân vật theo thuyền mỗi frame vật lý — KHÔNG dùng SetParent.
+            // Tính vị trí ghế ngồi trong không gian thế giới từ tọa độ cục bộ của thuyền.
+            Vector3 seatWorldPos = transform.TransformPoint(playerSeatOffset);
+            activePlayer.transform.position = seatWorldPos;
+
+            // Đồng bộ Rigidbody với vị trí thực tế
+            var playerRb = activePlayer.GetComponent<Rigidbody>();
+            if (playerRb != null)
+            {
+                playerRb.position = seatWorldPos;
+            }
+        }
+
+        // ─── Enter / Exit ─────────────────────────────────────────────────────
 
         public void Interact(PlayerController player)
         {
             if (isOccupied) return;
+
+            // Kiểm tra xem đã đến giai đoạn cứu hộ (Phase 3) chưa
+            if (TutorialManager.Instance != null && TutorialManager.Instance.currentStage < TutorialManager.TutorialStage.RescuingNPCs)
+            {
+                SownInStone.UI.SurvivalUIManager.Instance?.ShowHUDToast("⚠️ Thuyền thúng hiện tại chưa sử dụng được. Hãy tập trung chuẩn bị trước bão lũ!");
+                return;
+            }
 
             EnterBoat(player);
         }
@@ -143,101 +374,94 @@ namespace SownInStone.Interactions
         private void EnterBoat(PlayerController player)
         {
             activePlayer = player;
-            isOccupied = true;
+            isOccupied   = true;
             savedPlayerY = player.transform.position.y;
 
-            // 1. Disable player physics and control
-            Rigidbody playerRb = player.GetComponent<Rigidbody>();
-            if (playerRb != null)
-            {
-                playerRb.isKinematic = true;
-                playerRb.linearVelocity = Vector3.zero;
-            }
-
-            Collider playerCol = player.GetComponent<Collider>();
-            if (playerCol != null)
-            {
-                playerCol.enabled = false;
-            }
-
-            // 2. Parent player to boat and snap to seat offset
-            player.transform.SetParent(this.transform);
-            player.transform.localPosition = playerSeatOffset;
-            player.transform.localRotation = Quaternion.identity;
-
-            // 3. Disable player movement component (so it doesn't process WASD or gravity)
+            // Tắt hoàn toàn mọi hệ thống vật lý và di chuyển của nhân vật
             player.enabled = false;
 
-            // 4. Play idle anim on player if animator exists
-            Animator playerAnim = player.GetComponentInChildren<Animator>();
-            if (playerAnim == null) playerAnim = player.GetComponent<Animator>();
+            var playerRb = player.GetComponent<Rigidbody>();
+            if (playerRb != null)
+            {
+                playerRb.isKinematic    = true;
+                playerRb.linearVelocity = Vector3.zero;
+                playerRb.angularVelocity = Vector3.zero;
+            }
+
+            var cc = player.GetComponent<CharacterController>();
+            if (cc != null) cc.enabled = false;
+
+            var playerCol = player.GetComponent<Collider>();
+            if (playerCol != null) playerCol.enabled = false;
+
+            // KHÔNG dùng SetParent — thay vào đó FixedUpdate sẽ kéo nhân vật theo thuyền
+            // bằng cách cập nhật vị trí thế giới (world position) mỗi frame vật lý.
+            Physics.SyncTransforms();
+
+            var playerAnim = player.GetComponentInChildren<Animator>() ?? player.GetComponent<Animator>();
             if (playerAnim != null)
             {
-                // Play sitting or idle state
-                playerAnim.SetFloat("Speed", 0f);
+                playerAnim.SetFloat("Speed",      0f);
                 playerAnim.SetFloat("Horizontal", 0f);
-                playerAnim.SetFloat("Vertical", 0f);
+                playerAnim.SetFloat("Vertical",   0f);
                 playerAnim.SetBool("isPaddling", true);
             }
 
             SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
-            Debug.Log("[BOAT] Player entered the coracle.");
+            Debug.Log("[BOAT] Player lên thuyền thúng.");
         }
 
-        private void ExitBoat()
+        public void ExitBoat()
         {
             if (activePlayer == null) return;
 
             // Restore player paddling state
-            Animator playerAnim = activePlayer.GetComponentInChildren<Animator>();
-            if (playerAnim == null) playerAnim = activePlayer.GetComponent<Animator>();
+            var playerAnim = activePlayer.GetComponentInChildren<Animator>() ?? activePlayer.GetComponent<Animator>();
             if (playerAnim != null)
             {
                 playerAnim.SetBool("isPaddling", false);
             }
 
-            // 1. Enable player controller component
-            activePlayer.enabled = true;
-
-            Collider playerCol = activePlayer.GetComponent<Collider>();
-            if (playerCol != null)
-            {
-                playerCol.enabled = true;
-            }
-
-            // 2. Unparent player first (while still kinematic)
-            activePlayer.transform.SetParent(null);
-
-            // 3. Position player next to the boat safely
+            // Tính vị trí thoát ra ngoài thuyền
             Vector3 exitPos = transform.position + transform.TransformDirection(exitOffset);
-            
-            // Restore saved Y coordinate so they don't sink or float
             exitPos.y = savedPlayerY;
 
+            // Đặt vị trí nhân vật trước khi bật lại các hệ thống
             activePlayer.transform.position = exitPos;
-            activePlayer.transform.rotation = transform.rotation;
+            activePlayer.transform.rotation = Quaternion.Euler(0f, transform.rotation.eulerAngles.y, 0f);
 
-            // 4. Enable Rigidbody physics and apply position/rotation directly to the physics engine
-            Rigidbody playerRb = activePlayer.GetComponent<Rigidbody>();
+            var cc = activePlayer.GetComponent<CharacterController>();
+            if (cc != null) cc.enabled = true;
+
+            var playerCol = activePlayer.GetComponent<Collider>();
+            if (playerCol != null) playerCol.enabled = true;
+
+            var playerRb = activePlayer.GetComponent<Rigidbody>();
             if (playerRb != null)
             {
-                playerRb.isKinematic = false;
-                playerRb.position = exitPos;
-                playerRb.rotation = transform.rotation;
+                playerRb.isKinematic    = false;
+                playerRb.position       = exitPos;
                 playerRb.linearVelocity = Vector3.zero;
+                playerRb.angularVelocity = Vector3.zero;
             }
 
-            // Clear interaction prompt
+            Physics.SyncTransforms();
+
+            activePlayer.enabled = true;
+
             if (SownInStone.UI.SurvivalUIManager.Instance != null)
-            {
                 SownInStone.UI.SurvivalUIManager.Instance.SetInteractionPrompt("");
-            }
 
             SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
-            Debug.Log("[BOAT] Player exited the coracle.");
+            Debug.Log("[BOAT] Player xuống thuyền thúng.");
 
-            isOccupied = false;
+            isOccupied   = false;
             activePlayer = null;
+        }
+
+        private void OnDestroy()
+        {
+            if (Instance == this) Instance = null;
         }
     }
 }

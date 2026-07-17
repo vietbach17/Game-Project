@@ -7,6 +7,7 @@ using SownInStone.UI;
 using SownInStone.Agriculture;
 using SownInStone.Storage;
 using SownInStone.Weather;
+using SownInStone.Interactions;
 
 namespace SownInStone
 {
@@ -64,6 +65,10 @@ namespace SownInStone
         public bool shouldTriggerLoudspeakerOnDialogueClose = false;
 
         [Header("--- SINH TỒN & CỨU HỘ ---")]
+        [Tooltip("Kéo model ThuyenThung_Model.fbx từ Assets/Prefabs/Coracle vào đây")]
+        [SerializeField] private GameObject coracleVisualPrefab;
+        [Tooltip("Kéo ThuyenThung_Texture.png vào đây để hiển thị texture đúng")]
+        [SerializeField] private Texture2D coracleTexture;
         public int rescuedNPCsCount = 0;
         public float rescueTimeRemaining = 60f;
         public bool allNPCsRescued = false; // Flag: đã cứu đủ 4 người, chờ hết timer mới tele lên nóc nhà
@@ -76,6 +81,9 @@ namespace SownInStone
         public bool bacNamFed = false;
         public bool cuBayFed = false;
         public bool beTiFed = false;
+        public bool hasCollectedSupplyCrate = false;
+        public bool isExhaustedAndReadyToSleep = false;
+        public float exhaustionTimeRemaining = 60.0f;
 
         public bool oThamHouseCleaned = false;
         public bool bacNamHouseCleaned = false;
@@ -175,6 +183,7 @@ namespace SownInStone
         {
             npcsInScene = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Exclude);
             InitializeGhostTargets();
+            SetupNPCHouseColliders();
         }
 
         private void LoadImages()
@@ -749,7 +758,9 @@ namespace SownInStone
 
                 // Cấp màng bọc nilon bảo vệ ruộng đất
                 ItemData plasticMulch = StorageManager.Instance.GetItemDataByID("item_plastic_mulch");
+#if UNITY_EDITOR
                 if (plasticMulch == null) plasticMulch = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_plastic_mulch.asset");
+#endif
                 if (plasticMulch != null)
                 {
                     StorageManager.Instance.AddItem(plasticMulch, 1);
@@ -865,7 +876,7 @@ namespace SownInStone
                 if (colGo == null)
                 {
                     colGo = new GameObject("TempRoofCollider");
-                    colGo.transform.position = houseObj.transform.position + new Vector3(0f, 4.9f, 0f);
+                    colGo.transform.position = houseObj.transform.position + new Vector3(0f, 4.0f, 0f);
                     colGo.transform.rotation = houseObj.transform.rotation;
                     
                     var boxCol = colGo.AddComponent<BoxCollider>();
@@ -1030,7 +1041,7 @@ namespace SownInStone
         {
             currentStage = TutorialStage.RescuingNPCs;
             rescuedNPCsCount = 0;
-            rescueTimeRemaining = 60f;
+            rescueTimeRemaining = 0f; // Không còn dùng timer — phase kết thúc khi đủ 4 người được đưa lên nóc.
             allNPCsRescued = false;
             oThamRescued = false;
             bacNamRescued = false;
@@ -1041,6 +1052,8 @@ namespace SownInStone
             bacNamFed = false;
             cuBayFed = false;
             beTiFed = false;
+            hasCollectedSupplyCrate = false;
+            isExhaustedAndReadyToSleep = false;
 
             oThamHouseCleaned = false;
             bacNamHouseCleaned = false;
@@ -1062,25 +1075,212 @@ namespace SownInStone
 
             SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_emergency_alarm");
 
+            // Hiện bảng nhiệm vụ — nhấn Space để tắt
             if (SurvivalUIManager.Instance != null)
             {
                 SurvivalUIManager.Instance.ShowDialogue(
-                    "BÁO ĐỘNG LŨ LỤT",
-                    "Nước lũ dâng cao khẩn cấp ngập lụt làng quê! Bạn hãy chạy thật nhanh qua nhà từng người (O Thắm, Bác Năm, Cụ Bảy, Bé Tí) nhấn phím E tương tác để cứu hộ họ lánh nạn trên nóc nhà của bạn. Hãy khẩn trương cứu tất cả trước khi hết thời gian!"
+                    "🚨 NHIỆM VỤ: CỨU TRỢ DÂN LÀNG",
+                    "Nước lũ dâng cao! Bạn có một chiếc thuyền thúng để cứu người.\n\n" +
+                    "① Lại gần THUYỀN THÚNG và nhấn [E] để lên thuyền\n" +
+                    "② Dùng [W/A/S/D] để chèo thuyền đến từng ngôi nhà dân làng\n" +
+                    "③ Nhấn [E] khi đang ở trên thuyền để đưa từng người lên thuyền\n" +
+                    "④ Chèo thuyền về gần nhà mình, rồi nhấn [E] để đưa họ lên nóc nhà\n\n" +
+                    "Cần cứu: O Thắm • Bác Năm • Cụ Bảy • Bé Tí\n" +
+                    "\n[Space] để đóng và bắt đầu!"
                 );
             }
+
+            SpawnCoracleForRescue();
 
             UpdateHUDPanel();
         }
 
+        private void SpawnCoracleForRescue()
+        {
+            // Kiểm tra và tái sử dụng Thuyền Thúng hiện có trong cảnh
+            var existingCoracle = UnityEngine.Object.FindAnyObjectByType<SownInStone.Interactions.Coracle>(FindObjectsInactive.Include);
+            if (existingCoracle != null)
+            {
+                existingCoracle.gameObject.SetActive(true);
+                Vector3 currentPos = existingCoracle.transform.position;
+                existingCoracle.transform.position = new Vector3(currentPos.x, 1.15f, currentPos.z);
+                existingCoracle.transform.rotation = Quaternion.identity;
+
+                Rigidbody rb = existingCoracle.GetComponent<Rigidbody>();
+                if (rb != null)
+                {
+                    rb.position = existingCoracle.transform.position;
+                    rb.rotation = existingCoracle.transform.rotation;
+                    rb.linearVelocity = Vector3.zero;
+                }
+
+                // Đảm bảo Coracle đã có visual model — nếu không thì tạo mới
+                EnsureCoracleVisual(existingCoracle.gameObject);
+                Debug.Log("[RESCUE] Đã tái định vị Thuyền Thúng hiện tại.");
+                return;
+            }
+
+            // Tạo mới GameObject Thuyền Thúng tại vị trí trước nhà Thành
+            GameObject boatObj = new GameObject("Coracle");
+            boatObj.transform.position = new Vector3(7.35f, 1.15f, -13.96f);
+            boatObj.transform.rotation = Quaternion.identity;
+
+            // Cấu hình vật lý Rigidbody cho thuyền thúng arcade
+            Rigidbody rbComp = boatObj.AddComponent<Rigidbody>();
+            rbComp.mass = 150f;
+            rbComp.useGravity = false;
+            rbComp.isKinematic = false;
+            rbComp.linearDamping = 0.5f;
+            rbComp.angularDamping = 0.5f;
+            rbComp.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ | RigidbodyConstraints.FreezePositionY;
+
+            // Thiết lập BoxCollider cản trở vật lý/tương tác
+            BoxCollider colComp = boatObj.AddComponent<BoxCollider>();
+            colComp.isTrigger = false;
+            colComp.center = new Vector3(0f, 0.25f, 0f);
+            colComp.size = new Vector3(2.2f, 0.6f, 2.2f);
+
+            // Gán script Coracle điều khiển chèo thuyền
+            var coracleComp = boatObj.AddComponent<SownInStone.Interactions.Coracle>();
+            coracleComp.moveSpeed = 5f;
+            coracleComp.rotationSpeed = 80f;
+            coracleComp.playerSeatOffset = new Vector3(0f, 0.45f, 0f);
+
+            // Tạo visual model
+            EnsureCoracleVisual(boatObj);
+
+            Debug.Log("[RESCUE] Đã sinh Thuyền Thúng thành công ở bến nước.");
+        }
+
+        /// <summary>
+        /// Đảm bảo boatObj có visual mesh. Thử load FBX từ Resources trước;
+        /// nếu thất bại thì dùng primitive hình thuyền thúng (cylinder dẹt + thành bên).
+        /// </summary>
+        private void EnsureCoracleVisual(GameObject boatObj)
+        {
+            // Nếu đã có VisualModel con thì không cần tạo lại
+            var existing = boatObj.transform.Find("VisualModel");
+            if (existing != null) return;
+
+            // Nếu boatObj hoặc các con của nó đã có MeshRenderer (ví dụ: ThuyenThung_Model trong scene)
+            // thì không tạo thêm mesh — chỉ đảm bảo Collider + Coracle script đã đúng ở ngoài.
+            if (boatObj.GetComponentInChildren<MeshRenderer>(true) != null) return;
+
+            // ── Thử dùng prefab được gán qua Inspector (coracleVisualPrefab) ────
+            if (coracleVisualPrefab != null)
+            {
+                GameObject visualObj = UnityEngine.Object.Instantiate(coracleVisualPrefab, boatObj.transform);
+                visualObj.name = "VisualModel";
+                visualObj.transform.localPosition = Vector3.zero;
+                visualObj.transform.localRotation = Quaternion.identity;
+                visualObj.transform.localScale = Vector3.one;
+
+                // Gán texture nếu có
+                if (coracleTexture != null)
+                {
+                    foreach (var r in visualObj.GetComponentsInChildren<Renderer>())
+                    {
+                        var mat = r.material;
+                        if (mat.HasProperty("_BaseMap")) mat.SetTexture("_BaseMap", coracleTexture);
+                        else if (mat.HasProperty("_MainTex")) mat.SetTexture("_MainTex", coracleTexture);
+                    }
+                }
+                // Xóa Collider trên model (collider đã ở boatObj gốc)
+                foreach (var c in visualObj.GetComponentsInChildren<Collider>())
+                    UnityEngine.Object.Destroy(c);
+
+                Debug.Log("[RESCUE] Đã gán model FBX (Inspector ref) cho Thuyền Thúng.");
+                return;
+            }
+
+            // ── Fallback: Resources.Load (nếu model ở trong Assets/Resources) ────
+            GameObject modelPrefab = Resources.Load<GameObject>("Prefabs/Coracle/Coracle_Model");
+            if (modelPrefab != null)
+            {
+                GameObject visualObj = UnityEngine.Object.Instantiate(modelPrefab, boatObj.transform);
+                visualObj.name = "VisualModel";
+                visualObj.transform.localPosition = Vector3.zero;
+                visualObj.transform.localRotation = Quaternion.identity;
+                visualObj.transform.localScale = Vector3.one * 1.5f;
+                Debug.Log("[RESCUE] Đã gán model FBX (Resources) cho Thuyền Thúng.");
+                return;
+            }
+
+            // ── Fallback cuối: tạo primitive hình thuyền thúng để luôn hiện thị ────
+            Debug.LogWarning("[RESCUE] coracleVisualPrefab chưa được gán trong Inspector! Dùng primitive fallback.");
+
+            // Thân thuyền: cylinder dẹt màu nâu gỗ
+            GameObject body = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            body.name = "VisualModel";
+            body.transform.SetParent(boatObj.transform);
+            body.transform.localPosition = new Vector3(0f, 0.18f, 0f);
+            body.transform.localRotation = Quaternion.identity;
+            body.transform.localScale = new Vector3(2.0f, 0.18f, 2.0f); // đường kính 2m, cao 0.36m
+            UnityEngine.Object.Destroy(body.GetComponent<Collider>()); // Collider đã có ở boatObj
+
+            // Thành trước/sau (4 thanh gỗ xung quanh)
+            Color woodColor = new Color(0.55f, 0.35f, 0.15f);
+            ApplyColor(body, woodColor);
+
+            GameObject rim = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            rim.name = "Rim";
+            rim.transform.SetParent(boatObj.transform);
+            rim.transform.localPosition = new Vector3(0f, 0.32f, 0f);
+            rim.transform.localRotation = Quaternion.identity;
+            rim.transform.localScale = new Vector3(2.05f, 0.06f, 2.05f);
+            UnityEngine.Object.Destroy(rim.GetComponent<Collider>());
+            ApplyColor(rim, new Color(0.45f, 0.28f, 0.10f));
+
+            Debug.Log("[RESCUE] Đã tạo primitive Thuyền Thúng (fallback).");
+        }
+
+        private void ApplyColor(GameObject go, Color color)
+        {
+            var rend = go.GetComponent<Renderer>();
+            if (rend == null) return;
+
+            // Clone material mặc định của primitive (Unity tự cấu hình đúng cho pipeline hiện tại)
+            var mat = new Material(rend.sharedMaterial);
+
+            // URP Lit dùng _BaseColor, Built-in Standard dùng _Color
+            if (mat.HasProperty("_BaseColor"))
+                mat.SetColor("_BaseColor", color);
+            else if (mat.HasProperty("_Color"))
+                mat.SetColor("_Color", color);
+
+            mat.color = color;
+            rend.material = mat;
+        }
+
+        /// <summary>
+        /// Gọi khi NPC được cứu lên THUYỀN (không teleport lên nóc ngay).
+        /// Coracle.AddNPCToBoat() sẽ handle việc ngồi lên thuyền.
+        /// </summary>
         public void OnNPCRescued(SownInStone.Community.NPCCharacter.StoryCharacterType charType)
         {
+            // Đánh dấu NPC đã được cứu lên thuyền (chưa lên nóc nhà)
             if (charType == SownInStone.Community.NPCCharacter.StoryCharacterType.OTham) oThamRescued = true;
             else if (charType == SownInStone.Community.NPCCharacter.StoryCharacterType.BacNam) bacNamRescued = true;
             else if (charType == SownInStone.Community.NPCCharacter.StoryCharacterType.CuBay) cuBayRescued = true;
             else if (charType == SownInStone.Community.NPCCharacter.StoryCharacterType.BeTi) beTiRescued = true;
 
-            // Dịch chuyển NPC lên nóc nhà Thành ngay lập tức
+            int onBoat = 0;
+            if (oThamRescued) onBoat++;
+            if (bacNamRescued) onBoat++;
+            if (cuBayRescued) onBoat++;
+            if (beTiRescued) onBoat++;
+
+            SurvivalUIManager.Instance?.ShowHUDToast($"⛵ Đã đón {onBoat}/4 người lên thuyền — chèo về nhà để đưa lên nóc!");
+            UpdateHUDPanel();
+        }
+
+        /// <summary>
+        /// Gọi bởi Coracle.DeliverNPCsToRoof() khi NPC được đưa lên nóc nhà Thành.
+        /// Khi đủ 4 người → player tự động lên nóc và bắt đầu RoofSurvivalSharing.
+        /// </summary>
+        public void OnNPCDeliveredToRoof(SownInStone.Community.NPCCharacter.StoryCharacterType charType)
+        {
+            // Teleport NPC lên nóc nhà
             TeleportNPCToThanhHouseRoof(charType);
 
             rescuedNPCsCount = 0;
@@ -1089,19 +1289,17 @@ namespace SownInStone
             if (cuBayRescued) rescuedNPCsCount++;
             if (beTiRescued) rescuedNPCsCount++;
 
-            SurvivalUIManager.Instance?.ShowHUDToast($"💚 SƠ TÁN THÀNH CÔNG: Đã đưa {rescuedNPCsCount}/4 người lên nóc nhà lánh nạn!");
+            SurvivalUIManager.Instance?.ShowHUDToast($"🏠 Đã đưa {rescuedNPCsCount}/4 người lên nóc nhà an toàn!");
+            UpdateHUDPanel();
 
             if (rescuedNPCsCount >= 4)
             {
-                // Đã cứu đủ 4 người — set flag, chờ hết timer 60 giây rồi mới tele người chơi lên nóc nhà.
-                // StartRoofSurvivalSharingStage() sẽ được gọi trong Update() khi rescueTimeRemaining <= 0.
                 allNPCsRescued = true;
-                SurvivalUIManager.Instance?.ShowHUDToast("🏠 Đã cứu đủ 4 người! Hãy chờ hết giờ rồi cùng lên nóc nhà lánh nạn!");
-                UpdateHUDPanel();
-            }
-            else
-            {
-                UpdateHUDPanel();
+                SurvivalUIManager.Instance?.ShowDialogue(
+                    "CỨU HỘ HOÀN THÀNH",
+                    "Bạn đã đưa tất cả 4 người dân lên mái nhà an toàn!\n\n" +
+                    "Bây giờ hãy chèo thuyền đến sát mái nhà Thành và nhấn [E] để leo lên mái nhà cùng mọi người."
+                );
             }
         }
 
@@ -1118,23 +1316,28 @@ namespace SownInStone
                 // Nóc nhà Thành có cao độ Y khoảng 3.4f
                 float xOffset = 0f;
                 float zOffset = 0f;
+                float yPos = 5.0f; // default cho Cụ Bảy và Bé Tí (Visual offset = 0.0f)
                 switch (charType)
                 {
                     case SownInStone.Community.NPCCharacter.StoryCharacterType.OTham:
                         xOffset = -1.2f; zOffset = -1.0f;
+                        yPos = 5.52f; // Visual offset = -0.52f -> render Y = 5.0f
                         break;
                     case SownInStone.Community.NPCCharacter.StoryCharacterType.BacNam:
                         xOffset = 1.2f; zOffset = -1.0f;
+                        yPos = 5.51f; // Visual offset = -0.51f -> render Y = 5.0f
                         break;
                     case SownInStone.Community.NPCCharacter.StoryCharacterType.CuBay:
                         xOffset = -1.2f; zOffset = 1.0f;
+                        yPos = 5.00f; // Visual offset = 0.0f -> render Y = 5.0f
                         break;
                     case SownInStone.Community.NPCCharacter.StoryCharacterType.BeTi:
                         xOffset = 1.2f; zOffset = 1.0f;
+                        yPos = 5.00f; // Visual offset = 0.0f -> render Y = 5.0f
                         break;
                 }
 
-                Vector3 roofSpot = center + new Vector3(xOffset, 5.2f, zOffset);
+                Vector3 roofSpot = center + new Vector3(xOffset, yPos, zOffset);
                 npc.transform.position = roofSpot;
                 
                 var rbNPC = npc.GetComponent<Rigidbody>();
@@ -1165,6 +1368,22 @@ namespace SownInStone
         {
             if (PlayerController.Instance != null)
             {
+                // Giải phóng người chơi khỏi thuyền thúng nếu đang ngồi trong đó
+                if (PlayerController.Instance.transform.parent != null)
+                {
+                    var coracle = PlayerController.Instance.GetComponentInParent<SownInStone.Interactions.Coracle>();
+                    if (coracle != null)
+                    {
+                        PlayerController.Instance.transform.SetParent(null);
+                        PlayerController.Instance.enabled = true;
+                        var playerCol = PlayerController.Instance.GetComponent<Collider>();
+                        if (playerCol != null) playerCol.enabled = true;
+                        
+                        var playerRb = PlayerController.Instance.GetComponent<Rigidbody>();
+                        if (playerRb != null) playerRb.isKinematic = false;
+                    }
+                }
+
                 PlayerController.Instance.DropCarriedNPCForced();
                 GameObject houseObj = GameObject.Find("Thanh_House");
                 Vector3 groundPos = houseObj != null ? houseObj.transform.position + new Vector3(0f, 0.2f, -4.2f) : new Vector3(10.66f, 0.2f, -14.2f);
@@ -1177,10 +1396,13 @@ namespace SownInStone
                 }
             }
 
+            // Tái định vị/Tạo mới thuyền thúng về điểm bắt đầu
+            SpawnCoracleForRescue();
+
             ResetNPCsToHomePositions();
 
             rescuedNPCsCount = 0;
-            rescueTimeRemaining = 60f;
+            rescueTimeRemaining = 0f; // Timer đã bị loại bỏ trong luồng chơi mới.
             allNPCsRescued = false;
             oThamRescued = false;
             bacNamRescued = false;
@@ -1203,7 +1425,17 @@ namespace SownInStone
             UpdateHUDPanel();
         }
 
-        public void StartRoofSurvivalSharingStage()
+        public void ClimbToRoof()
+        {
+            if (Coracle.Instance != null && Coracle.Instance.IsPlayerOnBoard)
+            {
+                Coracle.Instance.ExitBoat(); // Thoát trạng thái thuyền thúng đúng cách
+            }
+
+            StartRoofSurvivalSharingStage();
+        }
+
+        private void StartRoofSurvivalSharingStage()
         {
             currentStage = TutorialStage.RoofSurvivalSharing;
             
@@ -1224,6 +1456,10 @@ namespace SownInStone
             // Dịch chuyển người chơi lên nóc nhà Thành cùng mọi người
             if (PlayerController.Instance != null)
             {
+                PlayerController.Instance.SetOnRoof(true);
+                PlayerController.Instance.SetupRoofSurvivalObjects();
+                PlayerController.Instance.SpawnRoofSleepingPlace();
+
                 // [CRITICAL FIX] Vô hiệu hóa CharacterController để ngăn xung đột vật lý trên mái nhà.
                 // CharacterController tạo ra capsule collider ẩn gây kẹt nhân vật khi di chuyển ngang.
                 var cc = PlayerController.Instance.GetComponent<CharacterController>();
@@ -1242,7 +1478,7 @@ namespace SownInStone
                 }
 
                 GameObject houseObj = FindThanhHouse();
-                Vector3 roofPos = houseObj != null ? houseObj.transform.position + new Vector3(0f, 6.2f, 0f) : new Vector3(10.66f, 6.2f, -10.0f);
+                Vector3 roofPos = houseObj != null ? houseObj.transform.position + new Vector3(0f, 5.2f, 0f) : new Vector3(10.66f, 5.2f, -10.0f);
                 SafeTeleportPlayer(roofPos);
                 var rb = PlayerController.Instance.GetComponent<Rigidbody>();
                 if (rb != null)
@@ -1280,24 +1516,22 @@ namespace SownInStone
                 }
             }
 
-            // Phát mì tôm cứu trợ giống như thiết lập cũ
-            if (StorageManager.Instance != null && PlayerController.Instance != null && PlayerController.Instance.seedItem != null)
-            {
-                // Cho thêm mì gói và khoai gieo nếu người chơi không có đủ khoai chia sẻ
-                ItemData noodles = StorageManager.Instance.GetItemDataByID("item_mi_tom");
-                if (noodles == null) noodles = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Noodles.asset");
-                if (noodles != null) StorageManager.Instance.AddItem(noodles, 4);
+            // Khởi tạo các cờ nhiệm vụ vớt hòm tiếp tế và kiệt sức
+            hasCollectedSupplyCrate = false;
+            isExhaustedAndReadyToSleep = false;
 
-                ItemData preserved = StorageManager.Instance.GetItemDataByID("item_khoai_gieo");
-                if (preserved == null) preserved = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_PreservedCrop.asset");
-                if (preserved != null) StorageManager.Instance.AddItem(preserved, 2);
+            // Sinh hòm tiếp tế trôi dạt để người chơi vớt
+            if (PlayerController.Instance != null)
+            {
+                PlayerController.Instance.SpawnSupplyCrate();
             }
 
             if (SurvivalUIManager.Instance != null)
             {
                 SurvivalUIManager.Instance.ShowDialogue(
                     "CẮM TRẠI NÓC NHÀ",
-                    "Cả xóm đã sơ tán lên nóc nhà Thành an toàn! Bên ngoài nước lũ đang ngập úng mênh mông cô lập. Hãy tương tác với lò sưởi ấm, xô nước mưa để sinh tồn, và quan trọng nhất: Hãy chia sẻ khoai gieo dự trữ cho 4 dân làng trên nóc nhà cùng sống qua ngày!"
+                    "Cả xóm đã sơ tán lên nóc nhà Thành an toàn! Bên ngoài nước lũ đang ngập úng mênh mông cô lập.\n\n" +
+                    "Hiện tại mọi người đang đói lả. Hãy nhìn xuống mặt nước và nhấn [E] ở mép mái nhà để vớt hòm gỗ tiếp tế trôi dạt, sau đó mở hòm lấy thực phẩm để chia sẻ cho mọi người!"
                 );
             }
 
@@ -1322,12 +1556,131 @@ namespace SownInStone
 
             if (fedCount >= 4)
             {
-                StartPostStormCleanupStage();
+                isExhaustedAndReadyToSleep = true;
+                exhaustionTimeRemaining = 60.0f; // Khởi tạo 60 giây đếm ngược
+                if (SurvivalUIManager.Instance != null)
+                {
+                    SurvivalUIManager.Instance.ShowDialogue(
+                        "MỆT LẢ SAU CỨU HỘ",
+                        "Cảm ơn Thành! Mọi người đã được chia sẻ lương thực tiếp tế đầy đủ ấm lòng.\n\n" +
+                        "Nhưng lúc này bạn đã kiệt sức sau chuỗi ngày chèo thuyền cứu hộ liên tục. Hãy di chuyển đến chiếc đệm hơi màu xanh lá cây trên mái nhà và nhấn [E] để ngủ nghỉ chờ nước lũ rút."
+                    );
+                }
+
+                UpdateHUDPanel();
             }
             else
             {
                 UpdateHUDPanel();
             }
+        }
+
+        public void TrySleepOnRoof()
+        {
+            if (currentStage != TutorialStage.RoofSurvivalSharing) return;
+            if (!hasCollectedSupplyCrate)
+            {
+                if (SurvivalUIManager.Instance != null)
+                {
+                    SurvivalUIManager.Instance.ShowDialogue("CÒN NHIỆM VỤ", "Bạn đang quá đó đói và kiệt sức, hãy vớt hòm tiếp tế trôi dạt ở mép mái nhà và cùng ăn với mọi người trước đã!");
+                }
+                return;
+            }
+            if (!isExhaustedAndReadyToSleep)
+            {
+                if (SurvivalUIManager.Instance != null)
+                {
+                    SurvivalUIManager.Instance.ShowDialogue("CÒN NHIỆM VỤ", "Hãy chia sẻ đầy đủ lương thực tiếp tế cho cả 4 dân làng trên mái nhà trước khi đi ngủ!");
+                }
+                return;
+            }
+
+            // Đã đủ điều kiện ngủ
+            if (SurvivalUIManager.Instance != null)
+            {
+                SurvivalUIManager.Instance.ShowDialogue(
+                    "GIẤC NGỦ TRÊN MÁI NHÀ",
+                    "Bạn chìm vào giấc ngủ sâu trên mái nhà giữa tiếng sóng vỗ rì rào của nước lũ. Sáng hôm sau, khi ánh nắng rạng rỡ chiếu xuống, nước lũ đã rút hết..."
+                );
+            }
+            StartPostStormCleanupStage();
+        }
+
+        public void TriggerExhaustionCollapse()
+        {
+            if (SurvivalUIManager.Instance != null)
+            {
+                SurvivalUIManager.Instance.ShowDialogue(
+                    "NGẤT XỈU VÌ KIỆT SỨC",
+                    "Bạn đã lả đi và ngất xỉu trên mái nhà vì kiệt sức sau nhiều ngày dầm mưa bão! Hãy thử lại và nghỉ ngơi kịp thời."
+                );
+            }
+            ReplayEndPhase2();
+        }
+
+        public void ReplayEndPhase2()
+        {
+            // 1. Reset GameManager phase & day
+            if (GameManager.Instance != null)
+            {
+                GameManager.Instance.TransitionToPhase(GamePhase.ChuanBiBao);
+            }
+
+            // 2. Clean up roof survival objects & mattress & crates
+            if (PlayerController.Instance != null)
+            {
+                PlayerController.Instance.SetOnRoof(false);
+                PlayerController.Instance.CleanupRoofSurvivalObjectsAndMattress();
+            }
+
+            // 3. Reset rescue flags & food sharing state
+            allNPCsRescued = false;
+            rescuedNPCsCount = 0;
+            oThamRescued = false;
+            bacNamRescued = false;
+            cuBayRescued = false;
+            beTiRescued = false;
+
+            oThamFed = false;
+            bacNamFed = false;
+            cuBayFed = false;
+            beTiFed = false;
+            hasCollectedSupplyCrate = false;
+            isExhaustedAndReadyToSleep = false;
+            exhaustionTimeRemaining = 60.0f;
+
+            // 4. Teleport player back inside Thanh's house (near the bed)
+            GameObject houseObj = GameObject.Find("Thanh_House");
+            Vector3 bedSpot = houseObj != null ? houseObj.transform.position + new Vector3(0.5f, 0.2f, 1.5f) : new Vector3(10.66f, 0.2f, -6.5f);
+            SafeTeleportPlayer(bedSpot);
+            
+            var rb = PlayerController.Instance != null ? PlayerController.Instance.GetComponent<Rigidbody>() : null;
+            if (rb != null)
+            {
+                rb.linearVelocity = Vector3.zero;
+                rb.position = bedSpot;
+            }
+
+            // 5. Restore CharacterController if it was disabled
+            if (PlayerController.Instance != null)
+            {
+                var cc = PlayerController.Instance.GetComponent<CharacterController>();
+                if (cc != null)
+                {
+                    cc.enabled = true;
+                }
+                var playerBoxCol = PlayerController.Instance.GetComponent<BoxCollider>();
+                if (playerBoxCol != null)
+                {
+                    playerBoxCol.isTrigger = false;
+                }
+            }
+
+            // 6. Reset NPCs back to their home positions
+            ResetNPCsToHomePositions();
+
+            // 7. Set stage back to WaitForSleep
+            StartWaitForSleepStage();
         }
 
         public void StartPostStormCleanupStage()
@@ -1599,7 +1952,7 @@ namespace SownInStone
 
                     for (int i = 0; i < 4; i++)
                     {
-                        if (ownHouseGhostFloodboards[i] != null && Vector3.Distance(ownHouseGhostFloodboards[i].transform.position, houseOffsets[i]) > 0.5f)
+                        if (ownHouseGhostFloodboards[i] != null && !ownHouseFloodboardsPlaced[i] && Vector3.Distance(ownHouseGhostFloodboards[i].transform.position, houseOffsets[i]) > 0.5f)
                         {
                             Destroy(ownHouseGhostFloodboards[i]);
                             ownHouseGhostFloodboards[i] = null;
@@ -1607,10 +1960,7 @@ namespace SownInStone
 
                         if (ownHouseFloodboardsPlaced[i])
                         {
-                            if (ownHouseGhostFloodboards[i] != null)
-                            {
-                                ownHouseGhostFloodboards[i].SetActive(false);
-                            }
+                            // Không tắt đối tượng này vì MakeSolidModel đã biến nó thành tấm chắn rắn hiển thị ngoài scene.
                             continue;
                         }
 
@@ -1916,42 +2266,73 @@ namespace SownInStone
             else if (currentStage == TutorialStage.RescuingNPCs)
             {
                 hudPanel.SetActive(true);
-                hudTitleText.text = $"CỨU HỘ DÂN LÀNG (Còn {(int)rescueTimeRemaining}s)";
+                // Tính số NPC đang trên thuyền vs đã lên nóc nhà
+                int onBoat = 0;
+                if (oThamRescued) onBoat++;
+                if (bacNamRescued) onBoat++;
+                if (cuBayRescued) onBoat++;
+                if (beTiRescued) onBoat++;
+                hudTitleText.text = $"⛵ CỨU TRỢ DÂN LÀNG ({rescuedNPCsCount}/4 đã lên nóc)";
 
-                hudTaskAText.text = (oThamRescued ? " <color=#2ECC71>✓</color> " : " <color=#E74C3C>☐</color> ") + "Cứu hộ O Thắm";
-                hudTaskAText.color = oThamRescued ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
+                // Tick khi NPC đã được đưa lên nóc nhà (rescuedNPCsCount tính), highlight vàng khi đang trên thuyền
+                bool oThamOnRoof  = rescuedNPCsCount > 0 && oThamRescued  && TutorialManager.Instance != null; // simplified: flag set after roof
+                hudTaskAText.text = (oThamRescued ? (rescuedNPCsCount >= 1 ? " <color=#2ECC71>✓</color> " : " <color=#F39C12>⛵</color> ") : " <color=#E74C3C>☐</color> ") + "O Thắm";
+                hudTaskAText.color = Color.white;
 
-                hudTaskBText.text = (bacNamRescued ? " <color=#2ECC71>✓</color> " : " <color=#E74C3C>☐</color> ") + "Cứu hộ Bác Năm";
-                hudTaskBText.color = bacNamRescued ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
+                hudTaskBText.text = (bacNamRescued ? (rescuedNPCsCount >= 1 ? " <color=#2ECC71>✓</color> " : " <color=#F39C12>⛵</color> ") : " <color=#E74C3C>☐</color> ") + "Bác Năm";
+                hudTaskBText.color = Color.white;
                 hudTaskBText.gameObject.SetActive(true);
 
-                hudTaskCText.text = (cuBayRescued ? " <color=#2ECC71>✓</color> " : " <color=#E74C3C>☐</color> ") + "Cứu hộ Cụ Bảy";
-                hudTaskCText.color = cuBayRescued ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
+                hudTaskCText.text = (cuBayRescued ? (rescuedNPCsCount >= 1 ? " <color=#2ECC71>✓</color> " : " <color=#F39C12>⛵</color> ") : " <color=#E74C3C>☐</color> ") + "Cụ Bảy";
+                hudTaskCText.color = Color.white;
                 hudTaskCText.gameObject.SetActive(true);
 
-                hudTaskDText.text = (beTiRescued ? " <color=#2ECC71>✓</color> " : " <color=#E74C3C>☐</color> ") + "Cứu hộ Bé Tí";
-                hudTaskDText.color = beTiRescued ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
+                hudTaskDText.text = (beTiRescued ? (rescuedNPCsCount >= 1 ? " <color=#2ECC71>✓</color> " : " <color=#F39C12>⛵</color> ") : " <color=#E74C3C>☐</color> ") + "Bé Tí";
+                hudTaskDText.color = Color.white;
                 hudTaskDText.gameObject.SetActive(true);
             }
             else if (currentStage == TutorialStage.RoofSurvivalSharing)
             {
                 hudPanel.SetActive(true);
-                hudTitleText.text = "CHIA SẺ KHOAI GIEO NÓC NHÀ";
+                if (!hasCollectedSupplyCrate)
+                {
+                    hudTitleText.text = "VỚT HÒM TIẾP TẾ LŨ LỤT";
+                    hudTaskAText.text = " <color=#E74C3C>☐</color> Vớt hòm tiếp tế ở mép mái nhà";
+                    hudTaskAText.color = Color.white;
 
-                hudTaskAText.text = (oThamFed ? " <color=#2ECC71>✓</color> " : " <color=#E74C3C>☐</color> ") + "O Thắm (Đã no)";
-                hudTaskAText.color = oThamFed ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
+                    hudTaskBText.gameObject.SetActive(false);
+                    hudTaskCText.gameObject.SetActive(false);
+                    hudTaskDText.gameObject.SetActive(false);
+                }
+                else if (!isExhaustedAndReadyToSleep)
+                {
+                    hudTitleText.text = "CHIA SẺ LƯƠNG THỰC CỨU TRỢ";
+                    
+                    hudTaskAText.text = (oThamFed ? " <color=#2ECC71>✓</color> " : " <color=#E74C3C>☐</color> ") + "O Thắm (Chia sẻ đồ ăn)";
+                    hudTaskAText.color = oThamFed ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
 
-                hudTaskBText.text = (bacNamFed ? " <color=#2ECC71>✓</color> " : " <color=#E74C3C>☐</color> ") + "Bác Năm (Đã no)";
-                hudTaskBText.color = bacNamFed ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
-                hudTaskBText.gameObject.SetActive(true);
+                    hudTaskBText.text = (bacNamFed ? " <color=#2ECC71>✓</color> " : " <color=#E74C3C>☐</color> ") + "Bác Năm (Chia sẻ đồ ăn)";
+                    hudTaskBText.color = bacNamFed ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
+                    hudTaskBText.gameObject.SetActive(true);
 
-                hudTaskCText.text = (cuBayFed ? " <color=#2ECC71>✓</color> " : " <color=#E74C3C>☐</color> ") + "Cụ Bảy (Đã no)";
-                hudTaskCText.color = cuBayFed ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
-                hudTaskCText.gameObject.SetActive(true);
+                    hudTaskCText.text = (cuBayFed ? " <color=#2ECC71>✓</color> " : " <color=#E74C3C>☐</color> ") + "Cụ Bảy (Chia sẻ đồ ăn)";
+                    hudTaskCText.color = cuBayFed ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
+                    hudTaskCText.gameObject.SetActive(true);
 
-                hudTaskDText.text = (beTiFed ? " <color=#2ECC71>✓</color> " : " <color=#E74C3C>☐</color> ") + "Bé Tí (Đã no)";
-                hudTaskDText.color = beTiFed ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
-                hudTaskDText.gameObject.SetActive(true);
+                    hudTaskDText.text = (beTiFed ? " <color=#2ECC71>✓</color> " : " <color=#E74C3C>☐</color> ") + "Bé Tí (Chia sẻ đồ ăn)";
+                    hudTaskDText.color = beTiFed ? new Color(0.6f, 0.6f, 0.6f, 1f) : Color.white;
+                    hudTaskDText.gameObject.SetActive(true);
+                }
+                else
+                {
+                    hudTitleText.text = "NẰM NGHỈ CHỜ NƯỚC RÚT";
+                    hudTaskAText.text = " <color=#E74C3C>☐</color> Tìm đệm hơi / lều trên mái để ngủ";
+                    hudTaskAText.color = Color.white;
+
+                    hudTaskBText.gameObject.SetActive(false);
+                    hudTaskCText.gameObject.SetActive(false);
+                    hudTaskDText.gameObject.SetActive(false);
+                }
             }
             else if (currentStage == TutorialStage.PostStormCleanup)
             {
@@ -1986,7 +2367,7 @@ namespace SownInStone
             // Khóa cứng cao độ Y của nhân vật chính trên mái nhà Thành để tuyệt đối không bị lún hay kẹt vật lý
             if (currentStage == TutorialStage.RoofSurvivalSharing)
             {
-                if (PlayerController.Instance != null)
+                if (PlayerController.Instance != null && PlayerController.Instance.enabled)
                 {
                     var rb = PlayerController.Instance.GetComponent<Rigidbody>();
                     if (rb != null)
@@ -1996,7 +2377,7 @@ namespace SownInStone
                     }
 
                     GameObject houseObj = FindThanhHouse();
-                    float targetY = houseObj != null ? houseObj.transform.position.y + 5.5f : 5.7f;
+                    float targetY = houseObj != null ? houseObj.transform.position.y + 5.0f : 5.0f; // Khóa Y=5.0m bằng phẳng với mái nhà và NPC
                     
                     Vector3 pos = PlayerController.Instance.transform.position;
                     pos.y = targetY;
@@ -2006,6 +2387,36 @@ namespace SownInStone
                         Vector3 rbPos = rb.position;
                         rbPos.y = targetY;
                         rb.position = rbPos;
+                    }
+
+                    // ── KIỂM TRA RANH GIỚI MÁI NHÀ THÀNH ──
+                    if (houseObj != null)
+                    {
+                        Vector3 housePos = houseObj.transform.position;
+                        float deltaX = Mathf.Abs(pos.x - housePos.x);
+                        float deltaZ = Mathf.Abs(pos.z - housePos.z);
+                        
+                        // Nếu bước ra ngoài phạm vi mái nhà (X delta > 4.2m hoặc Z delta > 3.2m)
+                        if (deltaX > 4.2f || deltaZ > 3.2f)
+                        {
+                            TriggerFallOffRoof();
+                        }
+                    }
+                }
+
+                // Cơ chế kiệt sức đếm ngược 60 giây
+                if (isExhaustedAndReadyToSleep)
+                {
+                    exhaustionTimeRemaining -= Time.deltaTime;
+                    if (hudTaskAText != null)
+                    {
+                        hudTaskAText.text = $" <color=#E74C3C>☐</color> Tìm đệm hơi trên mái để ngủ (Còn {Mathf.CeilToInt(exhaustionTimeRemaining)} giây!)";
+                    }
+
+                    if (exhaustionTimeRemaining <= 0f)
+                    {
+                        exhaustionTimeRemaining = 60.0f; // Reset
+                        TriggerExhaustionCollapse();
                     }
                 }
             }
@@ -2059,20 +2470,8 @@ namespace SownInStone
 
             if (currentStage == TutorialStage.RescuingNPCs)
             {
-                rescueTimeRemaining -= Time.deltaTime;
+                // Không còn đồng hồ đếm ngược — kết thúc phase được kích hoạt bởi OnNPCDeliveredToRoof() khi đủ 4 người.
                 UpdateHUDPanel();
-                if (rescueTimeRemaining <= 0f)
-                {
-                    // Hết giờ: nếu đã cứu đủ 4 người thì tele lên nóc nhà, ngược lại reset
-                    if (allNPCsRescued)
-                    {
-                        StartRoofSurvivalSharingStage();
-                    }
-                    else
-                    {
-                        ResetRescueStage();
-                    }
-                }
             }
 
             if (currentStage == TutorialStage.FarmingTutorial)
@@ -2801,6 +3200,110 @@ namespace SownInStone
                     rb.isKinematic = true;
                     rb.useGravity = false;
                 }
+            }
+        }
+
+        private void SetupNPCHouseColliders()
+        {
+            // ── THIẾT LẬP NHÀ BÁC NĂM (BacNam_House) ──
+            GameObject bacNamHouse = GameObject.Find("BacNam_House");
+            if (bacNamHouse != null)
+            {
+                // Dọn dẹp collider cũ
+                var cols = bacNamHouse.GetComponents<BoxCollider>();
+                foreach (var c in cols) if (c != null) Destroy(c);
+                var meshCols = bacNamHouse.GetComponentsInChildren<MeshCollider>(true);
+                foreach (var c in meshCols) if (c != null) Destroy(c);
+
+                // Thêm BoxCollider cứng bao phủ toàn bộ ngôi nhà
+                BoxCollider box = bacNamHouse.AddComponent<BoxCollider>();
+                box.isTrigger = false;
+                box.center = new Vector3(0f, 2.25f, 0f);
+                box.size = new Vector3(7.5f, 4.5f, 6.0f);
+                Debug.Log("[HOUSE COLLIDER] Đã thiết lập BoxCollider kiên cố cho BacNam_House");
+            }
+
+            // ── THIẾT LẬP CỬA TIỆM O THẮM (OTham_Shop) ──
+            GameObject oThamShop = GameObject.Find("OTham_Shop");
+            if (oThamShop != null)
+            {
+                var cols = oThamShop.GetComponents<BoxCollider>();
+                foreach (var c in cols) if (c != null) Destroy(c);
+                var meshCols = oThamShop.GetComponentsInChildren<MeshCollider>(true);
+                foreach (var c in meshCols) if (c != null) Destroy(c);
+
+                // BoxCollider 1: Nhà chính của O Thắm
+                BoxCollider mainBox = oThamShop.AddComponent<BoxCollider>();
+                mainBox.isTrigger = false;
+                mainBox.center = new Vector3(0f, 2.25f, 0.5f);
+                mainBox.size = new Vector3(7.5f, 4.5f, 6.0f);
+
+                // BoxCollider 2: Quầy hàng (Stall) phía trước
+                BoxCollider stallBox = oThamShop.AddComponent<BoxCollider>();
+                stallBox.isTrigger = false;
+                stallBox.center = new Vector3(0f, 0.6f, -2.5f);
+                stallBox.size = new Vector3(3.5f, 1.2f, 1.8f);
+                Debug.Log("[HOUSE COLLIDER] Đã thiết lập BoxCollider kiên cố cho OTham_Shop");
+            }
+
+            // ── THIẾT LẬP NHÀ CỤ BẢY (CuBay_House) ──
+            GameObject cuBayHouse = GameObject.Find("CuBay_House");
+            if (cuBayHouse != null)
+            {
+                var cols = cuBayHouse.GetComponents<BoxCollider>();
+                foreach (var c in cols) if (c != null) Destroy(c);
+                var meshCols = cuBayHouse.GetComponentsInChildren<MeshCollider>(true);
+                foreach (var c in meshCols) if (c != null) Destroy(c);
+
+                // BoxCollider cứng bao phủ toàn bộ ngôi nhà
+                BoxCollider box = cuBayHouse.AddComponent<BoxCollider>();
+                box.isTrigger = false;
+                box.center = new Vector3(0f, 2.25f, 0f);
+                box.size = new Vector3(7.5f, 4.5f, 6.0f);
+                Debug.Log("[HOUSE COLLIDER] Đã thiết lập BoxCollider kiên cố cho CuBay_House");
+            }
+        }
+
+        public void TriggerFallOffRoof()
+        {
+            var coracle = UnityEngine.Object.FindAnyObjectByType<SownInStone.Interactions.Coracle>(FindObjectsInactive.Include);
+            if (coracle != null && PlayerController.Instance != null)
+            {
+                // 1. Xác định mực nước lũ
+                float waterY = 2.0f;
+                if (SownInStone.Weather.WeatherManager.Instance != null)
+                {
+                    waterY = SownInStone.Weather.WeatherManager.Instance.FloodLevel;
+                }
+
+                // 2. Dịch chuyển thuyền thúng về trước mái nhà Thành
+                GameObject houseObj = FindThanhHouse();
+                Vector3 housePos = houseObj != null ? houseObj.transform.position : new Vector3(10.66f, 0.0f, -10.0f);
+                Vector3 boatPos = housePos + new Vector3(0f, waterY + 0.15f, 4.3f); // Mép trước mái nhà (Z = -10 + 4.3 = -5.7m)
+
+                coracle.transform.position = boatPos;
+                var coracleRb = coracle.GetComponent<Rigidbody>();
+                if (coracleRb != null)
+                {
+                    coracleRb.isKinematic = false;
+                    coracleRb.position = boatPos;
+                    coracleRb.linearVelocity = Vector3.zero;
+                }
+
+                // 3. Đưa người chơi lên thuyền thúng
+                coracle.Interact(PlayerController.Instance);
+
+                // 4. Hiển thị cảnh báo nhắc nhở
+                if (SurvivalUIManager.Instance != null)
+                {
+                    SurvivalUIManager.Instance.ShowDialogue(
+                        "RƠI KHỎI MÁI NHÀ",
+                        "Bạn đã bước quá giới hạn mái nhà và trượt ngã xuống thuyền thúng cứu hộ!\n\n" +
+                        "Hãy di chuyển thuyền thúng lại gần mép mái nhà và nhấn [E] để leo lên mái nhà tiếp tục nhiệm vụ chia sẻ lương thực."
+                    );
+                }
+                
+                Debug.Log("[ROOF LIMIT] Player stepped off roof, teleported into coracle.");
             }
         }
 
