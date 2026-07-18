@@ -194,6 +194,13 @@ namespace SownInStone.Weather
                     currentVisualWeather = WeatherType.MuaGiong;
                     targetRainIntensity = 0.3f;
                     targetFloodLevel = 0f;
+                    if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
+                    {
+                        if (TutorialManager.Instance.currentStage == TutorialManager.TutorialStage.RescuingNPCs)
+                        {
+                            targetFloodLevel = 1.2f;
+                        }
+                    }
                     if (!isMenuOpen) SownInStone.Audio.AudioManager.Instance?.PlayAmbient("ambient_storm", 0.5f);
                     SetAllCharactersShivering(false);
                     break;
@@ -201,6 +208,13 @@ namespace SownInStone.Weather
                 case GamePhase.MuaBao:
                     currentVisualWeather = WeatherType.BaoLu;
                     targetRainIntensity = 0.9f;
+                    if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
+                    {
+                        if (TutorialManager.Instance.currentStage == TutorialManager.TutorialStage.RoofSurvivalSharing)
+                        {
+                            targetFloodLevel = 2.0f;
+                        }
+                    }
                     if (!isMenuOpen) SownInStone.Audio.AudioManager.Instance?.PlayAmbient("ambient_storm", 0.9f);
                     if (SownInStone.UI.SurvivalUIManager.Instance != null)
                     {
