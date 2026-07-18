@@ -67,6 +67,9 @@ namespace SownInStone.UI
             // Tính toán hiệu ứng nảy (bounce) mượt mà dựa trên thời gian hình sin
             float bounceOffset = Mathf.Sin(Time.time * 5.5f) * 0.18f;
 
+            string textSymbol = "!";
+            Color symbolColor = new Color(1f, 0.85f, 0.1f, 1f); // Màu vàng gold mặc định
+
             foreach (var npc in npcs)
             {
                 if (npc == null) continue;
@@ -74,6 +77,10 @@ namespace SownInStone.UI
 
                 GameObject markerObj = npcMarkers[npc];
                 bool shouldShow = false;
+                
+                // Khôi phục màu và chữ mặc định
+                textSymbol = "!";
+                symbolColor = new Color(1f, 0.85f, 0.1f, 1f);
 
                 // 1. Kiểm tra xem NPC hiện tại có Sự kiện Hướng dẫn hoặc Sự kiện Giai đoạn chưa hoàn thành hay không
                 if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
@@ -118,6 +125,50 @@ namespace SownInStone.UI
                     {
                         if (npc.characterType == NPCCharacter.StoryCharacterType.CuBay) shouldShow = true;
                     }
+                    else if (stage == TutorialManager.TutorialStage.RescuingNPCs)
+                    {
+                        bool isRescued = false;
+                        if (npc.characterType == NPCCharacter.StoryCharacterType.OTham) isRescued = TutorialManager.Instance.oThamRescued;
+                        else if (npc.characterType == NPCCharacter.StoryCharacterType.BacNam) isRescued = TutorialManager.Instance.bacNamRescued;
+                        else if (npc.characterType == NPCCharacter.StoryCharacterType.CuBay) isRescued = TutorialManager.Instance.cuBayRescued;
+                        else if (npc.characterType == NPCCharacter.StoryCharacterType.BeTi) isRescued = TutorialManager.Instance.beTiRescued;
+
+                        if (!isRescued)
+                        {
+                            shouldShow = true;
+                            textSymbol = "!";
+                            symbolColor = new Color(1f, 0.2f, 0.2f, 1f); // Đỏ khẩn cấp
+                        }
+                    }
+                    else if (stage == TutorialManager.TutorialStage.RoofSurvivalSharing)
+                    {
+                        bool isFed = false;
+                        if (npc.characterType == NPCCharacter.StoryCharacterType.OTham) isFed = TutorialManager.Instance.oThamFed;
+                        else if (npc.characterType == NPCCharacter.StoryCharacterType.BacNam) isFed = TutorialManager.Instance.bacNamFed;
+                        else if (npc.characterType == NPCCharacter.StoryCharacterType.CuBay) isFed = TutorialManager.Instance.cuBayFed;
+                        else if (npc.characterType == NPCCharacter.StoryCharacterType.BeTi) isFed = TutorialManager.Instance.beTiFed;
+
+                        if (!isFed)
+                        {
+                            shouldShow = true;
+                            textSymbol = "!";
+                            symbolColor = new Color(1f, 0.6f, 0f, 1f); // Cam chia sẻ lương thực
+                        }
+                    }
+                    else if (stage == TutorialManager.TutorialStage.PostStormCleanup)
+                    {
+                        bool isCleaned = false;
+                        if (npc.characterType == NPCCharacter.StoryCharacterType.OTham) isCleaned = TutorialManager.Instance.oThamHouseCleaned;
+                        else if (npc.characterType == NPCCharacter.StoryCharacterType.BacNam) isCleaned = TutorialManager.Instance.bacNamHouseCleaned;
+                        else if (npc.characterType == NPCCharacter.StoryCharacterType.CuBay || npc.characterType == NPCCharacter.StoryCharacterType.BeTi) isCleaned = TutorialManager.Instance.cuBayHouseCleaned;
+
+                        if (!isCleaned)
+                        {
+                            shouldShow = true;
+                            textSymbol = "!";
+                            symbolColor = new Color(0f, 0.8f, 1f, 1f); // Xanh cyan dọn dẹp
+                        }
+                    }
                 }
                 else if (CommunityManager.Instance != null)
                 {
@@ -160,6 +211,12 @@ namespace SownInStone.UI
                 // Cập nhật hiển thị và vị trí
                 if (shouldShow)
                 {
+                    if (npcMarkerTexts.ContainsKey(npc))
+                    {
+                        npcMarkerTexts[npc].text = textSymbol;
+                        npcMarkerTexts[npc].color = symbolColor;
+                    }
+
                     Vector3 worldPos = npc.transform.position + Vector3.up * (2.3f + bounceOffset);
                     Vector3 screenPos = Camera.main.WorldToScreenPoint(worldPos);
 

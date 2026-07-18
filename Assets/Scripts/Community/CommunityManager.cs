@@ -79,28 +79,37 @@ namespace SownInStone.Community
             return total;
         }
 
-        /// <summary>
-        /// Kích hoạt chuỗi sự kiện "Vần Công Hỗ Trợ Chống Bão".
-        /// Khi bão đến ở Giai đoạn 3, dân làng sang phụ chằng mái nhà, khuân gà lên gác xép.
-        /// </summary>
         public void TriggerStormHelpSequence()
         {
             int credits = GetTotalVầnCôngCreditsAvailable();
+            string title = "";
+            string description = "";
             
             if (credits >= 5)
             {
+                title = "VẦN CÔNG HỖ TRỢ";
+                description = "Nhờ tinh thần tương thân tương ái trước bão, cả nhà Bác Năm và O Thắm đã mang bao cát và dây thừng sang giúp chằng chống mái nhà vững chãi hộ bạn! Ngôi nhà của bạn đã được gia cố hoàn hảo.";
                 Debug.Log("[VẦN CÔNG] Cả nhà Bác Năm và O Thắm mang bao cát và dây thừng sang chằng mái nhà vững chãi hộ bạn! Ngôi nhà của bạn đã được gia cố hoàn hảo!");
                 PlayerStats.Instance?.ModifyMorale(15f); // Tăng tinh thần khi nhận được sự ấm áp của xóm giềng
             }
             else if (credits >= 2)
             {
+                title = "VẦN CÔNG HỖ TRỢ";
+                description = "Nhờ sự hỗ trợ trước bão, Bác Năm đã sang chằng chống hộ một góc nhà và phụ lùa gà vịt lên gác xép cùng bạn tránh lũ dâng.";
                 Debug.Log("[VẦN CÔNG] Bác Năm sang kéo hộ dây thừng và lùa gà lên gác xép cùng bạn trước khi mưa lũ dâng.");
                 PlayerStats.Instance?.ModifyMorale(5f);
             }
             else
             {
+                title = "TỰ LỰC CÁNH SINH";
+                description = "Do bạn không có đủ tích lũy điểm Vần Công giúp đỡ bà con trước đây, không ai sang hỗ trợ gia cố nhà cửa lúc bão lũ đổ bộ. Bạn phải đơn độc chống chọi với thiên tai.";
                 Debug.LogWarning("[VẦN CÔNG] Bạn không có đủ điểm tích lũy Vần Công trước đây. Không ai sang giúp gia cố nhà cửa! Bạn phải tự chống bão một mình!");
                 PlayerStats.Instance?.ModifyMorale(-10f); // Tủi thân hoảng sợ khi cô độc chống bão
+            }
+
+            if (SownInStone.UI.SurvivalUIManager.Instance != null)
+            {
+                SownInStone.UI.SurvivalUIManager.Instance.ShowDialogue(title, description);
             }
 
             // Tiêu hao bớt điểm đổi công sau khi đã sử dụng

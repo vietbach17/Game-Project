@@ -29,6 +29,11 @@ namespace SownInStone
         [SerializeField] private ItemData testPlasticMulch;
         [SerializeField] private AncestralAltar testAltar;
 
+        // Item picker state
+        private Vector2 itemPickerScroll = Vector2.zero;
+        private int itemPickerQty = 1;
+        private ItemData[] allKnownItems = null;
+
         private string alertMessage = "Hệ thống hoạt động bình thường.";
         private float alertTimer = 0f;
 
@@ -38,6 +43,33 @@ namespace SownInStone
         [Header("--- THIẾT LẬP HIỂN THỊ ---")]
         [Tooltip("Bảng điều khiển có hiển thị hay không (sẽ được kích hoạt sau khi bấm bắt đầu ở Menu chính).")]
         public bool isUIVisible = false;
+
+        private bool showGiveItemPopup = false;
+        private string itemQuantityInput = "5";
+        
+        private struct ItemInfo
+        {
+            public string id;
+            public string displayName;
+            public ItemInfo(string id, string displayName)
+            {
+                this.id = id;
+                this.displayName = displayName;
+            }
+        }
+        
+        private readonly ItemInfo[] gameItems = new ItemInfo[]
+        {
+            new ItemInfo("item_seed_potato", "Hạt giống Khoai lang"),
+            new ItemInfo("item_fresh_potato", "Khoai lang tươi"),
+            new ItemInfo("item_khoai_gieo", "Khoai gieo sấy khô"),
+            new ItemInfo("item_mi_tom", "Mì tôm cứu trợ"),
+            new ItemInfo("item_incense", "Nén Nhang cúng"),
+            new ItemInfo("item_non_la", "Nón Lá tránh mưa"),
+            new ItemInfo("item_sandbag", "Bao Cát chắn nước"),
+            new ItemInfo("item_flood_board", "Tấm Chắn Lũ"),
+            new ItemInfo("item_plastic_mulch", "Màng Bọc Nilon")
+        };
 
         public static FrameworkDebugUI Instance { get; private set; }
 
@@ -163,6 +195,68 @@ namespace SownInStone
         private void OnGUI()
         {
             if (!isUIVisible) return;
+
+            if (showGiveItemPopup)
+            {
+                // Vẽ popup hộp quà tự chọn vật phẩm ở giữa màn hình
+                Rect popupRect = new Rect(Screen.width / 2 - 200, Screen.height / 2 - 250, 400, 500);
+                GUI.backgroundColor = new Color(0.25f, 0.22f, 0.18f, 0.98f);
+                GUI.Box(popupRect, "<b>🎒 HỘP QUÀ DEV - TỰ CHỌN VẬT PHẨM</b>");
+                
+                GUILayout.BeginArea(new Rect(popupRect.x + 15, popupRect.y + 35, popupRect.width - 30, popupRect.height - 50));
+                
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Số lượng nhận: ", GUILayout.Width(100));
+                itemQuantityInput = GUILayout.TextField(itemQuantityInput, GUILayout.Width(80));
+                
+                // Chỉ cho phép nhập số
+                itemQuantityInput = System.Text.RegularExpressions.Regex.Replace(itemQuantityInput, @"[^0-9]", "");
+                if (string.IsNullOrEmpty(itemQuantityInput)) itemQuantityInput = "1";
+                
+                int.TryParse(itemQuantityInput, out int qAmt);
+                qAmt = Mathf.Clamp(qAmt, 1, 999);
+                
+                if (GUILayout.Button("1", GUILayout.Width(25))) itemQuantityInput = "1";
+                if (GUILayout.Button("5", GUILayout.Width(25))) itemQuantityInput = "5";
+                if (GUILayout.Button("10", GUILayout.Width(30))) itemQuantityInput = "10";
+                if (GUILayout.Button("50", GUILayout.Width(30))) itemQuantityInput = "50";
+                GUILayout.EndHorizontal();
+                
+                GUILayout.Space(10);
+                GUILayout.Label("<b>Danh sách vật phẩm trong game:</b>");
+                GUILayout.Space(5);
+                
+                foreach (var gi in gameItems)
+                {
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label(gi.displayName, GUILayout.Width(220));
+                    if (GUILayout.Button($"Nhận +{qAmt}", GUILayout.Width(120)))
+                    {
+                        ItemData item = LoadItemData(gi.id);
+                        if (item != null && StorageManager.Instance != null)
+                        {
+                            StorageManager.Instance.AddItem(item, qAmt);
+                            ShowAlert($"Đã thêm +{qAmt} {gi.displayName}!");
+                        }
+                        else
+                        {
+                            ShowAlert($"Lỗi tải: {gi.displayName}");
+                        }
+                    }
+                    GUILayout.EndHorizontal();
+                    GUILayout.Space(2);
+                }
+                
+                GUILayout.FlexibleSpace();
+                if (GUILayout.Button("<b>ĐÓNG HỘP QUÀ (F1)</b>", GUILayout.Height(35)))
+                {
+                    showGiveItemPopup = false;
+                }
+                
+                GUILayout.EndArea();
+                GUI.backgroundColor = Color.white;
+                return; // Ngăn chặn tương tác với bảng phía sau khi đang mở hộp quà
+            }
 
             // Thiết lập phong cách hiển thị chung (Sử dụng bảng màu mộc mạc)
             GUI.backgroundColor = new Color(0.18f, 0.15f, 0.12f, 0.95f); // Tông nâu đất mộc mạc
@@ -373,102 +467,80 @@ namespace SownInStone
             GUI.Box(devRect, "<b>PRESENTATION DEMO CONTROLS</b>");
             GUILayout.BeginArea(new Rect(devRect.x + 10, devRect.y + 20, devRect.width - 20, devRect.height - 30));
             
-            // Row 1: Phase Jumps
+            // Row 1: Phase Jumps (Kiểm thử giai đoạn game)
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Jump to Phase 1"))
+            if (GUILayout.Button("GĐ 1: Lập Nghiệp"))
             {
                 if (GameManager.Instance != null) GameManager.Instance.TransitionToPhase(GamePhase.LapNghiep);
                 if (TutorialManager.Instance != null)
                 {
                     TutorialManager.Instance.currentStage = TutorialManager.TutorialStage.IntroQuests;
+                    SupplementItemsUpToStage(TutorialManager.TutorialStage.IntroQuests, TutorialManager.Instance);
                     TutorialManager.Instance.UpdateHUDPanel();
                 }
-                ShowAlert("Nhảy đến Phase 1 (Lập Nghiệp) & Bắt đầu nhiệm vụ dạo chơi!");
+                ShowAlert("Nhảy đến GĐ 1 (Lập Nghiệp) & Bắt đầu nhiệm vụ hướng dẫn!");
             }
-            if (GUILayout.Button("Jump to Phase 2"))
+            if (GUILayout.Button("GĐ 1.5: Gia Cố Phòng Bão"))
             {
-                if (GameManager.Instance != null) GameManager.Instance.TransitionToPhase(GamePhase.ChuanBiBao);
+                if (GameManager.Instance != null) GameManager.Instance.TransitionToPhase(GamePhase.LapNghiep);
                 if (TutorialManager.Instance != null)
                 {
                     TutorialManager.Instance.currentStage = TutorialManager.TutorialStage.PrepareForStorm;
+                    SupplementItemsUpToStage(TutorialManager.TutorialStage.PrepareForStorm, TutorialManager.Instance);
                     TutorialManager.Instance.StartBothStormJobs();
                 }
-                ShowAlert("Nhảy đến Phase 2 (Chuẩn Bị Bão) – Làm cả 2 nhiệm vụ: Gia cố nhà Bác Năm + Cất đồ nhà O Thắm!");
+                ShowAlert("Nhảy đến GĐ 1.5 (Gia cố phòng bão) – Kích hoạt nhiệm vụ gia cố của Bác Năm & O Thắm!");
             }
-            if (GUILayout.Button("Jump to Phase 3"))
+            if (GUILayout.Button("GĐ 2: Sơ Tán Cứu Hộ"))
             {
                 if (TutorialManager.Instance != null)
                 {
                     TutorialManager.Instance.StoreNPCHomePositions();
                     TutorialManager.Instance.StartRescuingNPCsStage();
+                    SupplementItemsUpToStage(TutorialManager.TutorialStage.RescuingNPCs, TutorialManager.Instance);
+                }
+                else if (GameManager.Instance != null)
+                {
+                    GameManager.Instance.TransitionToPhase(GamePhase.ChuanBiBao);
+                }
+                ShowAlert("Nhảy đến GĐ 2 (Chuẩn Bị Bão) & Bắt đầu nhiệm vụ sơ tán cứu hộ!");
+            }
+            GUILayout.EndHorizontal();
+
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("GĐ 3: Sinh Tồn Nóc Nhà"))
+            {
+                if (TutorialManager.Instance != null)
+                {
+                    TutorialManager.Instance.StartRoofSurvivalSharingStage();
+                    SupplementItemsUpToStage(TutorialManager.TutorialStage.RoofSurvivalSharing, TutorialManager.Instance);
                 }
                 else if (GameManager.Instance != null)
                 {
                     GameManager.Instance.TransitionToPhase(GamePhase.MuaBao);
                 }
-                ShowAlert("Nhảy đến Phase 3 (Mưa Bão) & Bắt đầu nhiệm vụ sơ tán cứu hộ!");
+                ShowAlert("Nhảy đến GĐ 3 (Mưa Bão) & Lên nóc nhà sinh tồn!");
             }
-            if (GUILayout.Button("Jump to Phase 4"))
+            if (GUILayout.Button("GĐ 4: Tái Thiết"))
             {
                 if (TutorialManager.Instance != null)
                 {
                     TutorialManager.Instance.StartPostStormCleanupStage();
+                    SupplementItemsUpToStage(TutorialManager.TutorialStage.PostStormCleanup, TutorialManager.Instance);
                 }
                 else if (GameManager.Instance != null)
                 {
                     GameManager.Instance.TransitionToPhase(GamePhase.PhuSa);
                 }
-                ShowAlert("Nhảy đến Phase 4 (Phù Sa) & Bắt đầu dọn dẹp tái thiết!");
+                ShowAlert("Nhảy đến GĐ 4 (Phù Sa) & Bắt đầu dọn dẹp tái thiết!");
             }
             GUILayout.EndHorizontal();
 
-            // Row 2: Resources
-            GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Add +5 Seeds"))
+            GUILayout.Space(5);
+            if (GUILayout.Button("<b>🎒 MỞ HỘP QUÀ DEV (TỰ CHỌN VẬT PHẨM & SỐ LƯỢNG)</b>", GUILayout.Height(30)))
             {
-                if (StorageManager.Instance != null && testSeedItem != null)
-                {
-                    StorageManager.Instance.AddItem(testSeedItem, 5);
-                    ShowAlert("Đã thêm 5 Hạt giống Khoai vào kho đồ!");
-                }
+                showGiveItemPopup = true;
             }
-            if (GUILayout.Button("Add +5 Food"))
-            {
-                if (StorageManager.Instance != null && testPreservedCrop != null)
-                {
-                    StorageManager.Instance.AddItem(testPreservedCrop, 5);
-                    ShowAlert("Đã thêm 5 Khoai Gieo (lương thực khô) vào kho đồ!");
-                }
-            }
-            GUILayout.EndHorizontal();
-
-            // Row 2.5: Survival items cheats
-            GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Add +1 Nón Lá"))
-            {
-                if (StorageManager.Instance != null && testNonLa != null)
-                {
-                    StorageManager.Instance.AddItem(testNonLa, 1);
-                    ShowAlert("Đã thêm 1 Nón Lá vào kho đồ!");
-                }
-            }
-            if (GUILayout.Button("Add +5 Bao Cát"))
-            {
-                if (StorageManager.Instance != null && testSandbag != null)
-                {
-                    StorageManager.Instance.AddItem(testSandbag, 5);
-                    ShowAlert("Đã thêm 5 Bao Cát vào kho đồ!");
-                }
-            }
-            if (GUILayout.Button("Add +3 Tấm Chắn"))
-            {
-                if (StorageManager.Instance != null && testFloodBoard != null)
-                {
-                    StorageManager.Instance.AddItem(testFloodBoard, 3);
-                    ShowAlert("Đã thêm 3 Tấm Chắn Lũ vào kho đồ!");
-                }
-            }
-            GUILayout.EndHorizontal();
 
             // Row 3: Nghĩa Tình (Karma)
             GUILayout.BeginHorizontal();
@@ -623,6 +695,502 @@ namespace SownInStone
             }
 
             GUILayout.EndArea();
+
+            // 9. TUTORIAL QUEST CHEATS (Column 2, below farming)
+            Rect questRect = new Rect(540, 275, 250, 240);
+            GUI.Box(questRect, "<b>TUTORIAL QUEST CHEATS</b>");
+            GUILayout.BeginArea(new Rect(questRect.x + 10, questRect.y + 20, questRect.width - 20, questRect.height - 30));
+
+            if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
+            {
+                var tut = TutorialManager.Instance;
+                GUILayout.Label($"Giai đoạn: <color=yellow>{tut.currentStage.ToString()}</color>");
+                
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button("Skip Stage ⏩"))
+                {
+                    TutorialManager.TutorialStage prevStage = tut.currentStage;
+                    SupplementItemsForStage(prevStage, tut);
+                    tut.currentStage = (TutorialManager.TutorialStage)(((int)tut.currentStage + 1) % 17);
+                    tut.UpdateHUDPanel();
+                    ShowAlert($"Đã nhảy sang giai đoạn: {tut.currentStage} và cấp bù vật phẩm tương ứng!");
+                }
+                GUILayout.EndHorizontal();
+
+                // Button to skip slide shows
+                if (tut.currentStage == TutorialManager.TutorialStage.ShowingFarmingSlides)
+                {
+                    if (GUILayout.Button("Bỏ qua Slides Trồng trọt"))
+                    {
+                        tut.GetType().GetMethod("EndFarmingSlides", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)?.Invoke(tut, null);
+                        ShowAlert("Đã bỏ qua Slide hướng dẫn trồng trọt!");
+                    }
+                }
+                
+                // Stage 1: IntroQuests
+                if (tut.currentStage == TutorialManager.TutorialStage.IntroQuests)
+                {
+                    GUILayout.Label("Gặp 4 Dân làng:");
+                    GUILayout.BeginHorizontal();
+                    if (!tut.taskACompleted && GUILayout.Button("O Thắm"))
+                    {
+                        tut.OnDialogueClosed("O Thắm");
+                        ShowAlert("Đã hoàn thành gặp O Thắm!");
+                    }
+                    if (!tut.taskBCompleted && GUILayout.Button("Bác Năm"))
+                    {
+                        tut.OnDialogueClosed("Bác Năm");
+                        ShowAlert("Đã hoàn thành gặp Bác Năm!");
+                    }
+                    GUILayout.EndHorizontal();
+
+                    GUILayout.BeginHorizontal();
+                    if (!tut.taskCCompleted && GUILayout.Button("Cụ Bảy"))
+                    {
+                        tut.OnDialogueClosed("Cụ Bảy");
+                        ShowAlert("Đã hoàn thành gặp Cụ Bảy!");
+                    }
+                    if (!tut.taskDCompleted && GUILayout.Button("Bé Tí"))
+                    {
+                        tut.OnDialogueClosed("Bé Tí");
+                        ShowAlert("Đã hoàn thành gặp Bé Tí!");
+                    }
+                    GUILayout.EndHorizontal();
+                }
+                
+                // Stage 1.5: TalkToOThamJob
+                if (tut.currentStage == TutorialManager.TutorialStage.TalkToOThamJob)
+                {
+                    if (GUILayout.Button("Nhận việc O Thắm"))
+                    {
+                        if (StorageManager.Instance != null)
+                        {
+                            ItemData seed = PlayerController.Instance != null ? PlayerController.Instance.seedItem : null;
+                            if (seed == null) seed = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Seed.asset");
+                            if (seed != null) StorageManager.Instance.AddItem(seed, 12);
+                        }
+                        tut.StartFarmingSlideshow();
+                        ShowAlert("Đã nhận việc & nhận 12 hạt giống!");
+                    }
+                }
+                
+                // Stage 2: FarmingTutorial
+                if (tut.currentStage == TutorialManager.TutorialStage.FarmingTutorial)
+                {
+                    GUILayout.Label("Trồng trọt:");
+                    GUILayout.BeginHorizontal();
+                    if (!tut.subTask1Completed && GUILayout.Button("Dọn đá"))
+                    {
+                        tut.OnRockCleared();
+                        ShowAlert("Đã xong dọn đá!");
+                    }
+                    if (!tut.subTask2Completed && GUILayout.Button("Gieo hạt"))
+                    {
+                        tut.OnCropPlanted();
+                        ShowAlert("Đã xong gieo hạt!");
+                    }
+                    GUILayout.EndHorizontal();
+
+                    GUILayout.BeginHorizontal();
+                    if (!tut.subTask3Completed && GUILayout.Button("Tưới nước"))
+                    {
+                        tut.OnSoilWatered();
+                        ShowAlert("Đã xong tưới nước!");
+                    }
+                    if (!tut.subTask4Completed && GUILayout.Button("Thu hoạch"))
+                    {
+                        tut.subTask4Completed = true;
+                        if (StorageManager.Instance != null)
+                        {
+                            ItemData fresh = StorageManager.Instance.GetItemDataByID("item_fresh_crop");
+                            if (fresh == null) fresh = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_FreshCrop.asset");
+                            if (fresh != null) StorageManager.Instance.AddItem(fresh, 24);
+                        }
+                        tut.currentStage = TutorialManager.TutorialStage.SellCrops;
+                        tut.UpdateHUDPanel();
+                        ShowAlert("Đã thu hoạch và nhận 24 Khoai lang tươi!");
+                    }
+                    GUILayout.EndHorizontal();
+                }
+                
+                // Stage 3: SellCrops
+                if (tut.currentStage == TutorialManager.TutorialStage.SellCrops)
+                {
+                    if (GUILayout.Button("Bán khoai cho O Thắm"))
+                    {
+                        if (PlayerStats.Instance != null) PlayerStats.Instance.ModifyCoins(120);
+                        if (StorageManager.Instance != null)
+                        {
+                            ItemData fresh = StorageManager.Instance.GetItemDataByID("item_fresh_crop");
+                            if (fresh != null && StorageManager.Instance.HasItem(fresh, 12))
+                            {
+                                StorageManager.Instance.RemoveItem(fresh, 12);
+                            }
+                        }
+                        tut.OnCropsSold();
+                        ShowAlert("Đã bán khoai: +120 Coins!");
+                    }
+                }
+                
+                // Stage 4: TalkToBacNamPreserve
+                if (tut.currentStage == TutorialManager.TutorialStage.TalkToBacNamPreserve)
+                {
+                    if (GUILayout.Button("Hỏi Bác Năm về trữ khoai"))
+                    {
+                        tut.OnBacNamPreserveTalked();
+                        ShowAlert("Đã hoàn thành hỏi trữ khoai!");
+                    }
+                }
+                
+                // Stage 5: CraftPreservedCrops
+                if (tut.currentStage == TutorialManager.TutorialStage.CraftPreservedCrops)
+                {
+                    GUILayout.Label($"Đã chế biến: {tut.preservedCropsCrafted}/4");
+                    if (GUILayout.Button("Chế biến 1 Khoai Gieo"))
+                    {
+                        if (StorageManager.Instance != null)
+                        {
+                            ItemData preserved = StorageManager.Instance.GetItemDataByID("item_khoai_gieo");
+                            if (preserved == null) preserved = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_PreservedCrop.asset");
+                            if (preserved != null) StorageManager.Instance.AddItem(preserved, 1);
+                        }
+                        tut.OnPreservedCropCrafted();
+                        ShowAlert("Đã chế biến +1 Khoai Gieo!");
+                    }
+                }
+                
+                // Stage 6: SharePreservedCrops
+                if (tut.currentStage == TutorialManager.TutorialStage.SharePreservedCrops)
+                {
+                    GUILayout.Label("Chia sẻ 4 khoai gieo:");
+                    GUILayout.BeginHorizontal();
+                    if (!tut.sharedOTham && GUILayout.Button("O Thắm"))
+                    {
+                        tut.OnPreservedCropShared(NPCCharacter.StoryCharacterType.OTham);
+                        ShowAlert("Đã chia khoai cho O Thắm!");
+                    }
+                    if (!tut.sharedBacNam && GUILayout.Button("Bác Năm"))
+                    {
+                        tut.OnPreservedCropShared(NPCCharacter.StoryCharacterType.BacNam);
+                        ShowAlert("Đã chia khoai cho Bác Năm!");
+                    }
+                    GUILayout.EndHorizontal();
+
+                    GUILayout.BeginHorizontal();
+                    if (!tut.sharedCuBay && GUILayout.Button("Cụ Bảy"))
+                    {
+                        tut.OnPreservedCropShared(NPCCharacter.StoryCharacterType.CuBay);
+                        ShowAlert("Đã chia khoai cho Cụ Bảy!");
+                    }
+                    if (!tut.sharedBeTi && GUILayout.Button("Bé Tí"))
+                    {
+                        tut.OnPreservedCropShared(NPCCharacter.StoryCharacterType.BeTi);
+                        ShowAlert("Đã chia khoai cho Bé Tí!");
+                    }
+                    GUILayout.EndHorizontal();
+                }
+                
+                // Stage 7: PrepareForStorm
+                if (tut.currentStage == TutorialManager.TutorialStage.PrepareForStorm)
+                {
+                    GUILayout.Label("Gia cố trước bão:");
+                    if (!tut.bacNamPrepped)
+                    {
+                        GUILayout.Label($"Bác Năm: {tut.bacNamFloodBoardsPlaced}/2 ván, {tut.bacNamSandbagsPlaced}/4 cát");
+                        GUILayout.BeginHorizontal();
+                        if (tut.bacNamFloodBoardsPlaced < 2 && GUILayout.Button("+1 Tấm chắn"))
+                        {
+                            tut.OnBacNamFloodBoardPlaced();
+                            ShowAlert("Đã đặt +1 tấm chắn lũ nhà Bác Năm!");
+                        }
+                        if (tut.bacNamSandbagsPlaced < 4 && GUILayout.Button("+1 Bao cát"))
+                        {
+                            tut.OnBacNamSandbagPlaced();
+                            ShowAlert("Đã đặt +1 bao cát nhà Bác Năm!");
+                        }
+                        GUILayout.EndHorizontal();
+                    }
+                    if (!tut.oThamPrepped)
+                    {
+                        GUILayout.Label($"O Thắm: {tut.oThamItemsStored}/5 gói mì");
+                        if (GUILayout.Button("+1 Mì tôm cất rương"))
+                        {
+                            if (StorageManager.Instance != null)
+                            {
+                                ItemData noodles = StorageManager.Instance.GetItemDataByID("item_mi_tom");
+                                if (noodles != null && !StorageManager.Instance.HasItem(noodles, 1))
+                                {
+                                    StorageManager.Instance.AddItem(noodles, 1);
+                                }
+                            }
+                            if (tut.oThamCarryingCount == 0) tut.oThamCarryingCount = 1;
+                            tut.OnOThamItemStored();
+                            ShowAlert("Đã cất +1 mì gói cho O Thắm!");
+                        }
+                    }
+                }
+                
+                // Stage 8: PrepareOwnHouse
+                if (tut.currentStage == TutorialManager.TutorialStage.PrepareOwnHouse)
+                {
+                    GUILayout.Label($"Nhà mình: {tut.ownHouseSandbagsPlaced}/4 tấm ván");
+                    if (GUILayout.Button("+1 Tấm ván nhà mình"))
+                    {
+                        tut.OnOwnHouseSandbagPlaced();
+                        ShowAlert("Đã gia cố +1 tấm ván nhà mình!");
+                    }
+                }
+                
+
+                
+                // Stage 9: TalkToCuBayWorship
+                if (tut.currentStage == TutorialManager.TutorialStage.TalkToCuBayWorship)
+                {
+                    if (GUILayout.Button("Hỏi Cụ Bảy về thờ cúng"))
+                    {
+                        if (StorageManager.Instance != null)
+                        {
+                            ItemData incense = StorageManager.Instance.GetItemDataByID("item_incense");
+                            if (incense == null) incense = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Incense.asset");
+                            if (incense != null) StorageManager.Instance.AddItem(incense, 1);
+                        }
+                        tut.OnCuBayWorshipTalked();
+                        ShowAlert("Đã nhận 1 Nén Nhang cúng tế!");
+                    }
+                }
+                
+                // Stage 10: WorshipAltar
+                if (tut.currentStage == TutorialManager.TutorialStage.WorshipAltar)
+                {
+                    if (GUILayout.Button("Thắp nhang bàn thờ"))
+                    {
+                        tut.OnAltarWorshipped();
+                        ShowAlert("Đã thắp nhang ban thờ xong!");
+                    }
+                }
+                
+                // Stage 11: RescuingNPCs
+                if (tut.currentStage == TutorialManager.TutorialStage.RescuingNPCs)
+                {
+                    GUILayout.Label($"Cứu hộ: {tut.rescuedNPCsCount}/4 người");
+                    GUILayout.BeginHorizontal();
+                    if (!tut.oThamRescued && GUILayout.Button("O Thắm"))
+                    {
+                        tut.OnNPCRescued(NPCCharacter.StoryCharacterType.OTham);
+                        ShowAlert("Đã cứu hộ O Thắm!");
+                    }
+                    if (!tut.bacNamRescued && GUILayout.Button("Bác Năm"))
+                    {
+                        tut.OnNPCRescued(NPCCharacter.StoryCharacterType.BacNam);
+                        ShowAlert("Đã cứu hộ Bác Năm!");
+                    }
+                    GUILayout.EndHorizontal();
+
+                    GUILayout.BeginHorizontal();
+                    if (!tut.cuBayRescued && GUILayout.Button("Cụ Bảy"))
+                    {
+                        tut.OnNPCRescued(NPCCharacter.StoryCharacterType.CuBay);
+                        ShowAlert("Đã cứu hộ Cụ Bảy!");
+                    }
+                    if (!tut.beTiRescued && GUILayout.Button("Bé Tí"))
+                    {
+                        tut.OnNPCRescued(NPCCharacter.StoryCharacterType.BeTi);
+                        ShowAlert("Đã cứu hộ Bé Tí!");
+                    }
+                    GUILayout.EndHorizontal();
+                }
+                
+                // Stage 12: RoofSurvivalSharing
+                if (tut.currentStage == TutorialManager.TutorialStage.RoofSurvivalSharing)
+                {
+                    GUILayout.Label("Chia sẻ trên mái:");
+                    GUILayout.BeginHorizontal();
+                    if (!tut.oThamFed && GUILayout.Button("O Thắm"))
+                    {
+                        tut.FeedNPC(NPCCharacter.StoryCharacterType.OTham);
+                        ShowAlert("Đã chia sẻ thức ăn cho O Thắm!");
+                    }
+                    if (!tut.bacNamFed && GUILayout.Button("Bác Năm"))
+                    {
+                        tut.FeedNPC(NPCCharacter.StoryCharacterType.BacNam);
+                        ShowAlert("Đã chia sẻ thức ăn cho Bác Năm!");
+                    }
+                    GUILayout.EndHorizontal();
+
+                    GUILayout.BeginHorizontal();
+                    if (!tut.cuBayFed && GUILayout.Button("Cụ Bảy"))
+                    {
+                        tut.FeedNPC(NPCCharacter.StoryCharacterType.CuBay);
+                        ShowAlert("Đã chia sẻ thức ăn cho Cụ Bảy!");
+                    }
+                    if (!tut.beTiFed && GUILayout.Button("Bé Tí"))
+                    {
+                        tut.FeedNPC(NPCCharacter.StoryCharacterType.BeTi);
+                        ShowAlert("Đã chia sẻ thức ăn cho Bé Tí!");
+                    }
+                    GUILayout.EndHorizontal();
+                }
+                
+                // Stage 13: PostStormCleanup
+                if (tut.currentStage == TutorialManager.TutorialStage.PostStormCleanup)
+                {
+                    GUILayout.Label("Dọn dẹp & Tái thiết:");
+                    GUILayout.BeginHorizontal();
+                    if (!tut.oThamHouseCleaned && GUILayout.Button("O Thắm"))
+                    {
+                        tut.CleanHouse(NPCCharacter.StoryCharacterType.OTham);
+                        ShowAlert("Đã giúp dọn dẹp nhà O Thắm!");
+                    }
+                    if (!tut.bacNamHouseCleaned && GUILayout.Button("Bác Năm"))
+                    {
+                        tut.CleanHouse(NPCCharacter.StoryCharacterType.BacNam);
+                        ShowAlert("Đã giúp dọn dẹp nhà Bác Năm!");
+                    }
+                    GUILayout.EndHorizontal();
+
+                    GUILayout.BeginHorizontal();
+                    if (!tut.cuBayHouseCleaned && GUILayout.Button("Cụ Bảy"))
+                    {
+                        tut.CleanHouse(NPCCharacter.StoryCharacterType.CuBay);
+                        ShowAlert("Đã giúp dọn dẹp ngõ đi chung!");
+                    }
+                    if (tut.postStormCropsPlanted < 4 && GUILayout.Button("Gieo hạt ruộng"))
+                    {
+                        tut.OnCropPlanted();
+                        ShowAlert("Đã gieo hạt ruộng mới!");
+                    }
+                    GUILayout.EndHorizontal();
+                }
+            }
+            else
+            {
+                GUILayout.Label("Hướng dẫn chưa kích hoạt hoặc đã hoàn thành.");
+            }
+            GUILayout.EndArea();
+
+            // 10. NHẬN ITEM DEBUG PANEL (Column 3 - right side)
+            DrawItemPickerPanel();
+        }
+
+        private void LoadAllKnownItems()
+        {
+#if UNITY_EDITOR
+            // Quét toàn bộ file .asset trong thư mục Assets/Data/ để tìm ItemData
+            string[] guids = UnityEditor.AssetDatabase.FindAssets("t:ItemData", new[] { "Assets/Data" });
+            var list = new System.Collections.Generic.List<ItemData>();
+            foreach (string guid in guids)
+            {
+                string path = UnityEditor.AssetDatabase.GUIDToAssetPath(guid);
+                ItemData item = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>(path);
+                if (item != null) list.Add(item);
+            }
+            // Sắp xếp theo loại rồi theo tên
+            list.Sort((a, b) => {
+                int typeCmp = a.type.CompareTo(b.type);
+                return typeCmp != 0 ? typeCmp : string.Compare(a.ItemName, b.ItemName, System.StringComparison.Ordinal);
+            });
+            allKnownItems = list.ToArray();
+#else
+            // Trong build: sử dụng các item đã được khai báo sẵn
+            allKnownItems = new ItemData[]
+            {
+                testFreshCrop, testPreservedCrop, testIncense,
+                testSeedItem, testNonLa, testSandbag, testFloodBoard, testPlasticMulch
+            };
+#endif
+        }
+
+        private void DrawItemPickerPanel()
+        {
+            if (allKnownItems == null || allKnownItems.Length == 0)
+            {
+                LoadAllKnownItems();
+            }
+
+            // Panel nằm ở cột 3 (bên phải Tutorial Quest Cheats)
+            Rect panelRect = new Rect(800, 45, 280, 470);
+            GUI.Box(panelRect, "<b>🎒 NHẬN ITEM VÀO TÚI ĐỒ</b>");
+            GUILayout.BeginArea(new Rect(panelRect.x + 8, panelRect.y + 22, panelRect.width - 16, panelRect.height - 30));
+
+            // Dòng số lượng
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("Số lượng:", GUILayout.Width(72));
+            GUI.SetNextControlName("qtyField");
+            string qtyStr = GUILayout.TextField(itemPickerQty.ToString(), GUILayout.Width(45));
+            if (int.TryParse(qtyStr, out int parsed) && parsed >= 1) itemPickerQty = Mathf.Clamp(parsed, 1, 99);
+            if (GUILayout.Button("-", GUILayout.Width(24))) itemPickerQty = Mathf.Max(1, itemPickerQty - 1);
+            if (GUILayout.Button("+", GUILayout.Width(24))) itemPickerQty = Mathf.Min(99, itemPickerQty + 1);
+            if (GUILayout.Button("Reload", GUILayout.Width(54))) { allKnownItems = null; LoadAllKnownItems(); }
+            GUILayout.EndHorizontal();
+
+            GUILayout.Space(4);
+
+            // Nút refresh và hướng dẫn
+            GUI.color = new Color(0.85f, 0.85f, 0.6f);
+            GUILayout.Label("Nhấn nút item để nhận vào kho đồ:");
+            GUI.color = Color.white;
+
+            GUILayout.Space(2);
+
+            // Scrollable list
+            itemPickerScroll = GUILayout.BeginScrollView(itemPickerScroll, GUILayout.Height(panelRect.height - 100));
+
+            if (allKnownItems != null)
+            {
+                string currentTypeLabel = "";
+                foreach (ItemData item in allKnownItems)
+                {
+                    if (item == null) continue;
+
+                    // Header theo loại item
+                    string typeLabel = GetItemTypeVietnamese(item.type);
+                    if (typeLabel != currentTypeLabel)
+                    {
+                        currentTypeLabel = typeLabel;
+                        GUILayout.Space(4);
+                        GUI.color = new Color(0.6f, 0.9f, 1f);
+                        GUILayout.Label($"── {typeLabel} ──");
+                        GUI.color = Color.white;
+                    }
+
+                    GUILayout.BeginHorizontal();
+                    if (GUILayout.Button($"+{itemPickerQty} {item.ItemName}", GUILayout.Height(22)))
+                    {
+                        if (StorageManager.Instance != null)
+                        {
+                            StorageManager.Instance.AddItem(item, itemPickerQty);
+                            ShowAlert($"✅ Đã nhận {itemPickerQty}x [{item.ItemName}] vào kho đồ!");
+                        }
+                        else
+                        {
+                            ShowAlert("⚠️ StorageManager chưa khởi tạo!");
+                        }
+                    }
+                    GUILayout.Label($"<color=grey>{item.ItemID}</color>", GUILayout.Width(95));
+                    GUILayout.EndHorizontal();
+                }
+            }
+            else
+            {
+                GUILayout.Label("Không tìm thấy Item nào trong Assets/Data/");
+            }
+
+            GUILayout.EndScrollView();
+            GUILayout.EndArea();
+        }
+
+        private string GetItemTypeVietnamese(ItemType type)
+        {
+            switch (type)
+            {
+                case ItemType.NongSanTuoi: return "Nông Sản Tươi";
+                case ItemType.NongSanKho: return "Nông Sản Khô";
+                case ItemType.NuocNgot: return "Nước Uống";
+                case ItemType.Incense: return "Nhang / Tín Ngưỡng";
+                case ItemType.VatLieu: return "Vật Liệu / Dụng Cụ";
+                case ItemType.HatGiong: return "Hạt Giống";
+                default: return type.ToString();
+            }
         }
 
         private void DrawProgressBar(Color color)
@@ -655,6 +1223,102 @@ namespace SownInStone
 
             GUI.DrawTexture(new Rect(r.x, r.y, r.width * percent, r.height), Texture2D.whiteTexture); // Vẽ thanh trượt
             GUI.color = Color.white;
+        }
+
+        private void SupplementItemsForStage(TutorialManager.TutorialStage stage, TutorialManager tut)
+        {
+            if (StorageManager.Instance == null) return;
+
+            switch (stage)
+            {
+                case TutorialManager.TutorialStage.TalkToOThamJob:
+                    // Cấp 12 hạt giống
+                    ItemData seed = PlayerController.Instance != null ? PlayerController.Instance.seedItem : null;
+                    if (seed == null) seed = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Seed.asset");
+                    if (seed != null) StorageManager.Instance.AddItem(seed, 12);
+                    break;
+
+                case TutorialManager.TutorialStage.FarmingTutorial:
+                    // Cấp 24 khoai lang tươi
+                    ItemData freshCrop = StorageManager.Instance.GetItemDataByID("item_fresh_crop");
+                    if (freshCrop == null) freshCrop = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_FreshCrop.asset");
+                    if (freshCrop != null) StorageManager.Instance.AddItem(freshCrop, 24);
+                    break;
+
+                case TutorialManager.TutorialStage.SellCrops:
+                    // Tăng 120 Coins và đảm bảo balo có đủ 12 khoai lang tươi làm vốn cho Bác Năm sấy khoai
+                    if (PlayerStats.Instance != null) PlayerStats.Instance.ModifyCoins(120);
+                    ItemData fresh = StorageManager.Instance.GetItemDataByID("item_fresh_crop");
+                    if (fresh == null) fresh = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_FreshCrop.asset");
+                    if (fresh != null && !StorageManager.Instance.HasItem(fresh, 12))
+                    {
+                        StorageManager.Instance.AddItem(fresh, 12);
+                    }
+                    break;
+
+                case TutorialManager.TutorialStage.CraftPreservedCrops:
+                    // Cấp 4 khoai gieo sấy khô
+                    ItemData preserved = StorageManager.Instance.GetItemDataByID("item_khoai_gieo");
+                    if (preserved == null) preserved = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_PreservedCrop.asset");
+                    if (preserved != null) StorageManager.Instance.AddItem(preserved, 4);
+                    break;
+
+                case TutorialManager.TutorialStage.PrepareForStorm:
+                    // Cấp 4 mì tôm cứu trợ còn dư
+                    ItemData noodles = StorageManager.Instance.GetItemDataByID("item_mi_tom");
+                    if (noodles == null) noodles = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Noodles.asset");
+                    if (noodles != null) StorageManager.Instance.AddItem(noodles, 4);
+                    break;
+
+                case TutorialManager.TutorialStage.TalkToCuBayWorship:
+                    // Cấp 1 nhang cúng tế
+                    ItemData incense = StorageManager.Instance.GetItemDataByID("item_incense");
+                    if (incense == null) incense = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Incense.asset");
+                    if (incense != null) StorageManager.Instance.AddItem(incense, 1);
+                    break;
+            }
+        }
+
+        private void SupplementItemsUpToStage(TutorialManager.TutorialStage targetStage, TutorialManager tut)
+        {
+            var allStages = (TutorialManager.TutorialStage[])System.Enum.GetValues(typeof(TutorialManager.TutorialStage));
+            foreach (var st in allStages)
+            {
+                if ((int)st < (int)targetStage)
+                {
+                    SupplementItemsForStage(st, tut);
+                }
+            }
+        }
+
+        private ItemData LoadItemData(string id)
+        {
+            if (StorageManager.Instance != null)
+            {
+                ItemData item = StorageManager.Instance.GetItemDataByID(id);
+                if (item != null) return item;
+            }
+
+#if UNITY_EDITOR
+            string path = "";
+            switch (id.ToLower())
+            {
+                case "item_flood_board": path = "Assets/Data/Item_flood_board.asset"; break;
+                case "item_sandbag": path = "Assets/Data/Item_sandbag.asset"; break;
+                case "item_seed_potato": path = "Assets/Data/Item_seed_potato.asset"; break;
+                case "item_non_la": path = "Assets/Data/Item_non_la.asset"; break;
+                case "item_plastic_mulch": path = "Assets/Data/Item_plastic_mulch.asset"; break;
+                case "item_fresh_potato": path = "Assets/Data/Item_fresh_potato.asset"; break;
+                case "item_khoai_gieo": path = "Assets/Data/Item_PreservedCrop.asset"; break;
+                case "item_mi_tom": path = "Assets/Data/Item_Noodles.asset"; break;
+                case "item_incense": path = "Assets/Data/Item_Incense.asset"; break;
+            }
+            if (!string.IsNullOrEmpty(path))
+            {
+                return UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>(path);
+            }
+#endif
+            return null;
         }
 
         private string GetPhaseVietnameseName(GamePhase phase)

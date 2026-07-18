@@ -19,7 +19,7 @@ namespace SownInStone.Core
         public static CameraFollow3D Instance { get; private set; }
 
         // ─── Camera Mode ──────────────────────────────────────────────────────
-        public enum CameraMode { ThirdPerson = 0, Fixed = 1, FirstPerson = 2 }
+        public enum CameraMode { ThirdPerson = 0, FirstPerson = 2 }
         private CameraMode currentMode = CameraMode.FirstPerson;
         public CameraMode CurrentMode => currentMode;
 
@@ -37,7 +37,7 @@ namespace SownInStone.Core
         [SerializeField] private float zoomSpeed    = 2f;
 
         [Header("--- [ThirdPerson] HEIGHT & ANGLE ---")]
-        [SerializeField] private float pivotHeight  = 1.35f;
+        [SerializeField] private float pivotHeight  = 0.95f;
         [SerializeField] private float minPitch     = 10f;
         [SerializeField] private float maxPitch     = 55f;
         [SerializeField] private float defaultPitch = 10f;
@@ -71,7 +71,7 @@ namespace SownInStone.Core
         // ════════════════════════════════════════════════════════════════════
         [Header("--- [FirstPerson] EYE SETTINGS ---")]
         [Tooltip("Chiều cao mắt nhân vật (so với gốc transform).")]
-        [SerializeField] private float eyeHeight        = 1.45f;
+        [SerializeField] private float eyeHeight        = 0.85f;
         [Tooltip("FOV khi ở góc nhìn thứ nhất.")]
         [SerializeField] private float fpsFOV           = 75f;
         [Tooltip("Độ nhạy chuột ngang (Yaw) FPS.")]
@@ -86,6 +86,7 @@ namespace SownInStone.Core
         private float currentPitch  = 10f;
         private float targetDistance;
         private Vector3 currentVelocity;
+        private bool wasDialogueActive = false;
 
         // FPS state
         private float fpsCurrentYaw   = 0f;
@@ -111,11 +112,11 @@ namespace SownInStone.Core
             if (SownInStone.UI.SurvivalUIManager.Instance != null)
             {
                 if (SownInStone.UI.SurvivalUIManager.Instance.IsShopOpen || 
-                    SownInStone.UI.SurvivalUIManager.Instance.IsDialogueActive || 
                     SownInStone.UI.SurvivalUIManager.Instance.IsChoiceActive ||
                     SownInStone.UI.SurvivalUIManager.Instance.IsInventoryOpen ||
                     SownInStone.UI.SurvivalUIManager.Instance.IsCommunityOpen ||
-                    SownInStone.UI.SurvivalUIManager.Instance.IsWeatherDetailsOpen)
+                    SownInStone.UI.SurvivalUIManager.Instance.IsWeatherDetailsOpen ||
+                    SownInStone.UI.SurvivalUIManager.Instance.IsPhase3QuestPanelActive)
                     return true;
             }
 
@@ -140,13 +141,16 @@ namespace SownInStone.Core
         {
             if (Instance == null) Instance = this;
             else { Destroy(gameObject); return; }
+
+            // Ép độ cao camera ở runtime để ghi đè các giá trị cũ đã được lưu trữ (serialize) trong Scene
+            eyeHeight = 1.15f;
+            pivotHeight = 1.25f;
         }
 
         private void Start()
         {
-            // Load saved mode (mặc định là FirstPerson = 2)
-            int savedMode = PlayerPrefs.GetInt("CameraMode", 2);
-            currentMode = (CameraMode)savedMode;
+            // Luôn đặt mặc định là góc nhìn thứ nhất (FirstPerson) khi mới bắt đầu chơi
+            currentMode = CameraMode.FirstPerson;
             ResetCameraToTargetImmediate();
         }
 
@@ -223,11 +227,17 @@ namespace SownInStone.Core
             ApplyCursorState();
         }
 
-        /// <summary>Cycle qua 3 mode (dùng cho phím V).</summary>
+        /// <summary>Cycle qua 2 mode (dùng cho phím V).</summary>
         public void CycleCameraMode()
         {
-            int next = ((int)currentMode + 1) % 3;
-            SetCameraMode((CameraMode)next);
+            if (currentMode == CameraMode.ThirdPerson)
+            {
+                SetCameraMode(CameraMode.FirstPerson);
+            }
+            else
+            {
+                SetCameraMode(CameraMode.ThirdPerson);
+            }
         }
 
         // ─────────────────────────────────────────────────────────────────────
@@ -253,9 +263,6 @@ namespace SownInStone.Core
             {
                 case CameraMode.ThirdPerson:
                     InitThirdPerson();
-                    break;
-                case CameraMode.Fixed:
-                    InitFixed();
                     break;
                 case CameraMode.FirstPerson:
                     InitFirstPerson();
@@ -402,10 +409,29 @@ namespace SownInStone.Core
             }
 #endif
 
+            bool isDialogueActiveNow = SownInStone.UI.SurvivalUIManager.Instance != null && SownInStone.UI.SurvivalUIManager.Instance.IsDialogueActive;
+            if (isDialogueActiveNow)
+            {
+                // Giữ camera cố định ở góc nhìn chuẩn, không phóng to hay dịch chuyển đặc biệt khi đối thoại
+                wasDialogueActive = true;
+            }
+            else if (wasDialogueActive)
+            {
+                // Đối thoại vừa kết thúc -> Ẩn hoặc hiện lại nhân vật tùy theo chế độ góc nhìn hiện tại
+                if (currentMode == CameraMode.FirstPerson)
+                {
+                    SetCharacterRenderersVisible(false);
+                }
+                else
+                {
+                    SetCharacterRenderersVisible(true);
+                }
+                wasDialogueActive = false;
+            }
+
             switch (currentMode)
             {
                 case CameraMode.ThirdPerson: UpdateThirdPerson(); break;
-                case CameraMode.Fixed:       UpdateFixed();       break;
                 case CameraMode.FirstPerson: UpdateFirstPerson(); break;
             }
         }
@@ -434,17 +460,17 @@ namespace SownInStone.Core
                 targetDistance = Mathf.Clamp(targetDistance - scroll * zoomSpeed, minDistance, maxDistance);
             distance = Mathf.Lerp(distance, targetDistance, Time.deltaTime * 10f);
 
-            // 2. Rotation — chỉ xoay khi giữ chuột phải (RMB)
+            // 2. Rotation — xoay khi khóa con trỏ (nhấn P) hoặc giữ chuột phải (RMB)
             float mouseX = 0f, mouseY = 0f;
             bool isRMBHeld = Input.GetMouseButton(1);
+            bool shouldLock = isCursorLocked || isRMBHeld;
             
             if (!isUIOpen)
             {
-                if (isRMBHeld)
+                if (shouldLock)
                 {
                     Cursor.lockState = CursorLockMode.Locked;
                     Cursor.visible = false;
-                    isCursorLocked = true;
 
 #if ENABLE_INPUT_SYSTEM
                     if (Mouse.current != null)
@@ -462,7 +488,6 @@ namespace SownInStone.Core
                 {
                     Cursor.lockState = CursorLockMode.None;
                     Cursor.visible = true;
-                    isCursorLocked = false;
                 }
             }
             
@@ -600,6 +625,56 @@ namespace SownInStone.Core
                 if (r != null) r.enabled = visible;
             }
             renderersHidden = !visible;
+        }
+
+        private void UpdateDialogueCamera()
+        {
+            // Tìm NPCCharacter gần người chơi nhất
+            SownInStone.Community.NPCCharacter closestNPC = null;
+            float minDist = float.MaxValue;
+            var allNPCs = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Exclude);
+            foreach (var npc in allNPCs)
+            {
+                if (npc != null)
+                {
+                    float dist = Vector3.Distance(target.position, npc.transform.position);
+                    if (dist < minDist)
+                    {
+                        minDist = dist;
+                        closestNPC = npc;
+                    }
+                }
+            }
+
+            // Nếu tìm thấy NPC gần (trong bán kính 5 mét), điều chỉnh góc camera nhìn thẳng mặt NPC
+            if (closestNPC != null && minDist < 5f)
+            {
+                Vector3 playerPos = target.position;
+                Vector3 npcPos = closestNPC.transform.position;
+                
+                // Hướng vector từ player đến NPC
+                Vector3 dirToNPC = (npcPos - playerPos).normalized;
+                dirToNPC.y = 0f; // Triệt tiêu Y để tránh nghiêng camera
+                dirToNPC.Normalize();
+
+                // Đặt camera lùi ra xa NPC 1.8m về phía người chơi, ngang độ cao mặt NPC (1.2m)
+                Vector3 desiredCamPos = npcPos - dirToNPC * 1.8f + Vector3.up * 1.2f;
+                
+                // Nhìn trực diện vào mặt NPC
+                Quaternion desiredCamRot = Quaternion.LookRotation(dirToNPC);
+
+                // Nội suy mượt mà vị trí và góc quay
+                transform.position = Vector3.Lerp(transform.position, desiredCamPos, Time.deltaTime * 5f);
+                transform.rotation = Quaternion.Slerp(transform.rotation, desiredCamRot, Time.deltaTime * 5f);
+
+                // Giữ hiển thị nhân vật người chơi ở góc nhìn thứ 3
+                SetCharacterRenderersVisible(true);
+            }
+            else
+            {
+                // Fallback nếu không có NPC nào đứng đủ gần
+                UpdateThirdPerson();
+            }
         }
 
         private void OnDisable()

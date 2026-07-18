@@ -137,6 +137,7 @@ namespace SownInStone.UI
         public bool IsInventoryOpen => isInventoryOpen;
         public bool IsCommunityOpen => isCommunityOpen;
         public bool IsWeatherDetailsOpen => isWeatherDetailsOpen;
+        public bool IsPhase3QuestPanelActive => phase3QuestPanelObj != null && phase3QuestPanelObj.activeSelf;
         public bool IsQuantityPopupOpen => isQuantityPopupOpen;
         public TextMeshProUGUI SpeakerNameText => speakerNameText;
         public ItemData IncenseItem => incenseItem;
@@ -239,6 +240,13 @@ namespace SownInStone.UI
             {
                 PlayerStats.Instance.OnPlayerAlert += ShowHUDToast;
             }
+            ScaleTextSizesBy15();
+        }
+
+        private void ScaleTextSizesBy15()
+        {
+            if (speakerNameText != null) speakerNameText.fontSize *= 1.5f;
+            if (dialogueContentText != null) dialogueContentText.fontSize *= 1.5f;
         }
 
         private void OnDestroy()
@@ -293,6 +301,15 @@ namespace SownInStone.UI
 #if ENABLE_INPUT_SYSTEM
             if (Keyboard.current != null)
             {
+                // Tắt bảng nhiệm vụ Phase 3 bằng Space / Escape
+                if (phase3QuestPanelObj != null && phase3QuestPanelObj.activeSelf)
+                {
+                    if (Keyboard.current.spaceKey.wasPressedThisFrame || Keyboard.current.escapeKey.wasPressedThisFrame)
+                    {
+                        phase3QuestPanelObj.SetActive(false);
+                    }
+                }
+
                 // Toggle Inventory (I / Tab)
                 if (Keyboard.current.tabKey.wasPressedThisFrame || Keyboard.current.iKey.wasPressedThisFrame)
                 {
@@ -339,6 +356,15 @@ namespace SownInStone.UI
                 }
             }
 #else
+            // Tắt bảng nhiệm vụ Phase 3 bằng Space / Escape
+            if (phase3QuestPanelObj != null && phase3QuestPanelObj.activeSelf)
+            {
+                if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Escape))
+                {
+                    phase3QuestPanelObj.SetActive(false);
+                }
+            }
+
             // Toggle Inventory (I / Tab)
             if (Input.GetKeyDown(KeyCode.Tab) || Input.GetKeyDown(KeyCode.I))
             {
@@ -440,6 +466,7 @@ namespace SownInStone.UI
                 labelRect.anchorMax = new Vector2(1f, 1f);
                 labelRect.pivot = new Vector2(0f, 1f);
                 labelRect.anchoredPosition = new Vector2(15f, -10f); // Đẩy lên sát nhãn
+                labelRect.anchoredPosition = new Vector2(15f, -10f);
                 labelRect.sizeDelta = new Vector2(230f, 16f);
 
                 TextMeshProUGUI label = labelObj.GetComponent<TextMeshProUGUI>();
@@ -456,8 +483,8 @@ namespace SownInStone.UI
             timeRect.anchorMin = new Vector2(0f, 1f);
             timeRect.anchorMax = new Vector2(0f, 1f);
             timeRect.pivot = new Vector2(0f, 1f);
-            timeRect.anchoredPosition = new Vector2(15f, -15f); // Đưa sát vào góc trái
-            timeRect.sizeDelta = new Vector2(200f, 50f); // Giảm chiều rộng từ 280 xuống 200, chiều cao từ 70 xuống 50
+            timeRect.anchoredPosition = new Vector2(15f, -15f);
+            timeRect.sizeDelta = new Vector2(200f, 50f);
 
             Image timeImg = timeSeasonPanel.GetComponent<Image>();
             timeImg.color = new Color(0.08f, 0.06f, 0.05f, 0.9f);
@@ -469,7 +496,7 @@ namespace SownInStone.UI
             if (dayText != null)
             {
                 dayText.transform.SetParent(timeSeasonPanel.transform, false);
-                dayText.fontSize = 11; // Giảm từ 14 xuống 11
+                dayText.fontSize = 11f;
                 dayText.fontStyle = FontStyles.Bold;
                 dayText.color = new Color(0.95f, 0.85f, 0.4f, 1f);
                 dayText.alignment = TextAlignmentOptions.Left;
@@ -482,12 +509,12 @@ namespace SownInStone.UI
             }
             if (timeText != null)
             {
-                timeText.gameObject.SetActive(false); // Gộp chung vào dayText để hiển thị gọn
+                timeText.gameObject.SetActive(true);
             }
             if (phaseText != null)
             {
                 phaseText.transform.SetParent(timeSeasonPanel.transform, false);
-                phaseText.fontSize = 9.5f; // Giảm từ 12 xuống 9.5
+                phaseText.fontSize = 9.5f;
                 phaseText.color = Color.white;
                 phaseText.alignment = TextAlignmentOptions.Left;
                 RectTransform r = phaseText.GetComponent<RectTransform>();
@@ -498,7 +525,7 @@ namespace SownInStone.UI
                 r.sizeDelta = new Vector2(180f, 16f);
             }
 
-            // 2.5. Định vị và định kiểu NghiaTinhPanel dưới Time HUD sát lại (X = 15, Y = -70)
+            // 2.5. Định vị và định kiểu NghiaTinhPanel dưới Time HUD sát lại
 #if UNITY_2023_1_OR_NEWER
             NghiaTinhUI nghiaTinh = FindAnyObjectByType<NghiaTinhUI>();
 #else
@@ -513,8 +540,8 @@ namespace SownInStone.UI
                     r.anchorMin = new Vector2(0f, 1f);
                     r.anchorMax = new Vector2(0f, 1f);
                     r.pivot = new Vector2(0f, 1f);
-                    r.anchoredPosition = new Vector2(15f, -70f); // Thu hẹp khoảng cách với Panel Time
-                    r.sizeDelta = new Vector2(200f, 50f); // Giảm chiều rộng từ 280 xuống 200, chiều cao từ 70 xuống 50
+                    r.anchoredPosition = new Vector2(15f, -70f);
+                    r.sizeDelta = new Vector2(200f, 50f);
 
                     Image nghiaTinhBg = nghiaTinh.GetComponent<Image>();
                     if (nghiaTinhBg != null)
@@ -601,7 +628,7 @@ namespace SownInStone.UI
 
             coinsText = coinsObj.GetComponent<TextMeshProUGUI>();
             coinsText.alignment = TextAlignmentOptions.Right;
-            coinsText.fontSize = 14;
+            coinsText.fontSize = 21; // Tăng x1.5 (14 * 1.5 = 21)
             coinsText.color = new Color(0.95f, 0.8f, 0.3f, 1f); // Vàng rơm
             if (font != null) coinsText.font = font;
 
@@ -758,6 +785,91 @@ namespace SownInStone.UI
 
         #region PHÂN HỆ HỘI THOẠI CHẠY CHỮ (TYPEWRITER)
 
+        private void ClearAllTalkingStates()
+        {
+            if (PlayerController.Instance != null)
+            {
+                Animator playerAnim = PlayerController.Instance.GetComponent<Animator>();
+                if (playerAnim == null) playerAnim = PlayerController.Instance.GetComponentInChildren<Animator>();
+                if (playerAnim != null)
+                {
+                    playerAnim.SetBool("isTalking", false);
+                }
+            }
+#if UNITY_2023_1_OR_NEWER
+            var npcs = FindObjectsByType<SownInStone.Community.NPCCharacter>();
+#else
+            var npcs = FindObjectsOfType<SownInStone.Community.NPCCharacter>();
+#endif
+            foreach (var npc in npcs)
+            {
+                if (npc != null)
+                {
+                    npc.SetTalking(false);
+                }
+            }
+        }
+
+        private void SetCharacterTalkingState(string speaker, bool talking)
+        {
+            if (speaker == "Thành" || speaker == "Player" || speaker == "Người chơi")
+            {
+                if (PlayerController.Instance != null)
+                {
+                    Animator playerAnim = PlayerController.Instance.GetComponent<Animator>();
+                    if (playerAnim == null) playerAnim = PlayerController.Instance.GetComponentInChildren<Animator>();
+                    if (playerAnim != null)
+                    {
+                        playerAnim.SetBool("isTalking", talking);
+                    }
+                }
+            }
+            else
+            {
+#if UNITY_2023_1_OR_NEWER
+                var npcs = FindObjectsByType<SownInStone.Community.NPCCharacter>();
+#else
+                var npcs = FindObjectsOfType<SownInStone.Community.NPCCharacter>();
+#endif
+                foreach (var npc in npcs)
+                {
+                    if (npc != null && npc.NPCName == speaker)
+                    {
+                        npc.SetTalking(talking);
+                        break;
+                    }
+                }
+            }
+        }
+
+        private string GetVoiceClipName(string speaker, string content)
+        {
+            if (string.IsNullOrEmpty(speaker) || string.IsNullOrEmpty(content)) return "";
+
+            // Chuyển speaker về ký tự không dấu và viết thường làm tên file-safe
+            string cleanSpeaker = speaker.ToLower().Trim();
+            string[] rawAccents = { "àáạảãâầấậẩẫăằắặẳẵ", "èéẹẻẽêềếệểễ", "ìíịỉĩ", "òóọỏõôồốộổỗơờớợởỡ", "ùúụủũưừứựửữ", "ỳýỵỷỹ", "đ" };
+            string[] cleanAccents = { "a", "e", "i", "o", "u", "y", "d" };
+            
+            for (int i = 0; i < rawAccents.Length; i++)
+            {
+                foreach (char c in rawAccents[i])
+                {
+                    cleanSpeaker = cleanSpeaker.Replace(c.ToString(), cleanAccents[i]);
+                }
+            }
+            cleanSpeaker = cleanSpeaker.Replace(" ", "_");
+
+            // Tạo mã băm duy nhất từ văn bản hội thoại
+            uint hash = 0;
+            foreach (char c in content)
+            {
+                hash = hash * 31 + c;
+            }
+
+            return $"voice_{cleanSpeaker}_{hash}";
+        }
+
         public void ShowDialogue(string speaker, string content)
         {
             if (dialoguePanel == null) return;
@@ -796,6 +908,16 @@ namespace SownInStone.UI
             if (dialogueCoroutine != null)
             {
                 StopCoroutine(dialogueCoroutine);
+            }
+
+            ClearAllTalkingStates();
+            SetCharacterTalkingState(speaker, true);
+
+            // Phát giọng thoại lồng tiếng tương ứng
+            string voiceClip = GetVoiceClipName(speaker, content);
+            if (!string.IsNullOrEmpty(voiceClip))
+            {
+                SownInStone.Audio.AudioManager.Instance?.PlayVoice(voiceClip);
             }
 
             dialogueCoroutine = StartCoroutine(TypeDialogueCoroutine(content));
@@ -844,6 +966,16 @@ namespace SownInStone.UI
                 StopCoroutine(dialogueCoroutine);
             }
 
+            ClearAllTalkingStates();
+            SetCharacterTalkingState(speaker, true);
+
+            // Phát giọng thoại lồng tiếng tương ứng
+            string voiceClip = GetVoiceClipName(speaker, content);
+            if (!string.IsNullOrEmpty(voiceClip))
+            {
+                SownInStone.Audio.AudioManager.Instance?.PlayVoice(voiceClip);
+            }
+
             dialogueCoroutine = StartCoroutine(TypeDialogueCoroutine(content));
 
             // Kích hoạt hiển thị nút lựa chọn
@@ -890,6 +1022,9 @@ namespace SownInStone.UI
 
         public void CloseDialogue()
         {
+            // Tự động ngắt phát giọng lồng tiếng khi đóng bảng hội thoại
+            SownInStone.Audio.AudioManager.Instance?.StopVoice();
+
             if (dialoguePanel != null)
             {
                 dialoguePanel.SetActive(false);
@@ -911,6 +1046,14 @@ namespace SownInStone.UI
             {
                 TutorialManager.Instance.OnDialogueClosed(speakerNameText.text);
             }
+
+            // Hiện lại HUD nhiệm vụ sau khi thông báo/dialogue được đóng
+            if (TutorialManager.Instance != null)
+            {
+                TutorialManager.Instance.UpdateHUDPanel();
+            }
+
+            ClearAllTalkingStates();
         }
 
         #endregion

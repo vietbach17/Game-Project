@@ -27,10 +27,10 @@ namespace SownInStone.Core
         [SerializeField] private int currentDay = 1;
         
         [Tooltip("Giờ hiện tại trong ngày (0 - 23).")]
-        [SerializeField] private float currentHour = 6f; // Bắt đầu lúc 6:00 sáng
+        [SerializeField] private float currentHour = 20f; // Bắt đầu lúc 20:00 tối để bầu trời tối
         
-        [Tooltip("Tốc độ trôi thời gian (Số giây ngoài đời thực cho 1 giờ trong game). Cài đặt 12.5f giây tương ứng 1 ngày = 5 phút thực tế.")]
-        [SerializeField] private float secondsPerGameHour = 12.5f; 
+        [Tooltip("Tốc độ trôi thời gian (Số giây ngoài đời thực cho 1 giờ trong game). Cài đặt 25.0f giây tương ứng 1 ngày = 10 phút thực tế.")]
+        [SerializeField] private float secondsPerGameHour = 25.0f; 
 
         [Header("--- GIAI ĐOẠN GAME ---")]
         [Tooltip("Giai đoạn game hiện tại.")]
@@ -143,9 +143,6 @@ namespace SownInStone.Core
             }
         }
 
-        /// <summary>
-        /// Kích hoạt chuyển đổi giai đoạn game thủ công hoặc tự động.
-        /// </summary>
         public void TransitionToPhase(GamePhase newPhase)
         {
             currentPhase = newPhase;
@@ -158,6 +155,12 @@ namespace SownInStone.Core
 
             OnDayChanged?.Invoke(currentDay);
             OnPhaseChanged?.Invoke(currentPhase);
+
+            // Kích hoạt chuỗi sự kiện Vần Công hỗ trợ chống bão khi bước vào mùa mưa bão
+            if (newPhase == GamePhase.MuaBao)
+            {
+                SownInStone.Community.CommunityManager.Instance?.TriggerStormHelpSequence();
+            }
 
             // Tự động phủ phù sa cho toàn bộ ruộng đất khi chuyển sang GĐ Phù Sa
             if (newPhase == GamePhase.PhuSa)

@@ -49,6 +49,15 @@ namespace SownInStone.Weather
         private float targetRainIntensity = 0f;
         private GameObject waterPlane3D;
 
+        [Header("--- HỆ THỐNG ÁNH SÁNG & SƯƠNG MÙ ---")]
+        private Light directionalLight;
+        private float targetLightIntensity = 1.2f;
+        private Color targetLightColor = new Color(1f, 0.95f, 0.8f);
+        private Color targetAmbientColor = new Color(0.2f, 0.22f, 0.25f);
+        private float targetFogStart = 45f;
+        private float targetFogEnd = 90f;
+        private Color targetFogColor = new Color(0.75f, 0.85f, 0.95f);
+
         [Header("--- HIỆU ỨNG HẠT MƯA ---")]
         private ParticleSystem rainParticles;
         private GameObject rainParticlesObj;
@@ -80,6 +89,12 @@ namespace SownInStone.Weather
 
             // Thiết lập mặt nước 3D
             Setup3DWaterPlane();
+
+            // Tìm Directional Light
+            FindDirectionalLight();
+
+            // Đồng bộ trạng thái run lạnh ban đầu theo thời tiết hiện tại
+            SetAllCharactersShivering(currentVisualWeather == WeatherType.BaoLu);
         }
 
         private void OnDestroy()
@@ -108,6 +123,9 @@ namespace SownInStone.Weather
 
             // Cập nhật vị trí mặt nước 3D
             Update3DWaterPlane();
+
+            // Cập nhật ánh sáng và sương mù khí hậu
+            UpdateWeatherAtmospherics();
         }
 
         /// <summary>
@@ -168,6 +186,7 @@ namespace SownInStone.Weather
                     targetRainIntensity = 0f;
                     targetFloodLevel = 0f;
                     if (!isMenuOpen) SownInStone.Audio.AudioManager.Instance?.PlayAmbient("ambient_rural", 0.4f);
+                    SetAllCharactersShivering(false);
                     break;
 
 
@@ -176,6 +195,7 @@ namespace SownInStone.Weather
                     targetRainIntensity = 0.3f;
                     targetFloodLevel = 0f;
                     if (!isMenuOpen) SownInStone.Audio.AudioManager.Instance?.PlayAmbient("ambient_storm", 0.5f);
+                    SetAllCharactersShivering(false);
                     break;
 
                 case GamePhase.MuaBao:
@@ -186,12 +206,14 @@ namespace SownInStone.Weather
                     {
                         SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast("⚠️ CẢNH BÁO BẢO LŨ! Hãy bọc Màng Nilon phủ ruộng, xếp Bao Cát & Tấm Chắn đê cứu xóm làng!");
                     }
+                    SetAllCharactersShivering(true);
                     break;
 
                 case GamePhase.PhuSa:
                     currentVisualWeather = WeatherType.OnDinh;
                     targetRainIntensity = 0.05f;
                     if (!isMenuOpen) SownInStone.Audio.AudioManager.Instance?.PlayAmbient("ambient_rural", 0.4f);
+                    SetAllCharactersShivering(false);
                     break;
             }
             Debug.Log($"[WEATHER MANAGER] Đồng bộ thời tiết sang: {currentVisualWeather.ToString()}");
@@ -313,6 +335,9 @@ namespace SownInStone.Weather
             rainParticlesObj = new GameObject("RainParticles", typeof(ParticleSystem));
             rainParticlesObj.transform.SetParent(this.transform);
 
+            // Xoay emitter -90° quanh X để hạt phát thẳng xuống (-Y)
+            rainParticlesObj.transform.rotation = Quaternion.Euler(-90f, 0f, 0f);
+
             rainParticles = rainParticlesObj.GetComponent<ParticleSystem>();
 
             // Stop the system before configuring main module properties to avoid warnings
@@ -322,25 +347,27 @@ namespace SownInStone.Weather
             var main = rainParticles.main;
             main.duration = 1f;
             main.loop = true;
-            main.startLifetime = 1.2f;
-            main.startSpeed = 16f;
-            main.startSize = 0.12f;
-            main.gravityModifier = 1.2f;
+            main.startLifetime = 1.5f;
+            main.startSpeed = 18f;       // Tốc độ rơi xuống
+            main.startSize = 0.06f;
+            main.gravityModifier = 0f;   // Tắt gravity của Unity — tốc độ rơi do startSpeed + hướng -Y điều khiển
             main.simulationSpace = ParticleSystemSimulationSpace.World;
-            main.maxParticles = 800;
+            main.maxParticles = 1000;
 
-            // Hình dáng vùng phát (Shape)
+            // Hình dáng vùng phát: Box rộng ngang, phẳng, hạt bắn theo -Z (tức là xuống đất sau khi xoay emitter)
             var shape = rainParticles.shape;
             shape.enabled = true;
             shape.shapeType = ParticleSystemShapeType.Box;
-            shape.scale = new Vector3(25f, 1f, 1f); 
-            shape.rotation = new Vector3(0f, 0f, 12f); // Bắn hạt nghiêng nhẹ theo chiều gió
+            shape.scale = new Vector3(30f, 30f, 0.1f); // Rộng ngang bao quanh camera
+            shape.rotation = Vector3.zero;              // Không xoay thêm — đã xoay qua transform
 
-            // Cấu hình di chuyển (Velocity over Lifetime) để tạo vệt mưa chéo nghiêng trái
+            // Thêm gió nhẹ ngang để mưa có chút nghiêng tự nhiên
             var velocity = rainParticles.velocityOverLifetime;
             velocity.enabled = true;
             velocity.space = ParticleSystemSimulationSpace.World;
-            velocity.x = -5f; // Gió thổi chéo trái
+            velocity.x = new UnityEngine.ParticleSystem.MinMaxCurve(-1.5f); // Gió nhẹ sang trái
+            velocity.y = new UnityEngine.ParticleSystem.MinMaxCurve(0f);
+            velocity.z = new UnityEngine.ParticleSystem.MinMaxCurve(0f);
 
             // Thiết lập tốc độ sinh hạt mặc định là 0
             var emission = rainParticles.emission;
@@ -353,22 +380,19 @@ namespace SownInStone.Weather
             Gradient grad = new Gradient();
             grad.SetKeys(
                 new GradientColorKey[] { new GradientColorKey(new Color(0.8f, 0.88f, 0.95f), 0f), new GradientColorKey(new Color(0.75f, 0.8f, 0.85f), 1f) },
-                new GradientAlphaKey[] { new GradientAlphaKey(0.35f, 0f), new GradientAlphaKey(0.08f, 1f) }
+                new GradientAlphaKey[] { new GradientAlphaKey(0.45f, 0f), new GradientAlphaKey(0.05f, 1f) }
             );
             colorOverLifetime.color = grad;
 
-            // Thiết lập Renderer để kéo dãn hạt mưa thành sọc dài
+            // Thiết lập Renderer: Stretch theo hướng di chuyển (tạo vệt mưa dài rơi xuống)
             var renderer = rainParticlesObj.GetComponent<ParticleSystemRenderer>();
             renderer.renderMode = ParticleSystemRenderMode.Stretch;
-            renderer.lengthScale = 3f;
-            renderer.velocityScale = 0.1f;
+            renderer.lengthScale = 2.5f;
+            renderer.velocityScale = 0.08f;
+            renderer.cameraVelocityScale = 0f;
             
             // Sử dụng Material Sprites-Default mặc định để hạt mưa sắc nét
-            #if UNITY_2022_1_OR_NEWER
             renderer.material = new Material(Shader.Find("Sprites/Default"));
-            #else
-            renderer.material = new Material(Shader.Find("Sprites/Default"));
-            #endif
 
             // Bắt đầu chạy hệ thống phát
             rainParticles.Play();
@@ -393,5 +417,166 @@ namespace SownInStone.Weather
         }
 
         #endregion
+
+        private void FindDirectionalLight()
+        {
+            if (directionalLight == null)
+            {
+                GameObject lightGo = GameObject.Find("Directional Light");
+                if (lightGo != null)
+                {
+                    directionalLight = lightGo.GetComponent<Light>();
+                }
+                
+                if (directionalLight == null)
+                {
+                    Light[] lights = FindObjectsByType<Light>(FindObjectsInactive.Include);
+                    foreach (var l in lights)
+                    {
+                        if (l.type == LightType.Directional)
+                        {
+                            directionalLight = l;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        private void UpdateWeatherAtmospherics()
+        {
+            if (directionalLight == null) FindDirectionalLight();
+
+            float baseLightIntensity = 1.2f;
+            Color baseLightColor = new Color(1f, 0.95f, 0.8f);
+            Color baseAmbientColor = new Color(0.2f, 0.22f, 0.25f);
+            float baseFogStart = 45f;
+            float baseFogEnd = 90f;
+            Color baseFogColor = new Color(0.75f, 0.85f, 0.95f);
+
+            bool isInside = (PlayerController.Instance != null && PlayerController.Instance.IsInsideHouse);
+
+            if (isInside)
+            {
+                baseLightIntensity = 0.5f;
+                baseLightColor = new Color(0.8f, 0.85f, 0.9f);
+                baseAmbientColor = new Color(0.15f, 0.15f, 0.18f);
+                baseFogStart = 100f;
+                baseFogEnd = 200f; 
+                baseFogColor = new Color(0.1f, 0.1f, 0.1f);
+            }
+            else
+            {
+                switch (currentVisualWeather)
+                {
+                    case WeatherType.OnDinh:
+                        baseLightIntensity = 1.3f;
+                        baseLightColor = new Color(1f, 0.95f, 0.85f);
+                        baseAmbientColor = new Color(0.25f, 0.27f, 0.3f);
+                        baseFogStart = 50f;
+                        baseFogEnd = 95f;
+                        baseFogColor = new Color(0.7f, 0.82f, 0.95f);
+                        break;
+
+                    case WeatherType.MuaGiong:
+                        baseLightIntensity = 0.6f;
+                        baseLightColor = new Color(0.65f, 0.68f, 0.72f);
+                        baseAmbientColor = new Color(0.18f, 0.2f, 0.22f);
+                        baseFogStart = 25f;
+                        baseFogEnd = 75f;
+                        baseFogColor = new Color(0.52f, 0.55f, 0.58f);
+                        break;
+
+                    case WeatherType.BaoLu:
+                        baseLightIntensity = 0.2f;
+                        baseLightColor = new Color(0.4f, 0.42f, 0.45f);
+                        baseAmbientColor = new Color(0.1f, 0.12f, 0.14f);
+                        baseFogStart = 10f;
+                        baseFogEnd = 50f; 
+                        baseFogColor = new Color(0.22f, 0.24f, 0.26f);
+                        break;
+                }
+            }
+
+            // Tính toán hệ số tối dần khi về đêm (Từ 18h đến 5h sáng)
+            float nightMultiplier = 1f;
+            if (GameManager.Instance != null && !isInside)
+            {
+                float hour = GameManager.Instance.CurrentHour;
+                if (hour >= 18f && hour < 20f)
+                {
+                    nightMultiplier = Mathf.Lerp(1f, 0.15f, (hour - 18f) / 2f);
+                }
+                else if (hour >= 20f || hour <= 4f)
+                {
+                    nightMultiplier = 0.15f;
+                }
+                else if (hour > 4f && hour <= 6f)
+                {
+                    nightMultiplier = Mathf.Lerp(0.15f, 1f, (hour - 4f) / 2f);
+                }
+                
+                baseLightIntensity *= nightMultiplier;
+                baseAmbientColor *= nightMultiplier;
+                baseFogColor *= (0.5f + nightMultiplier * 0.5f); // Làm sương mù tối hơn vào ban đêm
+            }
+
+            targetLightIntensity = baseLightIntensity;
+            targetLightColor = baseLightColor;
+            targetAmbientColor = baseAmbientColor;
+            targetFogStart = baseFogStart;
+            targetFogEnd = baseFogEnd;
+            targetFogColor = baseFogColor;
+
+            if (directionalLight != null)
+            {
+                directionalLight.intensity = Mathf.Lerp(directionalLight.intensity, targetLightIntensity, Time.deltaTime * 1.5f);
+                directionalLight.color = Color.Lerp(directionalLight.color, targetLightColor, Time.deltaTime * 1.5f);
+            }
+
+            RenderSettings.ambientLight = Color.Lerp(RenderSettings.ambientLight, targetAmbientColor, Time.deltaTime * 1.5f);
+
+            RenderSettings.fog = true;
+            RenderSettings.fogMode = FogMode.Linear;
+            RenderSettings.fogStartDistance = Mathf.Lerp(RenderSettings.fogStartDistance, targetFogStart, Time.deltaTime * 1.5f);
+            RenderSettings.fogEndDistance = Mathf.Lerp(RenderSettings.fogEndDistance, targetFogEnd, Time.deltaTime * 1.5f);
+            RenderSettings.fogColor = Color.Lerp(RenderSettings.fogColor, targetFogColor, Time.deltaTime * 1.5f);
+
+            if (Camera.main != null)
+            {
+                float targetClip = RenderSettings.fogEndDistance + 5f;
+                if (isInside) targetClip = 150f; 
+                Camera.main.farClipPlane = Mathf.Lerp(Camera.main.farClipPlane, targetClip, Time.deltaTime * 2.0f);
+            }
+        }
+
+        private void SetAllCharactersShivering(bool shivering)
+        {
+            // Thiết lập trạng thái run lạnh cho Player
+            if (PlayerController.Instance != null)
+            {
+                Animator playerAnim = PlayerController.Instance.GetComponent<Animator>();
+                if (playerAnim == null) playerAnim = PlayerController.Instance.GetComponentInChildren<Animator>();
+                if (playerAnim != null)
+                {
+                    playerAnim.SetBool("isShivering", shivering);
+                }
+            }
+
+            // Thiết lập trạng thái run lạnh cho tất cả các NPC trong Scene
+#if UNITY_2023_1_OR_NEWER
+            var npcs = FindObjectsByType<SownInStone.Community.NPCCharacter>();
+#else
+            var npcs = FindObjectsOfType<SownInStone.Community.NPCCharacter>();
+#endif
+            foreach (var npc in npcs)
+            {
+                if (npc != null)
+                {
+                    npc.SetShivering(shivering);
+                }
+            }
+            Debug.Log($"[WEATHER] SetAllCharactersShivering: {shivering}");
+        }
     }
 }

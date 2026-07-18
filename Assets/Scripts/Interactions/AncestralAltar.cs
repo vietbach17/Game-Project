@@ -113,9 +113,42 @@ namespace SownInStone.Interactions
                     {
                         SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast("Bạn thắp nhang thành kính cầu nguyện tổ tiên. +10 Tinh thần");
                     }
+                    
                     if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
                     {
-                        TutorialManager.Instance.OnAltarWorshipped();
+                        if (PlayerController.Instance != null)
+                        {
+                            PlayerController.Instance.IsPerformingAction = true;
+                        }
+
+                        var cutscenePlayer = gameObject.AddComponent<SownInStone.UI.IntroVideoPlayer>();
+                        cutscenePlayer.PlayVideoClip("UI/storm_cutscene", () =>
+                        {
+                            if (PlayerController.Instance != null)
+                            {
+                                PlayerController.Instance.IsPerformingAction = false;
+                            }
+                            TutorialManager.Instance.OnAltarWorshipped();
+                        });
+                        return true;
+                    }
+                    else if (GameManager.Instance != null && GameManager.Instance.CurrentPhase == GamePhase.LapNghiep)
+                    {
+                        if (PlayerController.Instance != null)
+                        {
+                            PlayerController.Instance.IsPerformingAction = true;
+                        }
+
+                        var cutscenePlayer = gameObject.AddComponent<SownInStone.UI.IntroVideoPlayer>();
+                        cutscenePlayer.PlayVideoClip("UI/storm_cutscene", () =>
+                        {
+                            if (PlayerController.Instance != null)
+                            {
+                                PlayerController.Instance.IsPerformingAction = false;
+                            }
+                            GameManager.Instance.TransitionToPhase(GamePhase.ChuanBiBao);
+                        });
+                        return true;
                     }
                     return true;
                 }

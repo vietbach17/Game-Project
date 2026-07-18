@@ -845,12 +845,6 @@ namespace SownInStone
                     CameraFollow3D.Instance?.SetCameraMode(CameraFollow3D.CameraMode.ThirdPerson);
                 }
 
-                GUI.backgroundColor = camMode == CameraFollow3D.CameraMode.Fixed ? new Color(0.85f, 0.7f, 0.35f, 1f) : Color.white;
-                if (GUILayout.Button("Cố định", buttonStyle, GUILayout.Width(80)))
-                {
-                    SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_click");
-                    CameraFollow3D.Instance?.SetCameraMode(CameraFollow3D.CameraMode.Fixed);
-                }
                 GUI.backgroundColor = Color.white;
                 GUILayout.EndHorizontal();
 

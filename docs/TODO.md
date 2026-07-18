@@ -37,6 +37,10 @@ Cập nhật: **2026-07-01**.
 - [x] **[2026-07-01]** Khắc phục triệt để lỗi player bị kẹt không đi qua được phía Bác Năm/Bé Tí trên nóc nhà (xóa isOnRoof clamp cứng X/Z trong `FixedUpdate`).
 - [x] **[2026-07-01]** Disable `CharacterController` khi vào giai đoạn nóc nhà, restore khi xuống đất.
 - [x] **[2026-07-01]** Fix `NullReferenceException` spam trong `NPCProximityOptionsUI.HandleKeyboardInput()`.
+- [x] **[2026-07-02]** Khắc phục lỗi đi xuyên dốc địa hình / lún đất: Tích hợp Terrain Height Snapping offset +0.565f trong PlayerController.cs và tự động cứu hộ (Fail-safe teleport) khi Y < -50f.
+- [x] **[2026-07-02]** Ẩn rương mì cứu trợ của O Thắm: Tự động quản lý rương mì gỗ chỉ active khi nhiệm vụ cất mì đang diễn ra.
+- [x] **[2026-07-02]** Căn chỉnh giao diện Bảng nhiệm vụ (Task HUD): Tăng chiều rộng lên 285f, rộng text lên 261f, cỡ chữ 10.5f/11.5f, thiết lập nền mahogany và viền đồng sang trọng.
+
 
 ### NPC & Community
 - [x] Khắc phục triệt để lỗi NPC tự xoay khi đi ngang qua và xoay lệch tâm (mesh visual được CenterVisualModel chuẩn hóa tại Runtime, đóng băng Rigidbody).
@@ -89,7 +93,7 @@ Cập nhật: **2026-07-01**.
 - [ ] Ending illustrations cho Sad/Normal/Best.
 - [ ] Thêm thoại địa phương miền Trung cho 4 NPC.
 - [ ] Audio ambience: mưa, gió, sấm, loa phát thanh.
-- [ ] Cải thiện `WeatherManager`: particles, skybox, ambient transitions.
+- [x] Cải thiện `WeatherManager`: particles, skybox, ambient transitions (Tích hợp hệ thống sương mù khí hậu dynamic fog và camera far clip plane lerp theo weather).
 - [ ] Nón Lá: wire `isWearingNonLa` vào heat stress reduction.
 - [ ] Save/load: hoặc mở rộng lưu inventory/soil/crops/NPC/tutorial, hoặc ghi rõ UI là save tạm.
 - [ ] Unify folders `Interaction` và `Interactions` để giảm nhầm lẫn.
