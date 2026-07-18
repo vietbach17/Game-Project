@@ -72,8 +72,9 @@ namespace SownInStone.Editor
             // Positioned at (10.2, 0, -12.8) in front of the door, facing South (180 degrees)
             GameObject dog1Container = new GameObject("Dog_Thanh");
             dog1Container.transform.SetParent(animalsParent.transform);
-            dog1Container.transform.position = new Vector3(10.15f, 0.0f, -5.29f);
+            dog1Container.transform.position = new Vector3(10.15f, GetGroundHeight(new Vector3(10.15f, 0f, -5.29f)), -5.29f);
             dog1Container.transform.rotation = Quaternion.Euler(0f, 38.64f, 0f);
+            dog1Container.transform.localScale = Vector3.one * 1.5f;
 
             GameObject dog1Visual = InstantiateVisual(dog1Fbx, "VisualModel", dog1Container.transform, dog1Mat);
             if (dog1Visual != null)
@@ -87,8 +88,9 @@ namespace SownInStone.Editor
             // Positioned at (6.0, 0, 9.0) near the door/daybed, facing South (180 degrees)
             GameObject dog2Container = new GameObject("Dog_BacNam");
             dog2Container.transform.SetParent(animalsParent.transform);
-            dog2Container.transform.position = new Vector3(-5.50f, 0.0f, 24.63f);
+            dog2Container.transform.position = new Vector3(-5.50f, GetGroundHeight(new Vector3(-5.50f, 0f, 24.63f)), 24.63f);
             dog2Container.transform.rotation = Quaternion.Euler(0f, 176.52f, 0f);
+            dog2Container.transform.localScale = Vector3.one * 1.5f;
 
             GameObject dog2Visual = InstantiateVisual(dog2Fbx, "VisualModel", dog2Container.transform, dog2Mat);
             if (dog2Visual != null)
@@ -100,13 +102,13 @@ namespace SownInStone.Editor
 
             // 6. Instantiate Chickens (di chuyển tự do hơn)
             // Chicken 1: near Bac Nam's yard (-0.91, 0, 4.10)
-            CreateChicken(animalsParent.transform, chickenFbx, chickenMat, new Vector3(-0.91f, 0.0f, 4.10f), "Chicken_1", 3.5f);
+            CreateChicken(animalsParent.transform, chickenFbx, chickenMat, new Vector3(-0.91f, GetGroundHeight(new Vector3(-0.91f, 0f, 4.10f)), 4.10f), "Chicken_1", 3.5f);
             // Chicken 2: near Bac Nam's yard (5.0, 0, 10.0)
-            CreateChicken(animalsParent.transform, chickenFbx, chickenMat, new Vector3(5.0f, 0.0f, 10.0f), "Chicken_2", 3.5f);
+            CreateChicken(animalsParent.transform, chickenFbx, chickenMat, new Vector3(5.0f, GetGroundHeight(new Vector3(5.0f, 0f, 10.0f)), 10.0f), "Chicken_2", 3.5f);
             // Chicken 3: near Thanh's yard (8.5, 0, -13.5)
-            CreateChicken(animalsParent.transform, chickenFbx, chickenMat, new Vector3(8.5f, 0.0f, -13.5f), "Chicken_3", 3.5f);
+            CreateChicken(animalsParent.transform, chickenFbx, chickenMat, new Vector3(8.5f, GetGroundHeight(new Vector3(8.5f, 0f, -13.5f)), -13.5f), "Chicken_3", 3.5f);
             // Chicken 4: near O Tham's yard (2.0, 0, -14.0)
-            CreateChicken(animalsParent.transform, chickenFbx, chickenMat, new Vector3(2.0f, 0.0f, -14.0f), "Chicken_4", 3.5f);
+            CreateChicken(animalsParent.transform, chickenFbx, chickenMat, new Vector3(2.0f, GetGroundHeight(new Vector3(2.0f, 0f, -14.0f)), -14.0f), "Chicken_4", 3.5f);
 
             // Save scene and mark dirty
             if (!Application.isPlaying)
@@ -125,12 +127,14 @@ namespace SownInStone.Editor
             chickenContainer.transform.SetParent(parent);
             chickenContainer.transform.position = position;
             chickenContainer.transform.rotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
+            chickenContainer.transform.localScale = Vector3.one * Random.Range(2.0f, 2.5f);
 
             GameObject visual = InstantiateVisual(chickenFbx, "VisualModel", chickenContainer.transform, chickenMat);
             if (visual != null)
             {
-                AutoScaleObject(visual, 0.45f); // target height 0.45m
-                AlignPivotOffset(visual, chickenContainer.transform, Vector3.zero);
+                visual.transform.localPosition = new Vector3(1.35613f, -0.001f, 0.083f);
+                visual.transform.localRotation = Quaternion.identity;
+                visual.transform.localScale = Vector3.one * 10.7528f;
             }
             SetupComponents(chickenContainer, wanderRadius);
         }
@@ -269,6 +273,16 @@ namespace SownInStone.Editor
                 var fieldMoveSpeed = scriptType.GetField("moveSpeed");
                 if (fieldMoveSpeed != null) fieldMoveSpeed.SetValue(component, wanderRadius < 1.5f ? 1.2f : 0.8f);
             }
+        }
+
+        private static float GetGroundHeight(Vector3 position)
+        {
+            Vector3 origin = new Vector3(position.x, 50f, position.z);
+            if (Physics.Raycast(origin, Vector3.down, out RaycastHit hit, 100f))
+            {
+                return hit.point.y;
+            }
+            return 0f;
         }
     }
 }

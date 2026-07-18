@@ -26,6 +26,8 @@ namespace SownInStone.Core
         public float raycastOriginHeight = 2f;
         [Tooltip("How fast to lerp the animal to ground Y position.")]
         public float groundSnapSpeed = 10f;
+        [Tooltip("Additional Y offset to sink or raise the animal relative to the ground surface.")]
+        public float positionYOffset = 0f;
 
         private Vector3 startPosition;
         private Vector3 targetPosition;
@@ -42,12 +44,21 @@ namespace SownInStone.Core
         private void Start()
         {
             // Override settings dynamically depending on the animal type (dog vs chicken)
-            if (gameObject.name.ToLower().Contains("dog"))
+            if (gameObject.name.ToLower().Contains("dog_thanh") || gameObject.name.ToLower().Contains("thanh"))
+            {
+                wanderRadius = 4.5f;
+                moveSpeed = 0.5f;
+                minIdleTime = 2f;
+                maxIdleTime = 5f;
+                positionYOffset = -0.05f;
+            }
+            else if (gameObject.name.ToLower().Contains("dog"))
             {
                 wanderRadius = 1.2f;
                 moveSpeed = 0.4f;
                 minIdleTime = 4f;
                 maxIdleTime = 10f;
+                positionYOffset = -0.05f;
             }
             else if (gameObject.name.ToLower().Contains("chicken"))
             {
@@ -55,6 +66,16 @@ namespace SownInStone.Core
                 moveSpeed = 0.3f;
                 minIdleTime = 3f;
                 maxIdleTime = 8f;
+                positionYOffset = -0.01f;
+
+                // Force visual model custom transform at runtime
+                Transform visualModel = transform.Find("VisualModel");
+                if (visualModel != null)
+                {
+                    visualModel.localPosition = new Vector3(1.35613f, -0.001f, 0.083f);
+                    visualModel.localRotation = Quaternion.identity;
+                    visualModel.localScale = Vector3.one * 10.7528f;
+                }
             }
 
             // Snap to ground immediately on start
@@ -112,6 +133,18 @@ namespace SownInStone.Core
             // Đảm bảo con vật luôn đứng thẳng đứng trên mặt đất (X = 0, Z = 0)
             Vector3 rot = transform.rotation.eulerAngles;
             transform.rotation = Quaternion.Euler(0f, rot.y, 0f);
+
+            // Force visual model custom transform for chickens in Update
+            if (gameObject.name.ToLower().Contains("chicken"))
+            {
+                Transform visualModel = transform.Find("VisualModel");
+                if (visualModel != null)
+                {
+                    visualModel.localPosition = new Vector3(1.35613f, -0.001f, 0.083f);
+                    visualModel.localRotation = Quaternion.identity;
+                    visualModel.localScale = Vector3.one * 10.7528f;
+                }
+            }
         }
 
         private void SnapToGround(bool snap)
@@ -124,7 +157,7 @@ namespace SownInStone.Core
             // Tăng chiều dài raycast lên 45m để chắc chắn đụng trúng đất nếu bắt đầu ở trên cao
             if (Physics.Raycast(origin, Vector3.down, out RaycastHit hit, raycastOriginHeight + 45f, groundLayerMask))
             {
-                float targetY = hit.point.y;
+                float targetY = hit.point.y + positionYOffset;
                 Vector3 pos   = transform.position;
                 if (snap)
                 {
