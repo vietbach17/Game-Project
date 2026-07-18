@@ -72,8 +72,8 @@ namespace SownInStone.Editor
             // Positioned at (10.2, 0, -12.8) in front of the door, facing South (180 degrees)
             GameObject dog1Container = new GameObject("Dog_Thanh");
             dog1Container.transform.SetParent(animalsParent.transform);
-            dog1Container.transform.position = new Vector3(10.2f, 0.0f, -12.8f);
-            dog1Container.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
+            dog1Container.transform.position = new Vector3(10.15f, 0.0f, -5.29f);
+            dog1Container.transform.rotation = Quaternion.Euler(0f, 38.64f, 0f);
 
             GameObject dog1Visual = InstantiateVisual(dog1Fbx, "VisualModel", dog1Container.transform, dog1Mat);
             if (dog1Visual != null)
@@ -87,8 +87,8 @@ namespace SownInStone.Editor
             // Positioned at (6.0, 0, 9.0) near the door/daybed, facing South (180 degrees)
             GameObject dog2Container = new GameObject("Dog_BacNam");
             dog2Container.transform.SetParent(animalsParent.transform);
-            dog2Container.transform.position = new Vector3(6.0f, 0.0f, 9.0f);
-            dog2Container.transform.rotation = Quaternion.Euler(0f, 180f, 0f);
+            dog2Container.transform.position = new Vector3(-5.50f, 0.0f, 24.63f);
+            dog2Container.transform.rotation = Quaternion.Euler(0f, 176.52f, 0f);
 
             GameObject dog2Visual = InstantiateVisual(dog2Fbx, "VisualModel", dog2Container.transform, dog2Mat);
             if (dog2Visual != null)
@@ -99,13 +99,13 @@ namespace SownInStone.Editor
             SetupComponents(dog2Container, 1.0f); // Dog2: 1.0m wander radius (guarding)
 
             // 6. Instantiate Chickens (di chuyển tự do hơn)
-            // Chicken 1: near Bác Năm's yard (10.5, 0, 8.5)
-            CreateChicken(animalsParent.transform, chickenFbx, chickenMat, new Vector3(10.5f, 0.0f, 8.5f), "Chicken_1", 3.5f);
-            // Chicken 2: near Bác Năm's yard (5.0, 0, 10.0)
+            // Chicken 1: near Bac Nam's yard (-0.91, 0, 4.10)
+            CreateChicken(animalsParent.transform, chickenFbx, chickenMat, new Vector3(-0.91f, 0.0f, 4.10f), "Chicken_1", 3.5f);
+            // Chicken 2: near Bac Nam's yard (5.0, 0, 10.0)
             CreateChicken(animalsParent.transform, chickenFbx, chickenMat, new Vector3(5.0f, 0.0f, 10.0f), "Chicken_2", 3.5f);
-            // Chicken 3: near Thành's yard (8.5, 0, -13.5)
+            // Chicken 3: near Thanh's yard (8.5, 0, -13.5)
             CreateChicken(animalsParent.transform, chickenFbx, chickenMat, new Vector3(8.5f, 0.0f, -13.5f), "Chicken_3", 3.5f);
-            // Chicken 4: near O Thắm's yard (2.0, 0, -14.0)
+            // Chicken 4: near O Tham's yard (2.0, 0, -14.0)
             CreateChicken(animalsParent.transform, chickenFbx, chickenMat, new Vector3(2.0f, 0.0f, -14.0f), "Chicken_4", 3.5f);
 
             // Save scene and mark dirty
@@ -247,10 +247,10 @@ namespace SownInStone.Editor
             // 2. Add Rigidbody
             Rigidbody rb = container.GetComponent<Rigidbody>();
             if (rb == null) rb = container.AddComponent<Rigidbody>();
-            rb.useGravity = true;
+            rb.useGravity = false;
+            rb.isKinematic = true;
             rb.mass = 10f;
-            // Lock rotations and keep locked Y position (unless they need gravity, but we lock Y constraints as done for Player to keep them flat on the ground)
-            rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationY | RigidbodyConstraints.FreezeRotationZ | RigidbodyConstraints.FreezePositionY;
+            rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationY | RigidbodyConstraints.FreezeRotationZ;
 
             // 3. Add WanderingAnimal AI
             var scriptType = System.Type.GetType("SownInStone.Core.WanderingAnimal, Assembly-CSharp");

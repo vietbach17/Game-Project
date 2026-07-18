@@ -1,7 +1,7 @@
 === DIAGNOSTIC COLLIDER LOG ===
 Current Stage: RoofSurvivalSharing
 Player Position: (2.62, 5.20, -17.84)
-Found 31 colliders within 15m radius of player:
+Found 38 colliders within 15m radius of player:
 - Name: Ground_Physics_Bridge
   Path: /Environment/Ground_Physics_Bridge
   Position: (0.00, -0.30, 0.00)
@@ -10,12 +10,84 @@ Found 31 colliders within 15m radius of player:
   IsTrigger: False
   Type: MeshCollider
   Layer: 0 (Default)
+- Name: NPC_BeTi (Bé Tí)
+  Path: /NPC_BeTi (Bé Tí)
+  Position: (3.93, 4.88, -16.67)
+  Rotation: (0.00, 43.47, 0.00)
+  Enabled: True
+  IsTrigger: True
+  Type: BoxCollider
+  Layer: 0 (Default)
+- Name: OwnHouse_Ghost_Floodboard_3
+  Path: /OwnHouse_Ghost_Floodboard_3
+  Position: (10.82, 0.12, -11.44)
+  Rotation: (0.00, 0.00, 0.00)
+  Enabled: True
+  IsTrigger: False
+  Type: BoxCollider
+  Layer: 0 (Default)
+- Name: SupplyCrate_Floated
+  Path: /SupplyCrate_Floated
+  Position: (4.02, 2.40, -13.15)
+  Rotation: (0.00, 0.00, 0.00)
+  Enabled: True
+  IsTrigger: False
+  Type: BoxCollider
+  Layer: 0 (Default)
+- Name: OwnHouse_Ghost_Floodboard_1
+  Path: /OwnHouse_Ghost_Floodboard_1
+  Position: (10.82, 0.12, -24.24)
+  Rotation: (0.00, 0.00, 0.00)
+  Enabled: True
+  IsTrigger: False
+  Type: BoxCollider
+  Layer: 0 (Default)
+- Name: NPC_BacNam (Bác Năm)
+  Path: /NPC_BacNam (Bác Năm)
+  Position: (3.82, 5.51, -18.84)
+  Rotation: (0.00, 183.59, 0.00)
+  Enabled: True
+  IsTrigger: True
+  Type: BoxCollider
+  Layer: 0 (Default)
+- Name: Shrine
+  Path: /InteractionZones/Shrine
+  Position: (10.74, 0.52, -18.56)
+  Rotation: (0.00, 181.96, 0.00)
+  Enabled: True
+  IsTrigger: True
+  Type: BoxCollider
+  Layer: 0 (Default)
+- Name: NPC_CuBay (Cụ Bảy)
+  Path: /NPC_CuBay (Cụ Bảy)
+  Position: (0.87, 4.83, -17.02)
+  Rotation: (0.00, 317.91, 0.00)
+  Enabled: True
+  IsTrigger: True
+  Type: BoxCollider
+  Layer: 0 (Default)
 - Name: TempRoofCollider
   Path: /TempRoofCollider
   Position: (2.62, 4.00, -17.84)
   Rotation: (0.00, 0.00, 0.00)
   Enabled: True
   IsTrigger: False
+  Type: BoxCollider
+  Layer: 0 (Default)
+- Name: Roof_Sleeping_Place
+  Path: /Roof_Sleeping_Place
+  Position: (1.42, 5.03, -19.04)
+  Rotation: (0.00, 0.00, 0.00)
+  Enabled: True
+  IsTrigger: False
+  Type: BoxCollider
+  Layer: 0 (Default)
+- Name: NPC_OTham (O Thắm)
+  Path: /NPC_OTham (O Thắm)
+  Position: (1.42, 5.52, -18.84)
+  Rotation: (0.00, 191.92, 0.00)
+  Enabled: True
+  IsTrigger: True
   Type: BoxCollider
   Layer: 0 (Default)
 - Name: RoofSurvivalPlatform
@@ -26,28 +98,36 @@ Found 31 colliders within 15m radius of player:
   IsTrigger: False
   Type: MeshCollider
   Layer: 0 (Default)
-- Name: Roof_Sleeping_Place
-  Path: /Roof_Sleeping_Place
-  Position: (1.42, 5.03, -19.04)
+- Name: OwnHouse_Ghost_Floodboard_2
+  Path: /OwnHouse_Ghost_Floodboard_2
+  Position: (-5.58, 0.12, -11.44)
   Rotation: (0.00, 0.00, 0.00)
   Enabled: True
   IsTrigger: False
   Type: BoxCollider
   Layer: 0 (Default)
-- Name: SoilCell_Grid_1_2
-  Path: /Environment/_Environment/RuongDat/FarmingArea/SoilCell_Grid_1_2
-  Position: (-7.66, 0.22, -16.72)
+- Name: SoilCell_Grid_3_1
+  Path: /Environment/_Environment/RuongDat/FarmingArea/SoilCell_Grid_3_1
+  Position: (-11.66, 0.22, -18.70)
   Rotation: (0.00, 90.27, 180.00)
   Enabled: True
   IsTrigger: True
   Type: BoxCollider
   Layer: 0 (Default)
-- Name: FenceSegment (1)
-  Path: /Environment/_Environment/RuongDat/Fences/FenceSegment (1)
-  Position: (-4.56, 0.21, -18.74)
-  Rotation: (270.00, 90.27, 0.00)
+- Name: SoilCell_Grid_0_2
+  Path: /Environment/_Environment/RuongDat/FarmingArea/SoilCell_Grid_0_2
+  Position: (-5.66, 0.22, -16.73)
+  Rotation: (0.00, 90.27, 180.00)
   Enabled: True
-  IsTrigger: False
+  IsTrigger: True
+  Type: BoxCollider
+  Layer: 0 (Default)
+- Name: SoilCell_Grid_0_1
+  Path: /Environment/_Environment/RuongDat/FarmingArea/SoilCell_Grid_0_1
+  Position: (-5.67, 0.22, -18.73)
+  Rotation: (0.00, 90.27, 180.00)
+  Enabled: True
+  IsTrigger: True
   Type: BoxCollider
   Layer: 0 (Default)
 - Name: SoilCell_Grid_1_1
@@ -58,9 +138,33 @@ Found 31 colliders within 15m radius of player:
   IsTrigger: True
   Type: BoxCollider
   Layer: 0 (Default)
+- Name: SoilCell_Grid_0_0
+  Path: /Environment/_Environment/RuongDat/FarmingArea/SoilCell_Grid_0_0
+  Position: (-5.67, 0.22, -20.73)
+  Rotation: (0.00, 90.27, 180.00)
+  Enabled: True
+  IsTrigger: True
+  Type: BoxCollider
+  Layer: 0 (Default)
+- Name: OwnHouse_Ghost_Floodboard_0
+  Path: /OwnHouse_Ghost_Floodboard_0
+  Position: (-5.58, 0.12, -24.24)
+  Rotation: (0.00, 0.00, 0.00)
+  Enabled: True
+  IsTrigger: False
+  Type: BoxCollider
+  Layer: 0 (Default)
 - Name: SoilCell_Grid_1_0
   Path: /Environment/_Environment/RuongDat/FarmingArea/SoilCell_Grid_1_0
   Position: (-7.67, 0.22, -20.72)
+  Rotation: (0.00, 90.27, 180.00)
+  Enabled: True
+  IsTrigger: True
+  Type: BoxCollider
+  Layer: 0 (Default)
+- Name: SoilCell_Grid_3_2
+  Path: /Environment/_Environment/RuongDat/FarmingArea/SoilCell_Grid_3_2
+  Position: (-11.66, 0.22, -16.70)
   Rotation: (0.00, 90.27, 180.00)
   Enabled: True
   IsTrigger: True
@@ -74,12 +178,28 @@ Found 31 colliders within 15m radius of player:
   IsTrigger: True
   Type: BoxCollider
   Layer: 0 (Default)
-- Name: SoilCell_Grid_2_1
-  Path: /Environment/_Environment/RuongDat/FarmingArea/SoilCell_Grid_2_1
-  Position: (-9.66, 0.22, -18.71)
+- Name: SoilCell_Grid_1_2
+  Path: /Environment/_Environment/RuongDat/FarmingArea/SoilCell_Grid_1_2
+  Position: (-7.66, 0.22, -16.72)
   Rotation: (0.00, 90.27, 180.00)
   Enabled: True
   IsTrigger: True
+  Type: BoxCollider
+  Layer: 0 (Default)
+- Name: Ground_Main
+  Path: /Environment/Ground_Main
+  Position: (-45.70, 0.07, -39.20)
+  Rotation: (0.00, 0.00, 0.00)
+  Enabled: True
+  IsTrigger: False
+  Type: TerrainCollider
+  Layer: 0 (Default)
+- Name: FenceSegment (1)
+  Path: /Environment/_Environment/RuongDat/Fences/FenceSegment (1)
+  Position: (-4.56, 0.21, -18.74)
+  Rotation: (270.00, 90.27, 0.00)
+  Enabled: True
+  IsTrigger: False
   Type: BoxCollider
   Layer: 0 (Default)
 - Name: FenceSegment
@@ -98,6 +218,14 @@ Found 31 colliders within 15m radius of player:
   IsTrigger: True
   Type: BoxCollider
   Layer: 0 (Default)
+- Name: SoilCell_Grid_2_1
+  Path: /Environment/_Environment/RuongDat/FarmingArea/SoilCell_Grid_2_1
+  Position: (-9.66, 0.22, -18.71)
+  Rotation: (0.00, 90.27, 180.00)
+  Enabled: True
+  IsTrigger: True
+  Type: BoxCollider
+  Layer: 0 (Default)
 - Name: SoilCell_Grid_3_0
   Path: /Environment/_Environment/RuongDat/FarmingArea/SoilCell_Grid_3_0
   Position: (-11.67, 0.22, -20.70)
@@ -106,105 +234,9 @@ Found 31 colliders within 15m radius of player:
   IsTrigger: True
   Type: BoxCollider
   Layer: 0 (Default)
-- Name: Shrine
-  Path: /InteractionZones/Shrine
-  Position: (10.74, 0.52, -18.56)
-  Rotation: (0.00, 181.96, 0.00)
-  Enabled: True
-  IsTrigger: True
-  Type: BoxCollider
-  Layer: 0 (Default)
-- Name: NPC_CuBay (Cụ Bảy)
-  Path: /NPC_CuBay (Cụ Bảy)
-  Position: (1.42, 5.01, -16.84)
-  Rotation: (0.00, 5.46, 0.00)
-  Enabled: True
-  IsTrigger: True
-  Type: BoxCollider
-  Layer: 0 (Default)
-- Name: SoilCell_Grid_3_1
-  Path: /Environment/_Environment/RuongDat/FarmingArea/SoilCell_Grid_3_1
-  Position: (-11.66, 0.22, -18.70)
-  Rotation: (0.00, 90.27, 180.00)
-  Enabled: True
-  IsTrigger: True
-  Type: BoxCollider
-  Layer: 0 (Default)
-- Name: SoilCell_Grid_0_1
-  Path: /Environment/_Environment/RuongDat/FarmingArea/SoilCell_Grid_0_1
-  Position: (-5.67, 0.22, -18.73)
-  Rotation: (0.00, 90.27, 180.00)
-  Enabled: True
-  IsTrigger: True
-  Type: BoxCollider
-  Layer: 0 (Default)
-- Name: SoilCell_Grid_0_2
-  Path: /Environment/_Environment/RuongDat/FarmingArea/SoilCell_Grid_0_2
-  Position: (-5.66, 0.22, -16.73)
-  Rotation: (0.00, 90.27, 180.00)
-  Enabled: True
-  IsTrigger: True
-  Type: BoxCollider
-  Layer: 0 (Default)
-- Name: Ground_Main
-  Path: /Environment/Ground_Main
-  Position: (-45.70, 0.07, -39.20)
-  Rotation: (0.00, 0.00, 0.00)
-  Enabled: True
-  IsTrigger: False
-  Type: TerrainCollider
-  Layer: 0 (Default)
-- Name: SoilCell_Grid_3_2
-  Path: /Environment/_Environment/RuongDat/FarmingArea/SoilCell_Grid_3_2
-  Position: (-11.66, 0.22, -16.70)
-  Rotation: (0.00, 90.27, 180.00)
-  Enabled: True
-  IsTrigger: True
-  Type: BoxCollider
-  Layer: 0 (Default)
-- Name: NPC_BeTi (Bé Tí)
-  Path: /NPC_BeTi (Bé Tí)
-  Position: (3.90, 4.99, -16.79)
-  Rotation: (0.00, 162.97, 0.00)
-  Enabled: True
-  IsTrigger: True
-  Type: BoxCollider
-  Layer: 0 (Default)
-- Name: NPC_OTham (O Thắm)
-  Path: /NPC_OTham (O Thắm)
-  Position: (1.42, 5.52, -18.84)
-  Rotation: (0.00, 174.29, 0.00)
-  Enabled: True
-  IsTrigger: True
-  Type: BoxCollider
-  Layer: 0 (Default)
-- Name: SoilCell_Grid_0_0
-  Path: /Environment/_Environment/RuongDat/FarmingArea/SoilCell_Grid_0_0
-  Position: (-5.67, 0.22, -20.73)
-  Rotation: (0.00, 90.27, 180.00)
-  Enabled: True
-  IsTrigger: True
-  Type: BoxCollider
-  Layer: 0 (Default)
-- Name: NPC_BacNam (Bác Năm)
-  Path: /NPC_BacNam (Bác Năm)
-  Position: (3.82, 5.51, -18.84)
-  Rotation: (0.00, 174.60, 0.00)
-  Enabled: True
-  IsTrigger: True
-  Type: BoxCollider
-  Layer: 0 (Default)
 - Name: SupplyCrate_Floated
   Path: /SupplyCrate_Floated
-  Position: (2.38, 2.40, -13.64)
-  Rotation: (0.00, 0.00, 0.00)
-  Enabled: True
-  IsTrigger: False
-  Type: BoxCollider
-  Layer: 0 (Default)
-- Name: SupplyCrate_Floated
-  Path: /SupplyCrate_Floated
-  Position: (3.18, 2.40, -12.34)
+  Position: (1.93, 2.40, -12.34)
   Rotation: (0.00, 0.00, 0.00)
   Enabled: True
   IsTrigger: False
@@ -228,26 +260,53 @@ Found 31 colliders within 15m radius of player:
   Layer: 0 (Default)
 - Name: Coracle
   Path: /Coracle
-  Position: (2.65, 2.22, -12.49)
-  Rotation: (0.00, 216.40, 0.00)
+  Position: (3.01, 2.25, -17.21)
+  Rotation: (0.00, 142.50, 0.00)
   Enabled: True
   IsTrigger: False
   Type: BoxCollider
   Layer: 0 (Default)
   Has Rigidbody: Coracle (isKinematic=False, useGravity=False)
+- Name: Dog_Thanh
+  Path: /Environment/_Environment/Animals/Dog_Thanh
+  Position: (9.65, 0.07, -5.33)
+  Rotation: (0.00, 150.88, 0.00)
+  Enabled: True
+  IsTrigger: False
+  Type: BoxCollider
+  Layer: 0 (Default)
+  Has Rigidbody: Dog_Thanh (isKinematic=True, useGravity=False)
 - Name: Player
   Path: /Player
   Position: (2.62, 5.20, -17.84)
-  Rotation: (0.00, 216.40, 0.00)
+  Rotation: (0.00, 142.50, 0.00)
   Enabled: True
   IsTrigger: True
   Type: BoxCollider
   Layer: 0 (Default)
   Has Rigidbody: Player (isKinematic=False, useGravity=False)
+- Name: Chicken_3
+  Path: /Environment/_Environment/Animals/Chicken_3
+  Position: (5.33, 0.07, -14.46)
+  Rotation: (0.00, 243.89, 0.00)
+  Enabled: True
+  IsTrigger: False
+  Type: BoxCollider
+  Layer: 0 (Default)
+  Has Rigidbody: Chicken_3 (isKinematic=True, useGravity=False)
+- Name: Chicken_4
+  Path: /Environment/_Environment/Animals/Chicken_4
+  Position: (1.10, 5.00, -14.32)
+  Rotation: (0.00, 148.72, 0.00)
+  Enabled: True
+  IsTrigger: False
+  Type: BoxCollider
+  Layer: 0 (Default)
+  Has Rigidbody: Chicken_4 (isKinematic=True, useGravity=False)
 - Name: Player
   Path: /Player
   Position: (2.62, 5.20, -17.84)
-  Rotation: (0.00, 216.40, 0.00)
+  Rotation: (0.00, 142.50, 0.00)
   Enabled: True
   IsTrigger: False
   Type: CharacterController

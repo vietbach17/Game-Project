@@ -2589,6 +2589,63 @@ namespace SownInStone.Core
                             }
                         }
                     }
+                    else if (stage == TutorialManager.TutorialStage.PrepareCuBayBeTiHouse)
+                    {
+                        if (itemId == "item_sandbag")
+                        {
+                            if (TutorialManager.Instance.cuBayGhostSandbags.Count > 0)
+                            {
+                                int bestIndex = -1;
+                                float minDistance = float.MaxValue;
+                                for (int i = 0; i < TutorialManager.Instance.cuBayGhostSandbags.Count; i++)
+                                {
+                                    if (i >= 2) break;
+                                    if (TutorialManager.Instance.cuBayTargetsPlaced[i]) continue;
+                                    
+                                    float dist = Vector3.Distance(finalPos, TutorialManager.Instance.cuBayGhostSandbags[i].transform.position);
+                                    if (dist < minDistance)
+                                    {
+                                        minDistance = dist;
+                                        bestIndex = i;
+                                    }
+                                }
+                                if (bestIndex != -1 && minDistance < 3.5f)
+                                {
+                                    TutorialManager.Instance.MakeSolidModel(TutorialManager.Instance.cuBayGhostSandbags[bestIndex]);
+                                    TutorialManager.Instance.cuBayTargetsPlaced[bestIndex] = true;
+                                    TutorialManager.Instance.OnCuBaySandbagPlaced();
+                                    didSnap = true;
+                                }
+                            }
+                        }
+                        else if (itemId == "item_flood_board")
+                        {
+                            if (TutorialManager.Instance.cuBayGhostFloodboards.Count > 0)
+                            {
+                                int bestIndex = -1;
+                                float minDistance = float.MaxValue;
+                                for (int i = 0; i < TutorialManager.Instance.cuBayGhostFloodboards.Count; i++)
+                                {
+                                    if (i >= 2) break;
+                                    if (TutorialManager.Instance.cuBayTargetsPlaced[i + 2]) continue;
+                                    
+                                    float dist = Vector3.Distance(finalPos, TutorialManager.Instance.cuBayGhostFloodboards[i].transform.position);
+                                    if (dist < minDistance)
+                                    {
+                                        minDistance = dist;
+                                        bestIndex = i;
+                                    }
+                                }
+                                if (bestIndex != -1 && minDistance < 3.5f)
+                                {
+                                    TutorialManager.Instance.MakeSolidModel(TutorialManager.Instance.cuBayGhostFloodboards[bestIndex]);
+                                    TutorialManager.Instance.cuBayTargetsPlaced[bestIndex + 2] = true;
+                                    TutorialManager.Instance.OnCuBayFloodBoardPlaced();
+                                    didSnap = true;
+                                }
+                            }
+                        }
+                    }
                     else if (stage == TutorialManager.TutorialStage.PrepareOwnHouse)
                     {
                         if (itemId == "item_flood_board")
@@ -2739,7 +2796,10 @@ namespace SownInStone.Core
             }
             Debug.Log($"[PLASTIC MULCH] Đã phủ thành công Màng nilon bảo vệ {count} ô ruộng!");
 
-
+            if (TutorialManager.Instance != null && TutorialManager.Instance.isTutorialActive)
+            {
+                TutorialManager.Instance.OnPlasticMulchApplied();
+            }
         }
 
         /// <summary>

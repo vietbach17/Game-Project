@@ -412,9 +412,8 @@ namespace SownInStone.Core
             bool isDialogueActiveNow = SownInStone.UI.SurvivalUIManager.Instance != null && SownInStone.UI.SurvivalUIManager.Instance.IsDialogueActive;
             if (isDialogueActiveNow)
             {
-                UpdateDialogueCamera();
+                // Giữ camera cố định ở góc nhìn chuẩn, không phóng to hay dịch chuyển đặc biệt khi đối thoại
                 wasDialogueActive = true;
-                return;
             }
             else if (wasDialogueActive)
             {
