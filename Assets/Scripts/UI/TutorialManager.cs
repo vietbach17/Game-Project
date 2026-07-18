@@ -1566,6 +1566,7 @@ namespace SownInStone
 
         public void StartRoofSurvivalSharingStage()
         {
+            bool isFirstTime = (currentStage != TutorialStage.RoofSurvivalSharing);
             currentStage = TutorialStage.RoofSurvivalSharing;
             
             if (GameManager.Instance != null)
@@ -1684,23 +1685,26 @@ namespace SownInStone
                 }
             }
 
-            // Khởi tạo các cờ nhiệm vụ vớt hòm tiếp tế và kiệt sức
-            hasCollectedSupplyCrate = false;
-            isExhaustedAndReadyToSleep = false;
-
-            // Sinh hòm tiếp tế trôi dạt để người chơi vớt
-            if (PlayerController.Instance != null)
+            if (isFirstTime)
             {
-                PlayerController.Instance.SpawnSupplyCrate();
-            }
+                // Khởi tạo các cờ nhiệm vụ vớt hòm tiếp tế và kiệt sức
+                hasCollectedSupplyCrate = false;
+                isExhaustedAndReadyToSleep = false;
 
-            if (SurvivalUIManager.Instance != null)
-            {
-                SurvivalUIManager.Instance.ShowDialogue(
-                    "CẮM TRẠI NÓC NHÀ",
-                    "Cả xóm đã sơ tán lên nóc nhà Thành an toàn! Bên ngoài nước lũ đang ngập úng mênh mông cô lập.\n\n" +
-                    "Hiện tại mọi người đang đói lả. Hãy nhìn xuống mặt nước và nhấn [E] ở mép mái nhà để vớt hòm gỗ tiếp tế trôi dạt, sau đó mở hòm lấy thực phẩm để chia sẻ cho mọi người!"
-                );
+                // Sinh hòm tiếp tế trôi dạt để người chơi vớt
+                if (PlayerController.Instance != null)
+                {
+                    PlayerController.Instance.SpawnSupplyCrate();
+                }
+
+                if (SurvivalUIManager.Instance != null)
+                {
+                    SurvivalUIManager.Instance.ShowDialogue(
+                        "CẮM TRẠI NÓC NHÀ",
+                        "Cả xóm đã sơ tán lên nóc nhà Thành an toàn! Bên ngoài nước lũ đang ngập úng mênh mông cô lập.\n\n" +
+                        "Hiện tại mọi người đang đói lả. Hãy nhìn xuống mặt nước và nhấn [E] ở mép mái nhà để vớt hòm gỗ tiếp tế trôi dạt, sau đó mở hòm lấy thực phẩm để chia sẻ cho mọi người!"
+                    );
+                }
             }
 
             UpdateHUDPanel();
