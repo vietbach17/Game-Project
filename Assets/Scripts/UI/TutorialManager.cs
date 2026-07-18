@@ -1812,6 +1812,9 @@ namespace SownInStone
                 SurvivalUIManager.Instance.FadeFromBlack(1.5f);
             }
 
+            // Play music for 5 seconds upon waking up on the roof
+            SownInStone.Audio.AudioManager.Instance?.PlayMusic("bgm_main");
+
             // Mở khoá điều khiển người chơi
             if (PlayerController.Instance != null)
             {

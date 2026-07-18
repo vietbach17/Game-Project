@@ -2971,6 +2971,9 @@ namespace SownInStone.Core
                 SownInStone.UI.SurvivalUIManager.Instance.ShowHUDToast("🛏️ Bạn đã ngủ một giấc thật ngon! Trời đã sáng lúc 05:00 AM, thể lực và tinh thần phục hồi 100%.");
             }
 
+            // Play music for 5 seconds upon waking up
+            SownInStone.Audio.AudioManager.Instance?.PlayMusic("bgm_main");
+
             yield return new WaitForSeconds(1.0f);
             isPerformingAction = false;
         }

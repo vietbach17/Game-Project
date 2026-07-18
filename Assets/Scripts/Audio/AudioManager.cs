@@ -32,6 +32,7 @@ namespace SownInStone.Audio
         private AudioSource ambientSource;
         private AudioSource voiceSource;
         private List<AudioSource> sfxSources = new List<AudioSource>();
+        private Coroutine musicStopCoroutine;
 
         private Dictionary<string, AudioClip> audioClips = new Dictionary<string, AudioClip>();
         private HashSet<string> missingClips = new HashSet<string>();
@@ -104,6 +105,14 @@ namespace SownInStone.Audio
         /// </summary>
         public void PlayMusic(string clipName)
         {
+            PlayMusic(clipName, -1f);
+        }
+
+        /// <summary>
+        /// Phát nhạc nền (BGM) với tùy chọn tự động dừng/fade-out sau một khoảng thời gian.
+        /// </summary>
+        public void PlayMusic(string clipName, float duration)
+        {
             AudioClip clip = GetAudioClip(clipName);
             
             // Fallback nếu thiếu bgm_menu thì lấy tạm bgm_main chơi đỡ im lặng
@@ -115,12 +124,67 @@ namespace SownInStone.Audio
 
             if (clip == null) return;
 
-            if (musicSource.clip == clip && musicSource.isPlaying) return;
+            // Nếu nhạc đang chơi và không có yêu cầu đặc biệt về thời gian thì không ngắt
+            if (musicSource.clip == clip && musicSource.isPlaying && duration <= 0f && clipName != "bgm_main") return;
+
+            if (musicStopCoroutine != null)
+            {
+                StopCoroutine(musicStopCoroutine);
+                musicStopCoroutine = null;
+            }
 
             musicSource.clip = clip;
-            musicSource.volume = musicVolume;
+
+            // Thiết lập âm lượng (bgm_main nhỏ lại 20%)
+            float vol = musicVolume;
+            if (clipName == "bgm_main")
+            {
+                vol = musicVolume * 0.2f;
+            }
+            musicSource.volume = vol;
+
+            // Tự động dừng nhạc sau 5 giây đối với nhạc nền chính bgm_main
+            float actualDuration = duration;
+            if (clipName == "bgm_main" && actualDuration <= 0f)
+            {
+                actualDuration = 5f;
+            }
+
+            musicSource.loop = (actualDuration <= 0f);
             musicSource.Play();
-            Debug.Log($"[AUDIO] Đang phát Nhạc nền BGM: {clipName}");
+            Debug.Log($"[AUDIO] Đang phát Nhạc nền BGM: {clipName} (Âm lượng: {vol})");
+
+            if (actualDuration > 0f)
+            {
+                musicStopCoroutine = StartCoroutine(StopMusicAfterDelay(actualDuration));
+            }
+        }
+
+        private System.Collections.IEnumerator StopMusicAfterDelay(float delay)
+        {
+            yield return new WaitForSeconds(delay);
+
+            // Fade-out nhẹ nhàng trong 1.5 giây
+            float startVol = musicSource.volume;
+            float elapsed = 0f;
+            float fadeTime = 1.5f;
+
+            while (elapsed < fadeTime)
+            {
+                elapsed += Time.deltaTime;
+                if (musicSource != null)
+                {
+                    musicSource.volume = Mathf.Lerp(startVol, 0f, elapsed / fadeTime);
+                }
+                yield return null;
+            }
+
+            if (musicSource != null)
+            {
+                musicSource.Stop();
+                musicSource.volume = musicVolume;
+            }
+            musicStopCoroutine = null;
         }
 
         /// <summary>
@@ -282,9 +346,9 @@ namespace SownInStone.Audio
             if (clip != null)
             {
                 voiceSource.clip = clip;
-                voiceSource.volume = sfxVolume; // Sử dụng âm lượng SFX làm cột mốc
+                voiceSource.volume = Mathf.Clamp01(sfxVolume * 1.30f); // Tăng âm lượng voice lên 30%
                 voiceSource.Play();
-                Debug.Log($"[VOICE] Đang phát giọng nói nhân vật: '{clipName}'");
+                Debug.Log($"[VOICE] Đang phát giọng nói nhân vật: '{clipName}' (Âm lượng: {voiceSource.volume})");
             }
             else
             {

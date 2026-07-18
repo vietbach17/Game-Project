@@ -178,9 +178,8 @@ namespace SownInStone.Core
                 }
                 Debug.Log($"[GAME MANAGER] Đã tự động bồi đắp PHÙ SA và dọn sạch sỏi đá cho {soils.Length} ô đất.");
             }
-            
-            // Play phase change warning chime
-            SownInStone.Audio.AudioManager.Instance?.PlaySFX("sfx_warning");
+            // Play music for 5 seconds on phase change
+            SownInStone.Audio.AudioManager.Instance?.PlayMusic("bgm_main");
 
             Debug.Log($"[GAME MANAGER] Chuyển sang Giai Đoạn: {newPhase.ToString()}, Ngày: {currentDay}");
         }
