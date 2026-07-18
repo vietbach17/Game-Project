@@ -225,6 +225,7 @@ namespace SownInStone.Core
             // Cấu hình Rigidbody để phù hợp với game 3D Top-down (di chuyển phẳng X/Z)
             rb.useGravity = false;
             rb.constraints = RigidbodyConstraints.FreezeRotation | RigidbodyConstraints.FreezePositionY;
+            rb.interpolation = RigidbodyInterpolation.Interpolate; // Kích hoạt Interpolation để mượt camera follow, tránh rung/giật màn hình
 
             // Tự động tìm mô hình 3D con nếu chưa gán trong Inspector
             if (characterVisual == null && transform.childCount > 0)

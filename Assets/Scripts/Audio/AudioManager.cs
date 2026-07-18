@@ -125,7 +125,7 @@ namespace SownInStone.Audio
             if (clip == null) return;
 
             // Nếu nhạc đang chơi và không có yêu cầu đặc biệt về thời gian thì không ngắt
-            if (musicSource.clip == clip && musicSource.isPlaying && duration <= 0f && clipName != "bgm_main") return;
+            if (musicSource.clip == clip && musicSource.isPlaying && duration <= 0f) return;
 
             if (musicStopCoroutine != null)
             {
@@ -134,25 +134,12 @@ namespace SownInStone.Audio
             }
 
             musicSource.clip = clip;
+            musicSource.volume = musicVolume;
 
-            // Thiết lập âm lượng (bgm_main nhỏ lại 20%)
-            float vol = musicVolume;
-            if (clipName == "bgm_main")
-            {
-                vol = musicVolume * 0.2f;
-            }
-            musicSource.volume = vol;
-
-            // Tự động dừng nhạc sau 5 giây đối với nhạc nền chính bgm_main
             float actualDuration = duration;
-            if (clipName == "bgm_main" && actualDuration <= 0f)
-            {
-                actualDuration = 5f;
-            }
-
             musicSource.loop = (actualDuration <= 0f);
             musicSource.Play();
-            Debug.Log($"[AUDIO] Đang phát Nhạc nền BGM: {clipName} (Âm lượng: {vol})");
+            Debug.Log($"[AUDIO] Đang phát Nhạc nền BGM: {clipName} (Âm lượng: {musicVolume})");
 
             if (actualDuration > 0f)
             {
