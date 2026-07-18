@@ -245,6 +245,69 @@ namespace SownInStone.Core
             noodlesItem = UnityEditor.AssetDatabase.LoadAssetAtPath<ItemData>("Assets/Data/Item_Noodles.asset");
             testSeedData = UnityEditor.AssetDatabase.LoadAssetAtPath<CropData>("Assets/Data/Crop_KhoaiLang.asset");
 #endif
+            SolidifyWorldColliders();
+        }
+
+        private void SolidifyWorldColliders()
+        {
+            // Đảm bảo BoxCollider của chính người chơi không phải là trigger để thực thi va chạm cứng
+            BoxCollider playerCol = GetComponent<BoxCollider>();
+            if (playerCol != null)
+            {
+                playerCol.isTrigger = false;
+            }
+
+            // Quét toàn bộ GameObject trong Scene để đảm bảo tất cả hàng rào, nhà cửa, npc có collider cứng
+            GameObject[] allGo = GameObject.FindObjectsByType<GameObject>(FindObjectsInactive.Include);
+            foreach (var go in allGo)
+            {
+                if (go == null) continue;
+
+                // A. Hàng rào (Fences hoặc FenceSegment)
+                if (go.name.Contains("FenceSegment") || go.name.Contains("Fence"))
+                {
+                    if (go.GetComponent<Collider>() == null && go.GetComponentInChildren<Collider>() == null)
+                    {
+                        var renderer = go.GetComponentInChildren<Renderer>();
+                        if (renderer != null)
+                        {
+                            var box = go.AddComponent<BoxCollider>();
+                            box.center = go.transform.InverseTransformPoint(renderer.bounds.center);
+                            box.size = go.transform.InverseTransformDirection(renderer.bounds.size);
+                            box.size = new Vector3(Mathf.Abs(box.size.x), Mathf.Abs(box.size.y), Mathf.Abs(box.size.z));
+                            box.isTrigger = false;
+                        }
+                        else
+                        {
+                            var box = go.AddComponent<BoxCollider>();
+                            box.size = new Vector3(1.5f, 1.2f, 0.3f);
+                            box.center = new Vector3(0f, 0.6f, 0f);
+                            box.isTrigger = false;
+                        }
+                    }
+                }
+
+                // B. Nhà cửa và Shop
+                if (go.name.Contains("House") || go.name.Contains("Shop") || go.name.Contains("Stall"))
+                {
+                    if (go.GetComponent<Collider>() == null && go.GetComponentInChildren<Collider>() == null)
+                    {
+                        var renderers = go.GetComponentsInChildren<Renderer>();
+                        if (renderers.Length > 0)
+                        {
+                            Bounds b = renderers[0].bounds;
+                            foreach (var r in renderers)
+                            {
+                                b.Encapsulate(r.bounds);
+                            }
+                            var box = go.AddComponent<BoxCollider>();
+                            box.center = go.transform.InverseTransformPoint(b.center);
+                            box.size = new Vector3(Mathf.Abs(b.size.x), Mathf.Abs(b.size.y), Mathf.Abs(b.size.z));
+                            box.isTrigger = false;
+                        }
+                    }
+                }
+            }
         }
 
         private void HandleFloodRoofSurvival()
@@ -943,17 +1006,14 @@ namespace SownInStone.Core
             {
                 // Tự động snap độ cao Y của nhân vật theo địa hình Terrain thực tế ngoài trời
                 // giúp đi lên/xuống dốc tự nhiên mà không cần trọng lực Rigidbody (tránh rơi tự do ra ngoài map)
-                if (UnityEngine.Terrain.activeTerrain != null)
+                if (UnityEngine.Terrain.activeTerrain != null && rb != null)
                 {
-                    float terrainHeight = UnityEngine.Terrain.activeTerrain.SampleHeight(transform.position) + UnityEngine.Terrain.activeTerrain.transform.position.y;
-                    Vector3 pos = transform.position;
+                    float terrainHeight = UnityEngine.Terrain.activeTerrain.SampleHeight(rb.position) + UnityEngine.Terrain.activeTerrain.transform.position.y;
+                    Vector3 pos = rb.position;
                     pos.y = terrainHeight + 0.565f; // Thêm offset 0.565f để nhân vật đứng vững trên bề mặt thay vì lún nửa người
-                    transform.position = pos;
-                    if (rb != null)
-                    {
-                        rb.position = pos;
-                        rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
-                    }
+                    
+                    rb.position = pos;
+                    rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0f, rb.linearVelocity.z);
                 }
             }
         }

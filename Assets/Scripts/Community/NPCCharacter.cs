@@ -205,7 +205,7 @@ namespace SownInStone.Community
                 BoxCollider boxCol = GetComponent<BoxCollider>();
                 if (boxCol != null)
                 {
-                    boxCol.isTrigger = true;
+                    boxCol.isTrigger = false; // Va chạm cứng tránh đi xuyên qua NPC
                     boxCol.center = new Vector3(0f, 1f, 0f);
                     boxCol.size = new Vector3(1.2f, 2f, 1.2f);
                 }

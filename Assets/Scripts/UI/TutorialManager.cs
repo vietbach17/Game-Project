@@ -1473,11 +1473,11 @@ namespace SownInStone
                     rbNPC.position = roofSpot;
                 }
 
-                // Chuyển toàn bộ collider của NPC thành trigger để tránh cản đường di chuyển của người chơi trên mái
+                // Giữ toàn bộ collider của NPC là va chạm cứng tránh đi xuyên
                 var colliders = npc.GetComponentsInChildren<Collider>();
                 foreach (var col in colliders)
                 {
-                    if (col != null) col.isTrigger = true;
+                    if (col != null) col.isTrigger = false;
                 }
 
                 var visual = npc.transform.Find("Visual");
@@ -1638,12 +1638,12 @@ namespace SownInStone
                     Debug.Log("[ROOF] Disabled CharacterController to allow free movement on roof.");
                 }
 
-                // Đảm bảo BoxCollider của Player cũng là trigger để tránh va chạm với sàn nhà phụ
+                // Giữ BoxCollider của Player không phải là trigger để thực thi va chạm cứng với các mô hình trên mái nhà
                 var playerBoxCol = PlayerController.Instance.GetComponent<BoxCollider>();
                 if (playerBoxCol != null)
                 {
-                    playerBoxCol.isTrigger = true;
-                    Debug.Log("[ROOF] Set Player BoxCollider isTrigger=true on roof.");
+                    playerBoxCol.isTrigger = false;
+                    Debug.Log("[ROOF] Set Player BoxCollider isTrigger=false on roof.");
                 }
 
                 GameObject houseObj = FindThanhHouse();
@@ -1671,7 +1671,7 @@ namespace SownInStone
                 }
             }
 
-            // Đồng thời chuyển toàn bộ collider của NPC trên mái thành trigger
+            // Đồng thời giữ toàn bộ collider của NPC trên mái là va chạm cứng
             var allNPCs = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Include);
             foreach (var npc in allNPCs)
             {
@@ -1680,7 +1680,7 @@ namespace SownInStone
                     var cols = npc.GetComponentsInChildren<Collider>();
                     foreach (var col in cols)
                     {
-                        if (col != null) col.isTrigger = true;
+                        if (col != null) col.isTrigger = false;
                     }
                 }
             }
