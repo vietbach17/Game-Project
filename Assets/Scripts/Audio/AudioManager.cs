@@ -165,6 +165,8 @@ namespace SownInStone.Audio
         /// </summary>
         public void PlaySFX(string clipName, float volume = 1f)
         {
+            if (clipName == "sfx_warning") return; // Bỏ hẳn tiếng chuông này không sử dụng nữa
+
             AudioClip clip = GetAudioClip(clipName);
             
             // Fallback nếu thiếu tiếng sfx_dig thì phát sfx_clear_rocks đỡ im lặng

@@ -1556,6 +1556,11 @@ namespace SownInStone
                 Coracle.Instance.ExitBoat(); // Thoát trạng thái thuyền thúng đúng cách
             }
 
+            if (PlayerController.Instance != null)
+            {
+                PlayerController.Instance.SetOnRoof(true);
+            }
+
             StartRoofSurvivalSharingStage();
         }
 
@@ -3708,7 +3713,8 @@ namespace SownInStone
                 }
 
                 // 3. Đưa người chơi lên thuyền thúng
-                coracle.Interact(PlayerController.Instance);
+                coracle.Interact(PlayerController.Instance, force: true);
+                PlayerController.Instance.SetOnRoof(false);
 
                 // 4. Hiển thị cảnh báo nhắc nhở
                 if (SurvivalUIManager.Instance != null)

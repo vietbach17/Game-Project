@@ -335,8 +335,8 @@ namespace SownInStone.Weather
             rainParticlesObj = new GameObject("RainParticles", typeof(ParticleSystem));
             rainParticlesObj.transform.SetParent(this.transform);
 
-            // Xoay emitter -90° quanh X để hạt phát thẳng xuống (-Y)
-            rainParticlesObj.transform.rotation = Quaternion.Euler(-90f, 0f, 0f);
+            // Xoay emitter 90° quanh X để hạt phát thẳng xuống (-Y)
+            rainParticlesObj.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
 
             rainParticles = rainParticlesObj.GetComponent<ParticleSystem>();
 
@@ -405,9 +405,9 @@ namespace SownInStone.Weather
             // Đồng bộ vị trí bộ phát mưa nằm phía trên đầu Camera
             if (Camera.main != null)
             {
-                // Đặt bộ phát mưa lệch nhẹ sang bên phải và phía trên Camera
+                // Đặt bộ phát mưa lệch nhẹ sang bên phải và phía trên Camera, đồng bộ theo Z của camera
                 Vector3 camPos = Camera.main.transform.position;
-                rainParticlesObj.transform.position = new Vector3(camPos.x + 3f, camPos.y + 6f, -2f);
+                rainParticlesObj.transform.position = new Vector3(camPos.x + 3f, camPos.y + 12f, camPos.z - 2f);
             }
 
             // Đồng bộ cường độ hạt mưa rơi theo RainIntensity

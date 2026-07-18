@@ -355,7 +355,7 @@ namespace SownInStone.Interactions
 
         // ─── Enter / Exit ─────────────────────────────────────────────────────
 
-        public void Interact(PlayerController player)
+        public void Interact(PlayerController player, bool force = false)
         {
             if (isOccupied) return;
 
@@ -363,6 +363,12 @@ namespace SownInStone.Interactions
             if (TutorialManager.Instance != null && TutorialManager.Instance.currentStage < TutorialManager.TutorialStage.RescuingNPCs)
             {
                 SownInStone.UI.SurvivalUIManager.Instance?.ShowHUDToast("⚠️ Thuyền thúng hiện tại chưa sử dụng được. Hãy tập trung chuẩn bị trước bão lũ!");
+                return;
+            }
+
+            // Nếu đứng trên mái nhà thì không cho phép tương tác bình thường với thuyền thúng
+            if (!force && player.IsOnRoof)
+            {
                 return;
             }
 
