@@ -1113,11 +1113,11 @@ namespace SownInStone
                     var visual = npc.transform.Find("Visual");
                     if (visual != null) visual.gameObject.SetActive(true);
 
-                    // Khôi phục va chạm vật lý thông thường cho NPC khi quay về nhà
+                    // Khôi phục va chạm mềm (trigger) cho NPC khi quay về nhà để tránh chặn đường người chơi
                     var colliders = npc.GetComponentsInChildren<Collider>();
                     foreach (var col in colliders)
                     {
-                        if (col != null) col.isTrigger = false;
+                        if (col != null) col.isTrigger = true;
                     }
 
                     if (npcHomePositions.TryGetValue(npc.NPCName, out Vector3 homePos))
@@ -1473,11 +1473,11 @@ namespace SownInStone
                     rbNPC.position = roofSpot;
                 }
 
-                // Giữ toàn bộ collider của NPC là va chạm cứng tránh đi xuyên
+                // Giữ toàn bộ collider của NPC là trigger để tương tác mượt mà không gây đẩy vật lý
                 var colliders = npc.GetComponentsInChildren<Collider>();
                 foreach (var col in colliders)
                 {
-                    if (col != null) col.isTrigger = false;
+                    if (col != null) col.isTrigger = true;
                 }
 
                 var visual = npc.transform.Find("Visual");
@@ -1671,7 +1671,7 @@ namespace SownInStone
                 }
             }
 
-            // Đồng thời giữ toàn bộ collider của NPC trên mái là va chạm cứng
+            // Đồng thời giữ toàn bộ collider của NPC trên mái là trigger
             var allNPCs = FindObjectsByType<SownInStone.Community.NPCCharacter>(FindObjectsInactive.Include);
             foreach (var npc in allNPCs)
             {
@@ -1680,7 +1680,7 @@ namespace SownInStone
                     var cols = npc.GetComponentsInChildren<Collider>();
                     foreach (var col in cols)
                     {
-                        if (col != null) col.isTrigger = false;
+                        if (col != null) col.isTrigger = true;
                     }
                 }
             }
