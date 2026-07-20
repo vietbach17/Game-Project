@@ -37,6 +37,19 @@ namespace SownInStone.Community
         [Tooltip("Số ngày công tích lũy đổi công (Tục Vần Công) với người chơi.")]
         [SerializeField] private int vanCongCredits = 0;
 
+        [Header("--- THIẾT LẬP VA CHẠM (COLLIDER) ---")]
+        [Tooltip("Bật tùy chọn này để sử dụng các thông số tự tùy chỉnh bên dưới thay vì mặc định của hệ thống.")]
+        public bool useCustomColliderSettings = false;
+
+        [Tooltip("Xác định xem collider có phải là Trigger hay không.")]
+        public bool colliderIsTrigger = true;
+
+        [Tooltip("Tâm (Center) của BoxCollider.")]
+        public Vector3 colliderCenter = new Vector3(0f, 1f, 0f);
+
+        [Tooltip("Kích thước (Size) của BoxCollider.")]
+        public Vector3 colliderSize = new Vector3(1.0f, 2.0f, 1.0f);
+
         private bool hasTalkedThisSession = false;
         private bool isShivering = false;
         private Transform hipsTransform = null;
@@ -205,9 +218,18 @@ namespace SownInStone.Community
                 BoxCollider boxCol = GetComponent<BoxCollider>();
                 if (boxCol != null)
                 {
-                    boxCol.isTrigger = true; // Va chạm mềm để người chơi có thể tiến sát tương tác
-                    boxCol.center = new Vector3(0f, 1f, 0f);
-                    boxCol.size = new Vector3(1.0f, 2.0f, 1.0f);
+                    if (useCustomColliderSettings)
+                    {
+                        boxCol.isTrigger = colliderIsTrigger;
+                        boxCol.center = colliderCenter;
+                        boxCol.size = colliderSize;
+                    }
+                    else
+                    {
+                        boxCol.isTrigger = true; // Va chạm mềm để người chơi có thể tiến sát tương tác
+                        boxCol.center = new Vector3(0f, 1f, 0f);
+                        boxCol.size = new Vector3(1.0f, 2.0f, 1.0f);
+                    }
                 }
             }
         }
